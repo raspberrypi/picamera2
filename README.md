@@ -272,9 +272,9 @@ In this example, we capture a whole request. This request now belongs to us and 
 
 ### [mjpeg_server.py](examples/mjpeg_server.py)
 
-This is a simple MJPEG web server, derived from one of the old [*Picamera examples*](https://picamera.readthedocs.io/en/release-1.13/recipes2.html#web-streaming). You will need to install *simplejpeg* (`pip3 install simplejpeg`) as the existing JPEG encoders in *PIL* and *OpenCV* are not particularly fast.
+This is a simple MJPEG web server, derived from one of the old [*Picamera examples*](https://picamera.readthedocs.io/en/release-1.13/recipes2.html#web-streaming). You will need to install *simplejpeg* (`pip3 install simplejpeg`) as the existing JPEG encoders in *PIL* and *OpenCV* are not particularly convenient.
 
-We could probably achieve better framerates by running the JPEG encode and the streaming in separate threads, but the code as given here is particularly trivial and works quite tolerably. In future *Picamera2* may in any case have built-in support for JPEG encoding, so this example is certainly liable to change.
+At some point in the future *Picamera2* may include built-in support for JPEG encoding, so this example is certainly liable to change.
 
 To try it, just start the server on your Pi and then, on a different computer open a web browser and visit `http://<your-Pi's-IP-address>:8000`.
 

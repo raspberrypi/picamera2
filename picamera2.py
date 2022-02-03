@@ -115,8 +115,8 @@ class Picamera2:
                 "raw": raw,
                 "controls": controls}
 
-    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=1, controls={}):
-        "Make a configuration suitable for still image capture."
+    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=2, controls={}):
+        "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XRGB8888", "size": self.sensor_resolution}, main)
@@ -164,8 +164,15 @@ class Picamera2:
             raise RuntimeError("format not found in " + name + " stream")
         if "size" not in stream_config:
             raise RuntimeError("size not found in " + name + " stream")
-        if type(stream_config["format"]) is not str:
+        format = stream_config["format"]
+        if type(format) is not str:
             raise RuntimeError("format in " + name + " stream should be a string")
+        if name == "raw":
+            if not self.is_Bayer(format):
+                raise RuntimeError("Unrecognised raw format " + format)
+        else:
+            if not self.is_YUV(format) and not self.is_RGB(format):
+                raise RuntimeError("Bad format " + format + " in stream " + name)
         if type(stream_config["size"]) is not tuple or len(stream_config["size"]) != 2:
             raise RuntimeError("size in " + name + " stream should be (width, height)")
 
@@ -252,6 +259,12 @@ class Picamera2:
 
     def is_RGB(self, fmt):
         return fmt in ("BGR888", "RGB888", "XBGR8888", "XRGB8888")
+
+    def is_Bayer(self, fmt):
+        return fmt in ("SBGGR10", "SGBRG10", "SGRBG10", "SRGGB10",
+                       "SBGGR10_CSI2P", "SGBRG10_CSI2P", "SGRBG10_CSI2P", "SRGGB10_CSI2P",
+                       "SBGGR12", "SGBRG12", "SGRBG12", "SRGGB12",
+                       "SBGGR12_CSI2P", "SGBRG12_CSI2P", "SGRBG12_CSI2P", "SRGGB12_CSI2P")
 
     def make_requests(self):
         # Make libcamera request objects. Makes as many as the number of buffers in the
@@ -462,7 +475,7 @@ class Picamera2:
                         self.async_signal_function(self)
 
             # We can only hang on to a limited number of requests here, most should be recycled
-            # immediately back to libcamera. You could consider customosing this number.
+            # immediately back to libcamera. You could consider customising this number.
             while len(self.completed_requests) > 1:
                 self.completed_requests.pop(0).release()
 
@@ -569,6 +582,22 @@ class Picamera2:
                 return self.async_result
             else:
                 self.dispatch_functions([self.capture_request_], signal_function)
+        if wait:
+            return self.wait()
+
+    def switch_mode_capture_request_and_stop(self, camera_config, wait=True, signal_function=signal_event):
+        """ """
+
+        def capture_request_and_stop_(self):
+            self.capture_request_()
+            request = self.async_result
+            self.stop_()
+            self.async_result = request
+            return True
+
+        functions = [(lambda: self.switch_mode_(camera_config)),
+                     (lambda: capture_request_and_stop_(self))]
+        self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
 

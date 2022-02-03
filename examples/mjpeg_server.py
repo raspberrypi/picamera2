@@ -7,8 +7,10 @@
 import picamera2
 import null_preview
 import simplejpeg
+import io
 import logging
 import socketserver
+from threading import Condition, Thread
 from http import server
 
 PAGE="""\
@@ -22,6 +24,23 @@ PAGE="""\
 </body>
 </html>
 """
+
+output_frame = None
+output_buffer = io.BytesIO()
+output_condition = Condition()
+output_running = True
+
+def encode_thread():
+    global output_frame
+    while output_running:
+        array = picam2.capture_array()
+        buf = simplejpeg.encode_jpeg(array, colorspace='BGRX')
+        output_buffer.truncate()
+        with output_condition:
+            output_frame = output_buffer.getvalue()
+            output_condition.notify_all()
+        output_buffer.seek(0)
+        output_buffer.write(buf)
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -45,8 +64,9 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    array = picam2.capture_array()
-                    frame = simplejpeg.encode_jpeg(array, colorspace='BGRX')
+                    with output_condition:
+                        output_condition.wait()
+                        frame = output_frame
                     self.wfile.write(b'--FRAME\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
                     self.send_header('Content-Length', len(frame))
@@ -70,12 +90,15 @@ preview = null_preview.NullPreview(picam2)
 picam2.open_camera()
 picam2.configure(picam2.preview_configuration(main={"size": (640, 480)}))
 picam2.start()
+thread = Thread(target=encode_thread)
+thread.start()
 
 try:
     address = ('', 8000)
     server = StreamingServer(address, StreamingHandler)
     server.serve_forever()
 finally:
+    output_running = False
+    thread.join()
     preview.stop()
     picam2.stop()
-    picam2.close_camera()
