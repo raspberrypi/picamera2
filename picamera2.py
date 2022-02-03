@@ -456,7 +456,8 @@ class Picamera2:
             display_request.acquire()
 
             if self._encoder is not None:
-                self._encoder.encode(self.streams[0], display_request)
+                stream = self.stream_map["main"]
+                self._encoder.encode(stream, display_request)
 
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
@@ -725,7 +726,7 @@ class Picamera2:
 
     def start_encoder(self):
         streams = self.camera_configuration()
-        if streams['use_case'] is not "video":
+        if streams['use_case'] != "video":
             raise RuntimeError("No video stream found")
         if self.encoder is None:
             raise RuntimeError("No encoder specified")
