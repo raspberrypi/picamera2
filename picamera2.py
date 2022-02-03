@@ -5,6 +5,7 @@ import libcamera
 import numpy as np
 import threading
 from PIL import Image
+from encoder import Encoder
 import time
 
 
@@ -32,6 +33,7 @@ class Picamera2:
         self.controls_lock = threading.Lock()
         self.controls = {}
         self.options = {}
+        self._encoder = None
         self.request_callback = None
         self.completed_requests = []
         self.lock = threading.Lock() # protects the functions and completed_requests fields
@@ -446,6 +448,10 @@ class Picamera2:
             display_request = self.completed_requests[-1]
             display_request.acquire()
 
+            if self._encoder is not None:
+                stream = self.stream_map["main"]
+                self._encoder.encode(stream, display_request)
+
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
             # in the list to be tried again next time.
@@ -710,6 +716,30 @@ class Picamera2:
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
+
+    def start_encoder(self):
+        streams = self.camera_configuration()
+        if streams['use_case'] != "video":
+            raise RuntimeError("No video stream found")
+        if self.encoder is None:
+            raise RuntimeError("No encoder specified")
+        self.encoder.width, self.encoder.height = streams['main']['size']
+        self.encoder.format = streams['main']['format']
+        self.encoder.stride = streams['main']['stride']
+        self.encoder._start()
+
+    def stop_encoder(self):
+        self.encoder._stop()
+
+    @property
+    def encoder(self):
+        return self._encoder
+
+    @encoder.setter
+    def encoder(self, value):
+        if not isinstance(value, Encoder):
+            raise RuntimeError("Must pass encoder instance")
+        self._encoder = value
 
 
 class CompletedRequest:
