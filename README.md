@@ -69,7 +69,6 @@ The camera system should be opened as shown.
 from picamera2 import *
 
 picam2 = Picamera2()
-picam2.open_camera()
 ```
 
 Multi-camera support will be added in a future release.
@@ -161,7 +160,6 @@ from qt_gl_preview import *
 picam2 = Picamera2
 preview = QtGlPreview(picam2)
 
-picam2.open_camera()
 config = picam2.preview_configuration()
 picam2.configure(config)
 

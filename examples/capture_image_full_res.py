@@ -9,8 +9,6 @@ import time
 picam2 = Picamera2()
 preview = QtGlPreview(picam2)
 
-picam2.open_camera()
-
 preview_config = picam2.preview_configuration()
 capture_config = picam2.still_configuration()
 picam2.configure(preview_config)

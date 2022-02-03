@@ -87,7 +87,6 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 
 picam2 = picamera2.Picamera2()
 preview = null_preview.NullPreview(picam2)
-picam2.open_camera()
 picam2.configure(picam2.preview_configuration(main={"size": (640, 480)}))
 picam2.start()
 thread = Thread(target=encode_thread)

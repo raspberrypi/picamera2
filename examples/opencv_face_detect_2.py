@@ -24,7 +24,6 @@ def draw_faces(request):
 
 picam2 = Picamera2()
 preview = QtGlPreview(picam2)
-picam2.open_camera()
 config = picam2.preview_configuration(main={"size": (640, 480)},
                                       lores={"size": (320, 240), "format": "YUV420"})
 picam2.configure(config)

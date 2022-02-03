@@ -11,7 +11,7 @@ import time
 class Picamera2:
     """Picamera2 class"""
 
-    def __init__(self, verbose=1):
+    def __init__(self, camera_num=0, verbose=1):
         """Initialise camera system and acquire the camera for use."""
         self.camera_manager = libcamera.CameraManager.singleton()
         self.verbose = verbose
@@ -40,51 +40,40 @@ class Picamera2:
             print("Camera manager:", self.camera_manager)
             print("Made", self)
 
+        self.open_camera(camera_num)
+
     def __del__(self):
         """Free any resources that are held."""
         if self.verbose:
             print("Freeing resources for", self)
-        self.close_camera_()
+        self.close_camera()
 
-    def open_camera(self, cam_num=0):
-        """Acquire a single camera for exclusive use."""
-        if not self.camera:
-            camera = self.camera_manager.cameras[cam_num]
-            if camera.acquire() >= 0:
-                self.camera = camera
-                if self.verbose:
-                    print("Opened camera:", self.camera)
-            else:
-                raise RuntimeError("Failed to acquire camera {} ({})".format(
-                    cam_num, self.camera_manager.cameras[cam_num]))
-
-            self.sensor_resolution = camera.properties["PixelArraySize"]
-            self.sensor_format = camera.generateConfiguration([libcamera.StreamRole.Raw]).at(0).pixelFormat
-
-        elif self.verbose:
-            print("Camera already open:", self.camera)
-
-    def close_camera_(self):
-        # Release this camera for use by others.
-        if self.camera:
-            if self.started:
-                self.stop_()
+    def open_camera(self, camera_num=0):
+        # Acquire a camera for exclusive use.
+        camera = self.camera_manager.cameras[camera_num]
+        if camera.acquire() >= 0:
+            self.camera = camera
             if self.verbose:
-                print("Close camera:", self.camera)
-            self.camera.release()
-            self.camera = None
-            self.camera_config = None
-            self.libcamera_config = None
-            self.streams = None
-            self.stream_map = None
-        elif self.verbose:
-            print("No camera to close")
+                print("Opened camera:", self.camera)
+        else:
+            raise RuntimeError("Failed to acquire camera {} ({})".format(
+                camera_num, self.camera_manager.cameras[camera_num]))
+
+        self.sensor_resolution = camera.properties["PixelArraySize"]
+        self.sensor_format = camera.generateConfiguration([libcamera.StreamRole.Raw]).at(0).pixelFormat
 
     def close_camera(self):
-        """Release this camera for use by others."""
+        # Release this camera for use by others.
         if self.started:
             self.stop()
-        self.close_camera_()
+        if self.verbose:
+            print("Close camera:", self.camera)
+        self.camera.release()
+        self.camera = None
+        self.camera_config = None
+        self.libcamera_config = None
+        self.streams = None
+        self.stream_map = None
 
     def make_initial_stream_config(self, stream_config, updates):
         # Take an initial stream_config and add any user updates.

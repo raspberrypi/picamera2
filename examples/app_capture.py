@@ -11,7 +11,6 @@ def request_callback(request):
 
 picam2 = Picamera2()
 picam2.request_callback = request_callback
-picam2.open_camera()
 picam2.configure(picam2.preview_configuration(main={"size": (800, 600)}))
 
 app = QApplication([])
