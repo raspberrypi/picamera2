@@ -1,3 +1,4 @@
+from v4l2 import *
 import io
 
 class Encoder:
@@ -5,6 +6,8 @@ class Encoder:
     def __init__(self):
         self._width = 0
         self._height = 0
+        self._stride = 0
+        self._format = None
         self._output = None
         self._running = False
 
@@ -27,6 +30,31 @@ class Encoder:
         if not isinstance(value, int):
             raise RuntimeError("Height must be integer")
         self._height = value
+
+    @property
+    def stride(self):
+        return self._stride
+
+    @stride.setter
+    def stride(self, value):
+        if not isinstance(value, int):
+            raise RuntimeError("Stride must be integer")
+        self._stride = value
+
+    @property
+    def format(self):
+        return self._format
+
+    @format.setter
+    def format(self, value):
+        if value == "RGB888":
+            self._format = V4L2_PIX_FMT_RGB24
+        elif value == "YUV420":
+            self._format = V4L2_PIX_FMT_YUV420
+        elif value == "XRGB8888":
+            self._format = V4L2_PIX_FMT_XRGB32
+        else:
+            raise RuntimeError("Invalid format")
 
     @property
     def output(self):

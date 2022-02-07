@@ -731,6 +731,8 @@ class Picamera2:
         if self.encoder is None:
             raise RuntimeError("No encoder specified")
         self.encoder.width, self.encoder.height = streams['main']['size']
+        self.encoder.format = streams['main']['format']
+        self.encoder.stride = streams['main']['stride']
         self.encoder._start()
 
     def stop_encoder(self):

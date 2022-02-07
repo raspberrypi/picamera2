@@ -40,8 +40,8 @@ class H264Encoder(Encoder):
         fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
         fmt.fmt.pix_mp.width = self._width
         fmt.fmt.pix_mp.height = self._height
-        fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420
-        fmt.fmt.pix_mp.plane_fmt[0].bytesperline = self.width # is this correct?
+        fmt.fmt.pix_mp.pixelformat = self.format
+        fmt.fmt.pix_mp.plane_fmt[0].bytesperline = self.stride
         fmt.fmt.pix_mp.field = V4L2_FIELD_ANY
         fmt.fmt.pix_mp.colorspace = V4L2_COLORSPACE_JPEG
         fmt.fmt.pix_mp.num_planes = 1
@@ -178,10 +178,8 @@ class H264Encoder(Encoder):
 
     def encode(self, stream, request):
         cfg = stream.configuration
-        width, height = cfg.size
         fb = request.request.buffers[stream]
         fd = fb.fd(0)
-        stride = cfg.stride
         request.acquire()
 
         buf = v4l2_buffer()
