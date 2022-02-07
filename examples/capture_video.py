@@ -7,8 +7,6 @@ import time
 import os
 
 picam2 = Picamera2()
-picam2.open_camera()
-
 video_config = picam2.video_configuration({"format": "RGB888"})
 picam2.configure(video_config)
 
