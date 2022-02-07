@@ -12,7 +12,6 @@ cv2.startWindowThread()
 
 picam2 = Picamera2()
 preview = NullPreview(picam2)
-picam2.open_camera()
 picam2.configure(picam2.preview_configuration(main={"size": (640, 480)}))
 picam2.start()
 

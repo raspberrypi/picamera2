@@ -69,7 +69,6 @@ The camera system should be opened as shown.
 from picamera2 import *
 
 picam2 = Picamera2()
-picam2.open_camera()
 ```
 
 Multi-camera support will be added in a future release.
@@ -158,10 +157,9 @@ Example:
 from picamera2 import *
 from qt_gl_preview import *
 
-picam2 = Picamera2
+picam2 = Picamera2()
 preview = QtGlPreview(picam2)
 
-picam2.open_camera()
 config = picam2.preview_configuration()
 picam2.configure(config)
 
@@ -182,6 +180,8 @@ In the *Picamera2* framework most of this hidden from the application, and users
 
 When an application captures a request, that request can no longer be re-used by the camera system until the application *returns* it using the request's `release` method. If requests are repeatedly captured and not returned, the risk is that camera frames will start to be dropped and ultimately it can stall completely.
 
+A limitation of capturing requests is that they only remain valid until the camera is re-configured (by another call to `Picamera.configure`), or the `Picamera2` object is deleted.
+
 To capture a *PIL* image:
 ```
 image = picam2.capture_image()
@@ -194,6 +194,24 @@ np_array = picam2.capture_array()
 # Also a copy.
 ```
 
+If the *lores* stream is configured for YUV420 images, these can't be represented directly as a single 2d *numpy* array. For this reason we can only capture it as a "buffer", meaning a single long 1d array, where the user could access the 3 colour channels by *slicing*. Thus:
+```
+lores_buffer = picam2.capture_buffer("lores")
+config = picam2.stream_configuration("lores")
+(w, h) = config["size"]
+stride = config["stride"]
+num_pixels_Y = stride * h
+num_pixels_UV = num_pixels_Y // 4
+Y = lores_buffer[:num_pixels_Y].reshape(h, stride)
+U = lores_buffer[num_pixels_Y:num_pixels_UV].reshape(h//2, stride//2)
+V = lores_buffer[num_pixels_Y+num_pixels_UV:num_pixels_UV].reshape(h//2, stride//2)
+```
+
+For the raw image:
+```
+raw_np_array = picam2.capture_array("raw")
+```
+
 To capture a complete request:
 ```
 request = picam2.capture_request()
@@ -201,6 +219,18 @@ request = picam2.capture_request()
 request.save("main", "test.jpg")
 # Once done, the request must be returned.
 request.release()
+```
+
+When switching to a full resolution capture, it's common to re-start the camera in preview mode afterwards. When capturing a whole request, however, you can't re-start the camera until you're finished with that request:
+```
+capture_config = picam2.still_configuration()
+request = picam2.switch_mode_capture_request_and_stop(capture_config)
+# The camera is stopped but we can use the request. Then return the request:
+request.release()
+# And the camera could be re-configured and restarted.
+preview_config = picam2.preview_configuration()
+picam2.configure(preview_configuration)
+picam2.start()
 ```
 
 ## Examples
@@ -214,7 +244,7 @@ A number of small example programs are provided in the [`examples`](examples) fo
 Once you've looked at these, you might like to investigate some further topics:
 
 - [`capture_image_full_res.py`](#capture_image_full_respy) - you can capture *PIL* images or *numpy* arrays, not just JPEG or PNG files.
-- [`metadata.py`](#metadatapy) - how to find out the camera's current parameters. Also look at [`metadata_width_image.py`](#metadata_with_imagepy) to see how to capture the exact parameters that apply to a specific image.
+- [`metadata.py`](#metadatapy) - how to find out the camera's current parameters. Also look at [`metadata_with_image.py`](#metadata_with_imagepy) to see how to capture the exact parameters that apply to a specific image.
 - [`controls.py`](#controlspy) and [`exposure_fixed.py`](#exposure_fixedpy) for how to set the camera controls for yourself, either while it's running or when it starts.
 
 Finally, for more advanced use cases:
@@ -251,6 +281,10 @@ Like [capture_jpeg.py](#capture_jpegpy), only it saves a PNG file rather than a 
 ### [controls.py](examples/controls.py)
 
 Camera control values can be updated while the camera is running. In this example we fix the camera's exposure time, gain and white balance values so that, after the controls have been set, the camera will no longer adapt these parameters to the operating environment.
+
+### [controls_2.py](examples/controls_2.py)
+
+This is an easier way to fix the gains and white balance - the AGC/AEC and AWB algorithms can simple be turned off.
 
 ### [exposure_fixed.py](examples/exposure_fixed.py)
 
@@ -327,3 +361,11 @@ Example of how to switch between one camera mode and another. In this case we re
 ### [switch_mode_2.py](examples/switch_mode_2.py)
 
 Alternative example of how to switch camera modes (like [switch_mode.py](#switch_modepy)). Under the hood both methods are in fact doing exactly the same thing.
+
+### [zoom.py](examples/zoom.py)
+
+Digital zoom is achieved using the `ScalerCrop` control, which takes a rectangle in the form `(offset_x, offset_y, width, height)` to specify which part of the full image we see in the output. The coordinates of this rectangle always correspond to the sensor at full resolution, which can be obtained using the `Picamera2.sensor_resolution` property.
+
+The current value of the `ScalerScrop` can be read in the normal way from the camera's metadata. A value of all zeroes should be taken as meaning the full sensor resolution.
+
+Notice how this example synchronises `ScalerCrop` updates with frames from the camera. Otherwise all the controls would be set at once, with the final value overwriting all the others - so the zoom, rather than occurring gradually, would happen in a single large jump.

@@ -11,7 +11,6 @@ RATIO = 3.0
 
 picam2 = Picamera2()
 preview = NullPreview(picam2)
-picam2.open_camera()
 picam2.configure(picam2.preview_configuration())
 picam2.start()
 
