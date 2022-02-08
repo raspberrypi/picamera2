@@ -48,11 +48,15 @@ class Encoder:
     @format.setter
     def format(self, value):
         if value == "RGB888":
-            self._format = V4L2_PIX_FMT_RGB24
+            self._format = V4L2_PIX_FMT_BGR24
         elif value == "YUV420":
             self._format = V4L2_PIX_FMT_YUV420
         elif value == "XRGB8888":
-            self._format = V4L2_PIX_FMT_XRGB32
+            """
+            Currently get the following using this format:
+            OSError: [Errno 22] Invalid argument
+            """
+            self._format = V4L2_PIX_FMT_XBGR32
         else:
             raise RuntimeError("Invalid format")
 
