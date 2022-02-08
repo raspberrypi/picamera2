@@ -158,6 +158,7 @@ class H264Encoder(Encoder):
                         self.bufs[buf.index][0].seek(0)
                         if self._output is not None:
                             self._output.write(b)
+                            self._output.flush()
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
