@@ -178,6 +178,10 @@ class H264Encoder(Encoder):
                         l.release()
 
     def encode(self, stream, request):
+        # Don't start encoding if we don't have an output handle
+        # as the header seems only to be sent with the first frame
+        if self._output is None:
+            return
         cfg = stream.configuration
         fb = request.request.buffers[stream]
         fd = fb.fd(0)
