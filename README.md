@@ -14,9 +14,9 @@ These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On 
 
 First install and build *libcamera* according to the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
 
-1. Clone the picamera2 branch from the libcamera repo `git@github.com:raspberrypi/libcamera.git` (not from the usual location). You can use the command
+1. Clone the picamera2 branch from the libcamera repo `https://github.com/raspberrypi/libcamera.git` (not from the usual location). You can use the command
 ```
-git clone --branch picamera2 git@github.com:raspberrypi/libcamera.git
+git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
 ```
 WARNING: DO NOT USE THIS REPOSITORY FOR ANY PURPOSE OTHER THAN TRYING OUT *PICAMERA2* - IT WILL NOT BE KEPT UP TO DATE WITH MAINLINE *LIBCAMERA* DEVELOPMENT AND WILL BE DELETED IN DUE COURSE.
 
@@ -26,7 +26,7 @@ Next we need some DRM/KMS bindings:
 
 ```
 cd
-git clone git@github.com:tomba/kmsxx.git
+git clone https://github.com/tomba/kmsxx.git
 cd kmsxx
 git submodule update --init
 sudo apt install -y libfmt-dev libdrm-dev
@@ -40,7 +40,7 @@ Finally fetch the *Picamera2* repository. There are a couple of dependencies to 
 cd
 sudo pip3 install pyopengl
 sudo apt install -y python3-pyqt5
-git clone git@github.com:raspberrypi/picamera2.git
+git clone https://github.com/raspberrypi/picamera2.git
 ```
 
 To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
