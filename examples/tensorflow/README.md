@@ -1,10 +1,10 @@
 # TensorFlow Lite Example
 
-TensorFlow Lite inferferencing examples that carry out real-time object detection and labelling in a QT preview window using the [MobileNet V2](https://arxiv.org/abs/1801.04381) network trained on the [COCO dataset](https://cocodataset.org/#home).
+TensorFlow Lite inferencing examples that carry out real-time object detection and labelling in a QT preview window using the [MobileNet V2](https://arxiv.org/abs/1801.04381) network trained on the [COCO dataset](https://cocodataset.org/#home).
 
-## Installing Picamera 2
+## Installing Picamera2
 
-Ensure that you have installed the Picamera 2 library along with OpenCV. 
+Ensure that you have installed the Picamera2 library along with OpenCV. 
 
 ```
 $ sudo apt update
