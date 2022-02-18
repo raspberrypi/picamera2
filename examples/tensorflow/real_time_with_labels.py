@@ -19,7 +19,7 @@
 #
 # and run from the command line,
 #
-# $ python3 real_time.py --model mobilenet_v2.tflite --label coco_labels.txt
+# $ python3 real_time_with_labels.py --model mobilenet_v2.tflite --label coco_labels.txt
 
 import tflite_runtime.interpreter as tflite
 
