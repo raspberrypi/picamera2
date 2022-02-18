@@ -19,7 +19,7 @@
 #
 # and run from the command line,
 #
-# $ python3 real_time_with_labels.py --model mobilenet_v2.tflite --label coco_labels.txt
+# $ python3 real_time.py --model mobilenet_v2.tflite --label coco_labels.txt
 
 import tflite_runtime.interpreter as tflite
 
@@ -39,7 +39,6 @@ normalSize = (640, 480)
 lowresSize = (320, 240)
 
 rectangles = []
-texts = []
 
 def ReadLabelFile(file_path):
   with open(file_path, 'r') as f:
@@ -56,19 +55,19 @@ def DrawRectangles(request):
    with fb.mmap(0) as b:
        im = np.array(b, copy=False, dtype=np.uint8).reshape((normalSize[1],normalSize[0], 4))
 
-       for i in range(len(rectangles)):
-          rect = rectangles[i]
+       for rect in rectangles:
+          print(rect)
           rect_start = (int(rect[0]*2) - 5, int(rect[1]*2) - 5)
           rect_end = (int(rect[2]*2) + 5, int(rect[3]*2) + 5)
           cv2.rectangle(im, rect_start, rect_end, (0,255,0,0))
-          if texts:
+          if len(rect) == 5:
+            text = rect[4]
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(im, texts[i], (int(rect[0]*2) + 10, int(rect[1]*2) + 10), font, 1, (255,255,255),2,cv2.LINE_AA)
+            cv2.putText(im, text, (int(rect[0]*2) + 10, int(rect[1]*2) + 10), font, 1, (255,255,255),2,cv2.LINE_AA)
        del im
 
 def InferenceTensorFlow( image, model, output, label=None):
    global rectangles
-   global texts
 
    if label:
        labels = ReadLabelFile(label)
@@ -105,7 +104,6 @@ def InferenceTensorFlow( image, model, output, label=None):
    num_boxes = interpreter.get_tensor(output_details[3]['index'])
 
    rectangles = []
-   texts = []
    for i in range(int(num_boxes)):
       top, left, bottom, right = detected_boxes[0][i]
       classId = int(detected_classes[0][i])
@@ -115,13 +113,13 @@ def InferenceTensorFlow( image, model, output, label=None):
           ymin = bottom * initial_h
           xmax = right * initial_w
           ymax = top * initial_h
-          if labels:
-              print(labels[classId], 'score = ', score)
-              texts.append(labels[classId])
-          else:
-              print ('score = ', score)
           box = [xmin, ymin, xmax, ymax]
           rectangles.append(box)
+          if labels:
+              print(labels[classId], 'score = ', score)
+              rectangles[-1].append(labels[classId])
+          else:
+              print ('score = ', score)
 
 def main():
     parser = argparse.ArgumentParser()
