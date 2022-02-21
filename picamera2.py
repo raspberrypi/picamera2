@@ -90,6 +90,7 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XRGB8888", "size": (640, 480)}, main)
+        self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         controls = {"NoiseReductionMode": 3} | controls
@@ -125,6 +126,7 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XRGB8888", "size": (1280, 720)}, main)
+        self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
@@ -238,6 +240,8 @@ class Picamera2:
         align = 32
         if stream_config["format"] in ("YUV420", "YVU420"):
             align = 64 # because the UV planes will have half this alignment
+        elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
+            align = 16 # 4 channels per pixel gives us an automatic extra factor of 2
         size = stream_config["size"]
         stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
 
@@ -765,15 +769,16 @@ class CompletedRequest:
         # Turning the 1d array into a 2d image-like array only works if the
         # image stride (which is in bytes) is a whole number of pixels. Even
         # then, if they don't match exactly you will get "padding" down the RHS.
-        # Working around this would require another expensive copy of all the data,
-        # but we can think it over whether we want to do that.
+        # Working around this requires another expensive copy of all the data.
         if fmt in ("BGR888", "RGB888"):
-            if stride % 3:
-                raise RuntimeError("Bad width for 3 channel image")
+            if stride != w * 3:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w*3], order='C')
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
-            if stride % 4:
-                raise RuntimeError("Bad width for 4 channel image")
+            if stride != w * 4:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w*4], order='C')
             image = array.reshape((h, w, 4))
         elif fmt[0] == 'S': # raw formats
             image = array.reshape((h, stride))
