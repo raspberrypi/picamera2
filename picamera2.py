@@ -6,6 +6,8 @@ import numpy as np
 import threading
 from PIL import Image
 import time
+from pidng.core import PICAM2DNG, DNGTags, Tag
+from pidng.camdefs import *
 
 
 class Picamera2:
@@ -510,7 +512,11 @@ class Picamera2:
 
     def capture_file_(self, filename, name):
         request = self.completed_requests.pop(0)
-        request.save(name, filename)
+        fmt = self.camera_config[name]["format"]
+        if "raw" in name and self.is_Bayer(fmt):
+            request.save_dng(name, filename)
+        else:
+            request.save(name, filename)
         self.async_result = request.get_metadata()
         request.release()
         return True
@@ -815,6 +821,25 @@ class CompletedRequest:
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
         img.save(filename, compress_level=png_compress_level, quality=jpeg_quality)
+        if self.picam2.verbose:
+            end_time = time.time()
+            print("Saved", self, "to file", filename)
+            print("Time taken for encode:", (end_time - start_time) * 1000, "ms")
+
+    def save_dng(self, name, filename):
+        start_time = time.time()
+        raw = self.make_array(name)
+
+        fmt = self.picam2.camera_config[name]
+        metadata = self.request.metadata
+        camera = Picamera2Camera(fmt, metadata)
+        r = PICAM2DNG(camera)
+
+        dng_compress_level = self.picam2.options.get("compress_level", 0)
+        
+        r.options(compress=dng_compress_level)
+        r.convert(raw, filename)
+
         if self.picam2.verbose:
             end_time = time.time()
             print("Saved", self, "to file", filename)
