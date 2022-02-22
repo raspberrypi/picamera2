@@ -1,7 +1,7 @@
 # Picamera2
 
 ---
-**WARNING!** *Picamera2* is currently available here as a **preview release**. There will be bugs and problems, and both the implementation and public API are likely to change significantly in the near term and without warning. It is provided only for experimentation and not for any purposes that require any degree of stability.
+**WARNING!** *Picamera2* is currently available here as a **preview release**. There will be bugs and problems, and both the implementation and public API are likely to change significantly and without warning. It is provided only for experimentation and not for any purposes that require any degree of stability.
 ---
 
 *Picamera2* is the libcamera-based replacement for *Picamera* which was a Python interface to the Raspberry Pi's legacy camera stack. *Picamera2* also presents an easy to use Python API.
@@ -10,13 +10,13 @@ For the time being, the documentation here is mostly based on a number of suppli
 
 ## Installation
 
-These instructions are for a fresh Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck.
+These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck. Note that I found OpenCV more of a pain to install on a 64-bit image, but you may know better incantations than I do (please share!).
 
 First install and build *libcamera* according to the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
 
-1. Clone the picamera2 branch from the libcamera repo `git@github.com:raspberrypi/libcamera.git` (not from the usual location). You can use the command
+1. Clone the picamera2 branch from the libcamera repo `https://github.com/raspberrypi/libcamera.git` (not from the usual location). You can use the command
 ```
-git clone --branch picamera2 git@github.com:raspberrypi/libcamera.git
+git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
 ```
 WARNING: DO NOT USE THIS REPOSITORY FOR ANY PURPOSE OTHER THAN TRYING OUT *PICAMERA2* - IT WILL NOT BE KEPT UP TO DATE WITH MAINLINE *LIBCAMERA* DEVELOPMENT AND WILL BE DELETED IN DUE COURSE.
 
@@ -26,20 +26,21 @@ Next we need some DRM/KMS bindings:
 
 ```
 cd
-git clone git@github.com:tomba/kmsxx.git
-cd kmxss
+git clone https://github.com/tomba/kmsxx.git
+cd kmsxx
 git submodule update --init
 sudo apt install -y libfmt-dev libdrm-dev
 meson build
 ninja -C build
 ```
 
-Finally fetch the *Picamera2* repository:
+Finally fetch the *Picamera2* repository. There are a couple of dependencies to download first.
 
 ```
 cd
 sudo pip3 install pyopengl
-git clone git@github.com:raspberrypi/picamera2.git
+sudo apt install -y python3-pyqt5
+git clone https://github.com/raspberrypi/picamera2.git
 ```
 
 To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
@@ -49,11 +50,11 @@ export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/km
 
 **A note on OpenCV**
 
-I had some difficulties installing the latest version. The following appeared to work:
+I had some difficulties installing the latest version, and the version from apt didn't seem to include the Haar classifiers. But the following appears to work:
 
 ```
 sudo pip3 install opencv-python==4.4.0.46
-sudo apt install libatlas-base-dev
+sudo apt install -y libatlas-base-dev
 sudo pip3 install numpy --upgrade
 ```
 
@@ -284,7 +285,7 @@ Camera control values can be updated while the camera is running. In this exampl
 
 ### [controls_2.py](examples/controls_2.py)
 
-This is an easier way to fix the gains and white balance - the AGC/AEC and AWB algorithms can simple be turned off.
+This is an easier way to fix the gains and white balance - the AGC/AEC and AWB algorithms can simply be turned off.
 
 ### [exposure_fixed.py](examples/exposure_fixed.py)
 
@@ -361,6 +362,12 @@ Example of how to switch between one camera mode and another. In this case we re
 ### [switch_mode_2.py](examples/switch_mode_2.py)
 
 Alternative example of how to switch camera modes (like [switch_mode.py](#switch_modepy)). Under the hood both methods are in fact doing exactly the same thing.
+
+### [yuv_to_rgb.py](examples/yuv_to_rgb.py)
+
+A limitation of the second "lores" output stream is that it has to be in a YUV format. Sometimes it might be convenient to have a reasonably sized preview window, but a much smaller RGB version (for example for passing to a neural network). This example shows how to convert a YUV420 image to the interleaved RGB form that *OpenCV* and *TensorFlow Lite* normally prefer.
+
+The `YUV420_to_RGB` function takes a YUV420 image and creates an interleaved RGB output of half resolution, matching the resolution of the input U and V planes (but not of the Y). The image size that you pass in (which is the *input* image size) must include any *padding*. Padding on the end of image rows is quite common so that we can match the optimal alignments that the underlying image processing hardware requires. `YUV420_to_RGB` lets you remove any such padding at the end by passing the unpadded width as the `final_width` parameter.
 
 ### [zoom.py](examples/zoom.py)
 

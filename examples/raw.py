@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
-# Capture a JPEG while still running in the preview mode. When you
-# capture to a file, the return value is the metadata for that image.
+# Configure a raw stream and capture an image from it.
 
 from qt_gl_preview import *
 from picamera2 import *

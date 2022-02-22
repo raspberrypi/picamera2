@@ -33,9 +33,9 @@ class Picamera2:
         self.controls_lock = threading.Lock()
         self.controls = {}
         self.options = {}
-        self._encoder = None
         self.request_callback = None
         self.completed_requests = []
+        self._encoder = None
         self.lock = threading.Lock() # protects the functions and completed_requests fields
 
         if self.verbose:
@@ -92,6 +92,7 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XRGB8888", "size": (640, 480)}, main)
+        self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         controls = {"NoiseReductionMode": 3} | controls
@@ -127,6 +128,7 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XRGB8888", "size": (1280, 720)}, main)
+        self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
@@ -240,6 +242,8 @@ class Picamera2:
         align = 32
         if stream_config["format"] in ("YUV420", "YVU420"):
             align = 64 # because the UV planes will have half this alignment
+        elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
+            align = 16 # 4 channels per pixel gives us an automatic extra factor of 2
         size = stream_config["size"]
         stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
 
@@ -425,6 +429,10 @@ class Picamera2:
         if not requests:
             return
 
+        if self._encoder is not None:
+            stream = self.stream_map["main"]
+            self._encoder.encode(stream, requests[-1])
+
         # It works like this:
         # * We maintain a list of the requests that libcamera has completed (completed_requests).
         #   But we keep only a minimal number here so that we have one available to "return
@@ -443,10 +451,6 @@ class Picamera2:
             # This is the request we'll hand back to be displayed. This counts as a "use" too.
             display_request = self.completed_requests[-1]
             display_request.acquire()
-
-            if self._encoder is not None:
-                stream = self.stream_map["main"]
-                self._encoder.encode(stream, display_request)
 
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
@@ -795,15 +799,16 @@ class CompletedRequest:
         # Turning the 1d array into a 2d image-like array only works if the
         # image stride (which is in bytes) is a whole number of pixels. Even
         # then, if they don't match exactly you will get "padding" down the RHS.
-        # Working around this would require another expensive copy of all the data,
-        # but we can think it over whether we want to do that.
+        # Working around this requires another expensive copy of all the data.
         if fmt in ("BGR888", "RGB888"):
-            if stride % 3:
-                raise RuntimeError("Bad width for 3 channel image")
+            if stride != w * 3:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w*3], order='C')
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
-            if stride % 4:
-                raise RuntimeError("Bad width for 4 channel image")
+            if stride != w * 4:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w*4], order='C')
             image = array.reshape((h, w, 4))
         elif fmt[0] == 'S': # raw formats
             image = array.reshape((h, stride))
@@ -851,6 +856,9 @@ YUV2RGB_SMPTE170M = np.array([[1.164, 1.164, 1.164], [0.0, -0.392, 2.017], [1.59
 YUV2RGB_REC709    = np.array([[1.164, 1.164, 1.164], [0.0, -0.213, 2.112], [1.793, -0.533, 0.0]])
 
 def YUV420_to_RGB(YUV_in, size, matrix=YUV2RGB_JPEG, rb_swap=True, final_width=0):
+    """Convert a YUV420 image to an interleaved RGB image of half resolution. The
+    size parameter should include padding if there is any, which can be trimmed off
+    at the end with the final_width parameter."""
     w, h = size
     w2 = w // 2
     h2 = h // 2
@@ -868,6 +876,6 @@ def YUV420_to_RGB(YUV_in, size, matrix=YUV2RGB_JPEG, rb_swap=True, final_width=0
     RGB = np.dot(YUV, matrix).clip(0, 255).astype(np.uint8)
 
     if final_width and final_width != w2:
-        RGB = RGB[:,:final_width,3]
+        RGB = RGB[:,:final_width,:]
 
     return RGB
