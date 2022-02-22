@@ -7,7 +7,7 @@ from picamera2 import *
 import time
 
 picam2 = Picamera2()
-preview = DrmPreview(picam2)
+preview = DrmPreview(picam2, x=100, y=100, width=640, height=480)
 
 preview_config = picam2.preview_configuration()
 picam2.configure(preview_config)
