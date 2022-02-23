@@ -6,8 +6,11 @@ import numpy as np
 import threading
 from PIL import Image
 import time
-from pidng.core import PICAM2DNG, DNGTags, Tag
-from pidng.camdefs import *
+try:
+    from pidng.core import PICAM2DNG, DNGTags, Tag
+    from pidng.camdefs import *
+except:
+    print("PiDNG Package is missing. ")
 
 
 class Picamera2:
@@ -512,11 +515,13 @@ class Picamera2:
 
     def capture_file_(self, filename, name):
         request = self.completed_requests.pop(0)
-        fmt = self.camera_config[name]["format"]
-        if "raw" in name and self.is_Bayer(fmt):
-            request.save_dng(name, filename)
+        if self.camera_config["raw"] is not None:
+            fmt = self.camera_config["raw"]["format"]
+        if self.is_Bayer(fmt):
+            request.save_dng(filename)
         else:
             request.save(name, filename)
+
         self.async_result = request.get_metadata()
         request.release()
         return True
@@ -826,12 +831,12 @@ class CompletedRequest:
             print("Saved", self, "to file", filename)
             print("Time taken for encode:", (end_time - start_time) * 1000, "ms")
 
-    def save_dng(self, name, filename):
+    def save_dng(self, filename, name="raw"):
         start_time = time.time()
         raw = self.make_array(name)
 
         fmt = self.picam2.camera_config[name]
-        metadata = self.request.metadata
+        metadata = self.get_metadata()
         camera = Picamera2Camera(fmt, metadata)
         r = PICAM2DNG(camera)
 
