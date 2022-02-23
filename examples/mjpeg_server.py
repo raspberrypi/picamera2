@@ -34,7 +34,7 @@ def encode_thread():
     global output_frame
     while output_running:
         array = picam2.capture_array()
-        buf = simplejpeg.encode_jpeg(array, colorspace='BGRX')
+        buf = simplejpeg.encode_jpeg(array, colorspace='RGBX')
         output_buffer.truncate()
         with output_condition:
             output_frame = output_buffer.getvalue()

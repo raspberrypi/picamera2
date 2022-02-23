@@ -34,6 +34,13 @@ meson build
 ninja -C build
 ```
 
+If you want to use video encoding we need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
+
+```
+cd
+git clone https://github.com/RaspberryPiFoundation/python-v4l2.git
+```
+
 Finally fetch the *Picamera2* repository. There are a couple of dependencies to download first.
 
 ```
@@ -45,7 +52,7 @@ git clone https://github.com/raspberrypi/picamera2.git
 
 To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
 ```
-export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py
+export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2
 ```
 
 **A note on OpenCV**
@@ -247,6 +254,7 @@ Once you've looked at these, you might like to investigate some further topics:
 - [`capture_image_full_res.py`](#capture_image_full_respy) - you can capture *PIL* images or *numpy* arrays, not just JPEG or PNG files.
 - [`metadata.py`](#metadatapy) - how to find out the camera's current parameters. Also look at [`metadata_with_image.py`](#metadata_with_imagepy) to see how to capture the exact parameters that apply to a specific image.
 - [`controls.py`](#controlspy) and [`exposure_fixed.py`](#exposure_fixedpy) for how to set the camera controls for yourself, either while it's running or when it starts.
+- [`capture_video.py`](#capture_videopy) shows you how to capture an h.264 video file.
 
 Finally, for more advanced use cases:
 
@@ -254,6 +262,7 @@ Finally, for more advanced use cases:
 - If you'd like to embed camera functionality in a *PyQt* application, please look at [`app_capture.py`](#app_capturepy).
 - To find out how and why you might want to use a low resolution ("lores") stream, please look at [`opencv_face_detect_2.py`](#opencv_face_detect_2py).
 - To capture raw camera buffers, please see [`raw.py`](#rawpy).
+- For an example of how you might capture and stream h.264 video over the network, please check [`capture_stream.py`](#capture_streampy).
 
 ### [app_capture.py](examples/app_capture.py)
 
@@ -278,6 +287,14 @@ This is the simplest way to capture a JPEG. It starts a preview window and then 
 ### [capture_png.py](examples/capture_png.py)
 
 Like [capture_jpeg.py](#capture_jpegpy), only it saves a PNG file rather than a JPEG.
+
+### [capture_stream.py](examples/capture_stream.py)
+
+Only slightly more complicated than capturing video to a file, we can route the output of the hardware video encoder to a network socket instead.
+
+### [capture_video.py](examples/capture_video.py)
+
+This is pretty much the simplest way to capture and encode the images into an h.264 file.
 
 ### [controls.py](examples/controls.py)
 

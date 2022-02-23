@@ -91,7 +91,7 @@ class Picamera2:
         "Make a configuration suitable for camera preview."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": (640, 480)}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
@@ -109,7 +109,7 @@ class Picamera2:
         "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": self.sensor_resolution}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": self.sensor_resolution}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
@@ -127,13 +127,17 @@ class Picamera2:
         "Make a configuration suitable for still video recording."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": (1280, 720)}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
-            if main["size"][0] < 1280 or main["size"][1] < 720:
+            if self.is_RGB(main["format"]):
+                # There's a bug down in some driver where it won't accept anything other than
+                # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
+                colour_space = libcamera.ColorSpace.Jpeg()
+            elif main["size"][0] < 1280 or main["size"][1] < 720:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
@@ -837,7 +841,7 @@ class CompletedRequest:
         # This is probably a hideously expensive way to do a capture.
         start_time = time.time()
         img = self.make_image(name)
-        if img.mode == "RGBA":
+        if filename.split('.')[-1].lower() in ('jpg', 'jpeg') and img.mode == "RGBA":
             # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
             # doesn't like RGBA to we have to bodge that to RGBX.
             img.mode = "RGBX"
