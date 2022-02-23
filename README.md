@@ -34,7 +34,7 @@ meson build
 ninja -C build
 ```
 
-If you want to use video encoding we need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
+You will also need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
 
 ```
 cd
