@@ -51,6 +51,8 @@ class Encoder:
             self._format = V4L2_PIX_FMT_BGR24
         elif value == "YUV420":
             self._format = V4L2_PIX_FMT_YUV420
+        elif value == "XBGR8888":
+            self._format = V4L2_PIX_FMT_BGR32
         elif value == "XRGB8888":
             """
             Currently get the following using this format:
