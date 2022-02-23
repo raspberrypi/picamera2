@@ -7,8 +7,8 @@ import threading
 from PIL import Image
 import time
 try:
-    from pidng.core import PICAM2DNG, DNGTags, Tag
-    from pidng.camdefs import *
+    from pidng.core import PICAM2DNG
+    from pidng.camdefs import Picamera2Camera
 except:
     print("PiDNG Package is missing. ")
 
