@@ -38,16 +38,19 @@ class Picamera2:
         self.completed_requests = []
         self.lock = threading.Lock() # protects the functions and completed_requests fields
 
-        if self.verbose:
-            print("Camera manager:", self.camera_manager)
-            print("Made", self)
+        
+        self.verbose_print("Camera manager:", self.camera_manager)
+        self.verbose_print("Made", self)
 
         self.open_camera(camera_num)
 
+    def verbose_print(self, *args):
+        if self.verbose > 0:
+            print(*args)
+
     def __del__(self):
         """Free any resources that are held."""
-        if self.verbose:
-            print("Freeing resources for", self)
+        self.verbose_print("Freeing resources for", self)
         self.close_camera()
 
     def open_camera(self, camera_num=0):
@@ -55,8 +58,7 @@ class Picamera2:
         camera = self.camera_manager.cameras[camera_num]
         if camera.acquire() >= 0:
             self.camera = camera
-            if self.verbose:
-                print("Opened camera:", self.camera)
+            self.verbose_print("Opened camera:", self.camera)
         else:
             raise RuntimeError("Failed to acquire camera {} ({})".format(
                 camera_num, self.camera_manager.cameras[camera_num]))
@@ -68,8 +70,7 @@ class Picamera2:
         # Release this camera for use by others.
         if self.started:
             self.stop()
-        if self.verbose:
-            print("Close camera:", self.camera)
+        self.verbose_print("Close camera:", self.camera)
         self.camera.release()
         self.camera = None
         self.camera_config = None
@@ -316,28 +317,23 @@ class Picamera2:
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()
         self.update_camera_config(camera_config, libcamera_config)
-        if self.verbose:
-            print("Requesting configuration:", camera_config)
+        self.verbose_print("Requesting configuration:", camera_config)
         if status == libcamera.ConfigurationStatus.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
         elif status == libcamera.ConfigurationStatus.Adjusted:
-            if self.verbose:
-                print("Camera configuration has been adjusted!")
+            self.verbose_print("Camera configuration has been adjusted!")
 
         # Configure libcamera.
         if self.camera.configure(libcamera_config):
             raise RuntimeError("Configuration failed: {}".format(camera_config))
-        if self.verbose:
-            print("Configuration successful!")
-        if self.verbose:
-            print("Final configuration:", camera_config)
+        self.verbose_print("Configuration successful!")
+        self.verbose_print("Final configuration:", camera_config)
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
         self.stream_map["lores"] = libcamera_config.at(self.lores_index).stream if self.lores_index >= 0 else None
         self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
-        if self.verbose:
-            print("Streams:", self.stream_map)
+        self.verbose_print("Streams:", self.stream_map)
 
         # These name the streams that we will display/encode. An application could change them.
         self.display_stream_name = "main"
@@ -349,8 +345,7 @@ class Picamera2:
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
                 raise RuntimeError("Failed to allocate buffers")
-            if self.verbose:
-                print("Allocated", len(self.allocator.buffers(stream)), "buffers for stream", i)
+            self.verbose_print("Allocated", len(self.allocator.buffers(stream)), "buffers for stream", i)
 
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
@@ -383,8 +378,7 @@ class Picamera2:
         self.camera.start(self.camera_config["controls"] | controls)
         for request in self.make_requests():
             self.camera.queueRequest(request)
-        if self.verbose:
-            print("Camera started")
+        self.verbose_print("Camera started")
         self.started = True
 
     def start(self, controls={}):
@@ -398,8 +392,7 @@ class Picamera2:
         self.started = False
         self.stop_count += 1
         self.completed_requests = []
-        if self.verbose:
-            print("Camera stopped")
+        self.verbose_print("Camera stopped")
         return True
 
     def stop(self):
