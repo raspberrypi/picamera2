@@ -430,7 +430,7 @@ class Picamera2:
             return
 
         if self._encoder is not None:
-            stream = self.stream_map["main"]
+            stream = self.stream_map[self.encode_stream_name]
             self._encoder.encode(stream, requests[-1])
 
         # It works like this:
@@ -723,9 +723,10 @@ class Picamera2:
             raise RuntimeError("No video stream found")
         if self.encoder is None:
             raise RuntimeError("No encoder specified")
-        self.encoder.width, self.encoder.height = streams['main']['size']
-        self.encoder.format = streams['main']['format']
-        self.encoder.stride = streams['main']['stride']
+        streamname = self.encode_stream_name
+        self.encoder.width, self.encoder.height = streams[streamname]['size']
+        self.encoder.format = streams[streamname]['format']
+        self.encoder.stride = streams[streamname]['stride']
         self.encoder._start()
 
     def stop_encoder(self):
