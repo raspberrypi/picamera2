@@ -71,12 +71,10 @@ class Picamera2:
         if self.started:
             self.stop()
         if self.camera is not None:
-            if self.verbose:
-                print("Closing camera:", self.camera)
+            self.verbose_print("Closing camera:", self.camera)
             self.camera.release()
             self.camera = None
-            if self.verbose:
-                print("Camera closed")
+            self.verbose_print("Camera closed")
 
         self.camera_config = None
         self.libcamera_config = None
