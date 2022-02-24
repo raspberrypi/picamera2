@@ -5,6 +5,7 @@ import libcamera
 import numpy as np
 import threading
 from PIL import Image
+from encoder import Encoder
 import time
 
 
@@ -32,20 +33,24 @@ class Picamera2:
         self.controls_lock = threading.Lock()
         self.controls = {}
         self.options = {}
+        self._encoder = None
         self.request_callback = None
         self.completed_requests = []
         self.lock = threading.Lock() # protects the functions and completed_requests fields
 
-        if self.verbose:
-            print("Camera manager:", self.camera_manager)
-            print("Made", self)
+        
+        self.verbose_print("Camera manager:", self.camera_manager)
+        self.verbose_print("Made", self)
 
         self.open_camera(camera_num)
 
+    def verbose_print(self, *args):
+        if self.verbose > 0:
+            print(*args)
+
     def __del__(self):
         """Free any resources that are held."""
-        if self.verbose:
-            print("Freeing resources for", self)
+        self.verbose_print("Freeing resources for", self)
         self.close_camera()
 
     def open_camera(self, camera_num=0):
@@ -53,8 +58,7 @@ class Picamera2:
         camera = self.camera_manager.cameras[camera_num]
         if camera.acquire() >= 0:
             self.camera = camera
-            if self.verbose:
-                print("Opened camera:", self.camera)
+            self.verbose_print("Opened camera:", self.camera)
         else:
             raise RuntimeError("Failed to acquire camera {} ({})".format(
                 camera_num, self.camera_manager.cameras[camera_num]))
@@ -93,7 +97,8 @@ class Picamera2:
         "Make a configuration suitable for camera preview."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": (640, 480)}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
+        self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         controls = {"NoiseReductionMode": 3} | controls
@@ -110,7 +115,7 @@ class Picamera2:
         "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": self.sensor_resolution}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": self.sensor_resolution}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
@@ -128,12 +133,17 @@ class Picamera2:
         "Make a configuration suitable for still video recording."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": (1280, 720)}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
+        self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
-            if main["size"][0] < 1280 or main["size"][1] < 720:
+            if self.is_RGB(main["format"]):
+                # There's a bug down in some driver where it won't accept anything other than
+                # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
+                colour_space = libcamera.ColorSpace.Jpeg()
+            elif main["size"][0] < 1280 or main["size"][1] < 720:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
@@ -242,6 +252,8 @@ class Picamera2:
         align = 32
         if stream_config["format"] in ("YUV420", "YVU420"):
             align = 64 # because the UV planes will have half this alignment
+        elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
+            align = 16 # 4 channels per pixel gives us an automatic extra factor of 2
         size = stream_config["size"]
         stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
 
@@ -310,28 +322,23 @@ class Picamera2:
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()
         self.update_camera_config(camera_config, libcamera_config)
-        if self.verbose:
-            print("Requesting configuration:", camera_config)
+        self.verbose_print("Requesting configuration:", camera_config)
         if status == libcamera.ConfigurationStatus.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
         elif status == libcamera.ConfigurationStatus.Adjusted:
-            if self.verbose:
-                print("Camera configuration has been adjusted!")
+            self.verbose_print("Camera configuration has been adjusted!")
 
         # Configure libcamera.
         if self.camera.configure(libcamera_config):
             raise RuntimeError("Configuration failed: {}".format(camera_config))
-        if self.verbose:
-            print("Configuration successful!")
-        if self.verbose:
-            print("Final configuration:", camera_config)
+        self.verbose_print("Configuration successful!")
+        self.verbose_print("Final configuration:", camera_config)
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
         self.stream_map["lores"] = libcamera_config.at(self.lores_index).stream if self.lores_index >= 0 else None
         self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
-        if self.verbose:
-            print("Streams:", self.stream_map)
+        self.verbose_print("Streams:", self.stream_map)
 
         # These name the streams that we will display/encode. An application could change them.
         self.display_stream_name = "main"
@@ -343,8 +350,7 @@ class Picamera2:
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
                 raise RuntimeError("Failed to allocate buffers")
-            if self.verbose:
-                print("Allocated", len(self.allocator.buffers(stream)), "buffers for stream", i)
+            self.verbose_print("Allocated", len(self.allocator.buffers(stream)), "buffers for stream", i)
 
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
@@ -377,8 +383,7 @@ class Picamera2:
         self.camera.start(self.camera_config["controls"] | controls)
         for request in self.make_requests():
             self.camera.queueRequest(request)
-        if self.verbose:
-            print("Camera started")
+        self.verbose_print("Camera started")
         self.started = True
 
     def start(self, controls={}):
@@ -392,8 +397,7 @@ class Picamera2:
         self.started = False
         self.stop_count += 1
         self.completed_requests = []
-        if self.verbose:
-            print("Camera stopped")
+        self.verbose_print("Camera stopped")
         return True
 
     def stop(self):
@@ -445,6 +449,10 @@ class Picamera2:
             # This is the request we'll hand back to be displayed. This counts as a "use" too.
             display_request = self.completed_requests[-1]
             display_request.acquire()
+
+            if self._encoder is not None:
+                stream = self.stream_map["main"]
+                self._encoder.encode(stream, display_request)
 
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
@@ -711,6 +719,30 @@ class Picamera2:
         if wait:
             return self.wait()
 
+    def start_encoder(self):
+        streams = self.camera_configuration()
+        if streams['use_case'] != "video":
+            raise RuntimeError("No video stream found")
+        if self.encoder is None:
+            raise RuntimeError("No encoder specified")
+        self.encoder.width, self.encoder.height = streams['main']['size']
+        self.encoder.format = streams['main']['format']
+        self.encoder.stride = streams['main']['stride']
+        self.encoder._start()
+
+    def stop_encoder(self):
+        self.encoder._stop()
+
+    @property
+    def encoder(self):
+        return self._encoder
+
+    @encoder.setter
+    def encoder(self, value):
+        if not isinstance(value, Encoder):
+            raise RuntimeError("Must pass encoder instance")
+        self._encoder = value
+
 
 class CompletedRequest:
     def __init__(self, request, picam2):
@@ -769,15 +801,16 @@ class CompletedRequest:
         # Turning the 1d array into a 2d image-like array only works if the
         # image stride (which is in bytes) is a whole number of pixels. Even
         # then, if they don't match exactly you will get "padding" down the RHS.
-        # Working around this would require another expensive copy of all the data,
-        # but we can think it over whether we want to do that.
+        # Working around this requires another expensive copy of all the data.
         if fmt in ("BGR888", "RGB888"):
-            if stride % 3:
-                raise RuntimeError("Bad width for 3 channel image")
+            if stride != w * 3:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w*3], order='C')
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
-            if stride % 4:
-                raise RuntimeError("Bad width for 4 channel image")
+            if stride != w * 4:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w*4], order='C')
             image = array.reshape((h, w, 4))
         elif fmt[0] == 'S': # raw formats
             image = array.reshape((h, stride))
@@ -806,7 +839,7 @@ class CompletedRequest:
         # This is probably a hideously expensive way to do a capture.
         start_time = time.time()
         img = self.make_image(name)
-        if img.mode == "RGBA":
+        if filename.split('.')[-1].lower() in ('jpg', 'jpeg') and img.mode == "RGBA":
             # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
             # doesn't like RGBA to we have to bodge that to RGBX.
             img.mode = "RGBX"
