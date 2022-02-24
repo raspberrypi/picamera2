@@ -5,6 +5,7 @@ import libcamera
 import numpy as np
 import threading
 from PIL import Image
+from encoder import Encoder
 import time
 
 
@@ -32,6 +33,7 @@ class Picamera2:
         self.controls_lock = threading.Lock()
         self.controls = {}
         self.options = {}
+        self._encoder = None
         self.request_callback = None
         self.completed_requests = []
         self.lock = threading.Lock() # protects the functions and completed_requests fields
@@ -89,7 +91,7 @@ class Picamera2:
         "Make a configuration suitable for camera preview."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": (640, 480)}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
@@ -107,7 +109,7 @@ class Picamera2:
         "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": self.sensor_resolution}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": self.sensor_resolution}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
@@ -125,13 +127,17 @@ class Picamera2:
         "Make a configuration suitable for still video recording."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XRGB8888", "size": (1280, 720)}, main)
+        main = self.make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
-            if main["size"][0] < 1280 or main["size"][1] < 720:
+            if self.is_RGB(main["format"]):
+                # There's a bug down in some driver where it won't accept anything other than
+                # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
+                colour_space = libcamera.ColorSpace.Jpeg()
+            elif main["size"][0] < 1280 or main["size"][1] < 720:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
@@ -446,6 +452,10 @@ class Picamera2:
             display_request = self.completed_requests[-1]
             display_request.acquire()
 
+            if self._encoder is not None:
+                stream = self.stream_map["main"]
+                self._encoder.encode(stream, display_request)
+
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
             # in the list to be tried again next time.
@@ -711,6 +721,30 @@ class Picamera2:
         if wait:
             return self.wait()
 
+    def start_encoder(self):
+        streams = self.camera_configuration()
+        if streams['use_case'] != "video":
+            raise RuntimeError("No video stream found")
+        if self.encoder is None:
+            raise RuntimeError("No encoder specified")
+        self.encoder.width, self.encoder.height = streams['main']['size']
+        self.encoder.format = streams['main']['format']
+        self.encoder.stride = streams['main']['stride']
+        self.encoder._start()
+
+    def stop_encoder(self):
+        self.encoder._stop()
+
+    @property
+    def encoder(self):
+        return self._encoder
+
+    @encoder.setter
+    def encoder(self, value):
+        if not isinstance(value, Encoder):
+            raise RuntimeError("Must pass encoder instance")
+        self._encoder = value
+
 
 class CompletedRequest:
     def __init__(self, request, picam2):
@@ -807,7 +841,7 @@ class CompletedRequest:
         # This is probably a hideously expensive way to do a capture.
         start_time = time.time()
         img = self.make_image(name)
-        if img.mode == "RGBA":
+        if filename.split('.')[-1].lower() in ('jpg', 'jpeg') and img.mode == "RGBA":
             # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
             # doesn't like RGBA to we have to bodge that to RGBX.
             img.mode = "RGBX"
