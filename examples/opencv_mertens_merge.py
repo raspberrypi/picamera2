@@ -28,11 +28,13 @@ normal = picam2.capture_array()
 picam2.stop()
 
 exposure_short = int(exposure_normal / RATIO)
+picam2.configure(capture_config)
 picam2.start({"ExposureTime": exposure_short, "AnalogueGain": gain})
 short = picam2.capture_array()
 picam2.stop()
 
 exposure_long = int(exposure_normal * RATIO)
+picam2.configure(capture_config)
 picam2.start({"ExposureTime": exposure_long, "AnalogueGain": gain})
 long = picam2.capture_array()
 picam2.stop()
