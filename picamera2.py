@@ -70,9 +70,12 @@ class Picamera2:
         # Release this camera for use by others.
         if self.started:
             self.stop()
-        self.verbose_print("Close camera:", self.camera)
-        self.camera.release()
-        self.camera = None
+        if self.camera is not None:
+            self.verbose_print("Closing camera:", self.camera)
+            self.camera.release()
+            self.camera = None
+            self.verbose_print("Camera closed")
+
         self.camera_config = None
         self.libcamera_config = None
         self.streams = None
