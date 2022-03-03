@@ -182,6 +182,8 @@ class H264Encoder(Encoder):
         # as the header seems only to be sent with the first frame
         if self._output is None:
             return
+        if self.vd.closed:
+            return
         cfg = stream.configuration
         fb = request.request.buffers[stream]
         fd = fb.fd(0)
