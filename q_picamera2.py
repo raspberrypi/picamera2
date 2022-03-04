@@ -11,7 +11,7 @@ class QPicamera2(QWidget):
         self.picamera2 = picam2
         self.label = QLabel(self)
         self.label.resize(width, height)
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.cm.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
@@ -24,7 +24,8 @@ class QPicamera2(QWidget):
 
         if self.picamera2.display_stream_name is not None:
             size = self.label.size()
-            img = request.make_image(self.picamera2.display_stream_name, size.width(), size.height())
+            img = request.make_image(self.picamera2.display_stream_name,
+                                     size.width(), size.height())
             qim = ImageQt(img).copy()
             pix = QtGui.QPixmap.fromImage(qim)
             self.label.setPixmap(pix)

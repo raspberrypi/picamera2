@@ -72,7 +72,8 @@ class EglState:
 
         self.context = eglCreateContext(self.display, self.config, EGL_NO_CONTEXT, context_attribs)
 
-        eglMakeCurrent(self.display, EGL_NO_SURFACE, EGL_NO_SURFACE, self.context)
+        eglMakeCurrent(self.display, EGL_NO_SURFACE,
+                       EGL_NO_SURFACE, self.context)
 
 
 class QGlPicamera2(QWidget):
@@ -91,7 +92,7 @@ class QGlPicamera2(QWidget):
         self.init_gl()
 
         self.picamera2 = picam2
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.cm.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
@@ -104,7 +105,8 @@ class QGlPicamera2(QWidget):
         surface = eglCreateWindowSurface(self.egl.display, self.egl.config,
                                          native_surface, None)
 
-        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+        eglMakeCurrent(self.egl.display, self.surface,
+                       self.surface, self.egl.context)
 
         self.surface = surface
 
@@ -148,10 +150,12 @@ class QGlPicamera2(QWidget):
         ]
 
         inputAttrib = glGetAttribLocation(program, "aPosition")
-        glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
+        glVertexAttribPointer(inputAttrib, 2, GL_FLOAT,
+                              GL_FALSE, 0, vertPositions)
         glEnableVertexAttribArray(inputAttrib)
 
-        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+        eglMakeCurrent(self.egl.display, self.surface,
+                       self.surface, self.egl.context)
 
     class Buffer:
         # libcamera format string -> DRM fourcc, note that 24-bit formats are not supported
@@ -213,10 +217,14 @@ class QGlPicamera2(QWidget):
 
             self.texture = glGenTextures(1)
             glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.texture)
-            glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-            glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-            glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-            glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+            glTexParameteri(GL_TEXTURE_EXTERNAL_OES,
+                            GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_EXTERNAL_OES,
+                            GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_EXTERNAL_OES,
+                            GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+            glTexParameteri(GL_TEXTURE_EXTERNAL_OES,
+                            GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
             glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image)
 
             eglDestroyImageKHR(display, image)
