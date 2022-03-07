@@ -46,7 +46,7 @@ class DrmPreview(NullPreview):
 
         if fb not in self.drmfbs:
             if self.stop_count != picam2.stop_count:
-                if picam2.verbose:
+                if picam2.verbose_console:
                     print("Garbage collecting", len(self.drmfbs), "dmabufs")
                 self.drmfbs = {}
                 self.stop_count = picam2.stop_count
@@ -54,7 +54,7 @@ class DrmPreview(NullPreview):
             fmt = self.FMT_MAP[cfg.pixelFormat]
             if self.plane is None:
                 self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
-                if picam2.verbose:
+                if picam2.verbose_console:
                     print("Got plane", self.plane, "for format", fmt)
                 assert(self.plane)
             fd = fb.fd(0)
@@ -70,7 +70,7 @@ class DrmPreview(NullPreview):
             else:
                 drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
             self.drmfbs[fb] = drmfb
-            if picam2.verbose:
+            if picam2.verbose_console:
                 print("Made drm fb", drmfb, "for request", completed_request.request)
 
         drmfb = self.drmfbs[fb]

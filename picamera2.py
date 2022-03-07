@@ -7,7 +7,7 @@ import threading
 from PIL import Image
 from encoder import Encoder
 import time
-from _logger import *
+from picamera2_logger import *
 
 
 class Picamera2:
@@ -18,7 +18,7 @@ class Picamera2:
         self.camera_manager = libcamera.CameraManager.singleton()
         self.verbose_console = verbose_console
         self.verbose_log = verbose_log
-        self.log = _initialize_logger(console_level = verbose_console,
+        self.log = initialize_logger(console_level = verbose_console,
                                       log_level = verbose_log)
         self.camera = None
         self.camera_config = None
@@ -857,8 +857,8 @@ class CompletedRequest:
         jpeg_quality = self.picam2.options.get("quality", 90)
         img.save(filename, compress_level=png_compress_level, quality=jpeg_quality)
         end_time = time.time()
-        self.log.info(f"Saved {self} to file {filename}.")
-        self.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        self.picam2.log.info(f"Saved {self} to file {filename}.")
+        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
 
 
