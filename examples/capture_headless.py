@@ -1,4 +1,4 @@
-#!//usr/bin/python3
+#!/usr/bin/python3
 
 from picamera2 import *
 from null_preview import *
