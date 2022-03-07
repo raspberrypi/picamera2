@@ -7,15 +7,19 @@ import threading
 from PIL import Image
 from encoder import Encoder
 import time
+from _logger import *
 
 
 class Picamera2:
     """Picamera2 class"""
 
-    def __init__(self, camera_num=0, verbose=1):
+    def __init__(self, camera_num=0, verbose_console = 2, verbose_log = 0):
         """Initialise camera system and acquire the camera for use."""
         self.camera_manager = libcamera.CameraManager.singleton()
-        self.verbose = verbose
+        self.verbose_console = verbose_console
+        self.verbose_log = verbose_log
+        self.log = _initialize_logger(console_level = verbose_console,
+                                      log_level = verbose_log)
         self.camera = None
         self.camera_config = None
         self.libcamera_config = None
@@ -38,15 +42,10 @@ class Picamera2:
         self.completed_requests = []
         self.lock = threading.Lock() # protects the functions and completed_requests fields
 
-        
-        self.verbose_print("Camera manager:", self.camera_manager)
-        self.verbose_print("Made", self)
+        self.log.debug(f"Camera manager: {self.camera_manager}")
+        self.log.debug(f"Made {self}")
 
         self.open_camera(camera_num)
-
-    def verbose_print(self, *args):
-        if self.verbose > 0:
-            print(*args)
 
     def __enter__(self):
         return self
@@ -56,7 +55,7 @@ class Picamera2:
 
     def __del__(self):
         """Free any resources that are held."""
-        self.verbose_print("Freeing resources for", self)
+        self.log.debug(f"Freeing resources for {self}")
         self.close_camera()
 
     def open_camera(self, camera_num=0):
@@ -64,10 +63,11 @@ class Picamera2:
         camera = self.camera_manager.cameras[camera_num]
         if camera.acquire() >= 0:
             self.camera = camera
-            self.verbose_print("Opened camera:", self.camera)
+            self.log.info(f"Opened camera: {self.camera}")
         else:
-            raise RuntimeError("Failed to acquire camera {} ({})".format(
-                camera_num, self.camera_manager.cameras[camera_num]))
+            msg = "Failed to acquire camera {} ({})".format(camera_num, self.camera_manager.cameras[camera_num])
+            self.log.error(msg)
+            raise RuntimeError
 
         self.sensor_resolution = camera.properties["PixelArraySize"]
         self.sensor_format = camera.generateConfiguration([libcamera.StreamRole.Raw]).at(0).pixelFormat
@@ -77,10 +77,10 @@ class Picamera2:
         if self.started:
             self.stop()
         if self.camera is not None:
-            self.verbose_print("Closing camera:", self.camera)
+            self.log.info(f"Closing camera: {self.camera}")
             self.camera.release()
             self.camera = None
-            self.verbose_print("Camera closed")
+            self.log.info("Camera closed")
 
         self.camera_config = None
         self.libcamera_config = None
@@ -326,23 +326,23 @@ class Picamera2:
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()
         self.update_camera_config(camera_config, libcamera_config)
-        self.verbose_print("Requesting configuration:", camera_config)
+        self.log.debug(f"Requesting configuration: {camera_config}")
         if status == libcamera.ConfigurationStatus.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
         elif status == libcamera.ConfigurationStatus.Adjusted:
-            self.verbose_print("Camera configuration has been adjusted!")
+            self.log.info("Camera configuration has been adjusted!")
 
         # Configure libcamera.
         if self.camera.configure(libcamera_config):
             raise RuntimeError("Configuration failed: {}".format(camera_config))
-        self.verbose_print("Configuration successful!")
-        self.verbose_print("Final configuration:", camera_config)
+        self.log.info("Configuration successful!")
+        self.log.debug(f"Final configuration: {camera_config}")
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
         self.stream_map["lores"] = libcamera_config.at(self.lores_index).stream if self.lores_index >= 0 else None
         self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
-        self.verbose_print("Streams:", self.stream_map)
+        self.log.debug(f"Streams: {self.stream_map}")
 
         # These name the streams that we will display/encode. An application could change them.
         self.display_stream_name = "main"
@@ -353,8 +353,10 @@ class Picamera2:
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
-                raise RuntimeError("Failed to allocate buffers")
-            self.verbose_print("Allocated", len(self.allocator.buffers(stream)), "buffers for stream", i)
+                self.logger.critical("Failed to allocate buffers.")
+                raise RuntimeError("Failed to allocate buffers.")
+            msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
+            self.log.debug(msg)
 
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
@@ -379,15 +381,18 @@ class Picamera2:
     def start_(self, controls={}):
         """Start the camera system running."""
         if self.camera is None:
-            raise RuntimeError("Camera has not been opened")
+            self.log.error("Camera has not been opened!")
+            raise RuntimeError("Camera has not been opened!")
         if self.camera_config is None:
+            self.log.error("Camera has not been configured!")
             raise RuntimeError("Camera has not been configured")
         if self.started:
-            raise RuntimeError("Camera already started")
+            self.log.error("Camera already started!")
+            raise RuntimeError("Camera already started!")
         self.camera.start(self.camera_config["controls"] | controls)
         for request in self.make_requests():
             self.camera.queueRequest(request)
-        self.verbose_print("Camera started")
+        self.log.info("Camera started")
         self.started = True
 
     def start(self, controls={}):
@@ -401,13 +406,14 @@ class Picamera2:
         self.started = False
         self.stop_count += 1
         self.completed_requests = []
-        self.verbose_print("Camera stopped")
+        self.log.info("Camera stopped")
         return True
 
     def stop(self):
         """Stop the camera."""
         if not self.started:
-            raise RuntimeError("Camera was not started")
+            self.log.error("Camera was not started!")
+            raise RuntimeError("Camera was not started!")
         if self.asynchronous:
             self.dispatch_functions([self.stop_])
             self.wait()
@@ -463,8 +469,7 @@ class Picamera2:
             # in the list to be tried again next time.
             if self.functions:
                 function = self.functions[0]
-                if self.verbose > 2:
-                    print("Execute function", function)
+                self.log.debug(f"Execute function: {function}")
                 if function():
                     self.functions = self.functions[1:]
                 # Once we've done everything, signal the fact to the thread that requested this work.
@@ -851,10 +856,10 @@ class CompletedRequest:
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
         img.save(filename, compress_level=png_compress_level, quality=jpeg_quality)
-        if self.picam2.verbose:
-            end_time = time.time()
-            print("Saved", self, "to file", filename)
-            print("Time taken for encode:", (end_time - start_time) * 1000, "ms")
+        end_time = time.time()
+        self.log.info(f"Saved {self} to file {filename}.")
+        self.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+
 
 
 YUV2RGB_JPEG      = np.array([[1.0,   1.0,   1.0  ], [0.0, -0.344, 1.772], [1.402, -0.714, 0.0]])
