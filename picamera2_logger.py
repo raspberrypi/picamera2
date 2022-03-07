@@ -14,7 +14,7 @@ Log Level Options
 """
 
 
-def _initialize_logger(console_level, log_level):
+def initialize_logger(console_level, log_level):
     logger = logging.getLogger('picamera2')
     logger.setLevel(logging.DEBUG)
     if not logger.handlers:
@@ -31,24 +31,13 @@ def _initialize_logger(console_level, log_level):
             trfh = TimedRotatingFileHandler('picamera2.log', when='midnight',
                                             interval=1, backupCount=7)
             trfh.setLevel(logging.DEBUG)
-            trfh_time = '%(asctime)s.%(msecs)03dZ'
-            trfh_lvl = '%(levelname)'
-            trfh_msg = '%(message)s'
             dtfmt = '%Y-%m-%dT%H:%M:%S'
-            msg_fmt = ','.join((trfh_time, trfh_lvl, trfh_msg))
-            trfh_fmt = logging.Formatter(msg_fmt, datefmt=dtfmt)
+            trfh_fmt = logging.Formatter('%(asctime)s.%(msecs)03dZ | %(levelname)-8s | %(message)s', datefmt=dtfmt)
             trfh_fmt.converter = time.gmtime
             trfh.setFormatter(trfh_fmt)
             logger.addHandler(trfh)
-        elif log_level != 0:
-            raise ValueError("Log level must be either 0 or 1.")
-
-        console_time = '%(asctime)s.%(msecs)03dZ'
-        console_lvl = '%(levelname)-8s'
-        console_msg = '%(message)s'
         dtfmt = '%Y-%m-%dT%H:%M:%S'
-        msg_fmt = ' | '.join((console_time, console_lvl, console_msg))
-        console_fmt = logging.Formatter(msg_fmt, datefmt=dtfmt)
+        console_fmt = logging.Formatter('%(asctime)s.%(msecs)03dZ | %(levelname)-8s | %(message)s', datefmt=dtfmt)
         console_fmt.converter = time.gmtime
         console.setFormatter(console_fmt)
         logger.addHandler(console)

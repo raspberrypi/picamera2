@@ -1,0 +1,41 @@
+2022-03-07T23:35:30.893Z | DEBUG    | Camera manager: <libcamera._libcamera.CameraManager object at 0x7f5aa862b0>
+2022-03-07T23:35:30.897Z | DEBUG    | Made <picamera2.Picamera2 object at 0x7f58122580>
+2022-03-07T23:35:30.903Z | INFO     | Opened camera: <libcamera.Camera '/base/soc/i2c0mux/i2c@1/imx477@1a'>
+2022-03-07T23:35:30.911Z | DEBUG    | Requesting configuration: {'use_case': 'still', 'transform': <libcamera.Transform 'identity'>, 'colour_space': <libcamera.ColorSpace 'JPEG'>, 'buffer_count': 2, 'main': {'format': 'XBGR8888', 'size': (4048, 3040), 'stride': 16192, 'framesize': 49223680}, 'lores': None, 'raw': None, 'controls': {'NoiseReductionMode': 2}}
+2022-03-07T23:35:30.916Z | INFO     | Configuration successful!
+2022-03-07T23:35:30.923Z | DEBUG    | Final configuration: {'use_case': 'still', 'transform': <libcamera.Transform 'identity'>, 'colour_space': <libcamera.ColorSpace 'JPEG'>, 'buffer_count': 2, 'main': {'format': 'XBGR8888', 'size': (4048, 3040), 'stride': 16192, 'framesize': 49223680}, 'lores': None, 'raw': None, 'controls': {'NoiseReductionMode': 2}}
+2022-03-07T23:35:30.926Z | DEBUG    | Streams: {'main': <libcamera._libcamera.Stream object at 0x7f5ac10b30>, 'lores': None, 'raw': None}
+2022-03-07T23:35:30.991Z | DEBUG    | Allocated 2 buffers for stream 0.
+2022-03-07T23:35:31.621Z | INFO     | Camera started
+2022-03-07T23:35:32.441Z | DEBUG    | Execute function: <function Picamera2.capture_array.<locals>.<lambda> at 0x7f5809f040>
+2022-03-07T23:35:33.171Z | INFO     | Saved <picamera2.CompletedRequest object at 0x7f434fd940> to file demo.jpg.
+2022-03-07T23:35:33.173Z | INFO     | Time taken for encode: 537.9395484924316 ms.
+2022-03-07T23:35:33.187Z | DEBUG    | Execute function: <bound method Picamera2.stop_ of <picamera2.Picamera2 object at 0x7f58122580>>
+2022-03-07T23:35:33.268Z | INFO     | Camera stopped
+2022-03-07T23:35:41.093Z | DEBUG    | Camera manager: <libcamera._libcamera.CameraManager object at 0x7f5aa862b0>
+2022-03-07T23:35:41.099Z | DEBUG    | Made <picamera2.Picamera2 object at 0x7f40c3b5e0>
+2022-03-07T23:35:41.103Z | ERROR    | Failed to acquire camera 0 (<libcamera.Camera '/base/soc/i2c0mux/i2c@1/imx477@1a'>)
+2022-03-07T23:36:30.702Z | DEBUG    | Freeing resources for <picamera2.Picamera2 object at 0x7f58122580>
+2022-03-07T23:36:30.707Z | INFO     | Closing camera: <libcamera.Camera '/base/soc/i2c0mux/i2c@1/imx477@1a'>
+2022-03-07T23:36:30.711Z | INFO     | Camera closed
+2022-03-07T23:38:56.906Z | DEBUG    | Camera manager: <libcamera._libcamera.CameraManager object at 0x7f52629130>
+2022-03-07T23:38:56.914Z | DEBUG    | Made <picamera2.Picamera2 object at 0x7f520391f0>
+2022-03-07T23:38:56.920Z | INFO     | Opened camera: <libcamera.Camera '/base/soc/i2c0mux/i2c@1/imx477@1a'>
+2022-03-07T23:38:56.926Z | DEBUG    | Requesting configuration: {'use_case': 'still', 'transform': <libcamera.Transform 'identity'>, 'colour_space': <libcamera.ColorSpace 'JPEG'>, 'buffer_count': 2, 'main': {'format': 'XBGR8888', 'size': (4048, 3040), 'stride': 16192, 'framesize': 49223680}, 'lores': None, 'raw': None, 'controls': {'NoiseReductionMode': 2}}
+2022-03-07T23:38:56.947Z | INFO     | Configuration successful!
+2022-03-07T23:38:56.959Z | DEBUG    | Final configuration: {'use_case': 'still', 'transform': <libcamera.Transform 'identity'>, 'colour_space': <libcamera.ColorSpace 'JPEG'>, 'buffer_count': 2, 'main': {'format': 'XBGR8888', 'size': (4048, 3040), 'stride': 16192, 'framesize': 49223680}, 'lores': None, 'raw': None, 'controls': {'NoiseReductionMode': 2}}
+2022-03-07T23:38:56.964Z | DEBUG    | Streams: {'main': <libcamera._libcamera.Stream object at 0x7f8e15b470>, 'lores': None, 'raw': None}
+2022-03-07T23:38:57.041Z | DEBUG    | Allocated 2 buffers for stream 0.
+2022-03-07T23:38:57.671Z | INFO     | Camera started
+2022-03-07T23:38:58.490Z | DEBUG    | Execute function: <function Picamera2.capture_array.<locals>.<lambda> at 0x7f520330d0>
+2022-03-07T23:38:58.679Z | DEBUG    | Execute function: <function Picamera2.capture_file.<locals>.<lambda> at 0x7f514a68b0>
+2022-03-07T23:38:59.239Z | INFO     | Saved <picamera2.CompletedRequest object at 0x7f514bd7c0> to file demo.jpg.
+2022-03-07T23:38:59.242Z | INFO     | Time taken for encode: 555.4296970367432 ms.
+2022-03-07T23:38:59.256Z | DEBUG    | Execute function: <bound method Picamera2.stop_ of <picamera2.Picamera2 object at 0x7f520391f0>>
+2022-03-07T23:38:59.344Z | INFO     | Camera stopped
+2022-03-07T23:39:12.733Z | DEBUG    | Camera manager: <libcamera._libcamera.CameraManager object at 0x7f52629130>
+2022-03-07T23:39:12.737Z | DEBUG    | Made <picamera2.Picamera2 object at 0x7f5037d5b0>
+2022-03-07T23:39:12.742Z | ERROR    | Failed to acquire camera 0 (<libcamera.Camera '/base/soc/i2c0mux/i2c@1/imx477@1a'>)
+2022-03-07T23:39:16.102Z | DEBUG    | Freeing resources for <picamera2.Picamera2 object at 0x7f520391f0>
+2022-03-07T23:39:16.105Z | INFO     | Closing camera: <libcamera.Camera '/base/soc/i2c0mux/i2c@1/imx477@1a'>
+2022-03-07T23:39:16.107Z | INFO     | Camera closed
