@@ -48,6 +48,12 @@ class Picamera2:
         if self.verbose > 0:
             print(*args)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self,exc_type, exc_val, exc_traceback):
+        self.close_camera()
+
     def __del__(self):
         """Free any resources that are held."""
         self.verbose_print("Freeing resources for", self)
