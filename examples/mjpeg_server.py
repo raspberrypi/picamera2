@@ -81,16 +81,12 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 picam2 = picamera2.Picamera2()
 preview = null_preview.NullPreview(picam2)
 picam2.configure(picam2.video_configuration(main={"size": (640, 480)}))
-picam2.encoder = jpeg_encoder.JpegEncoder()
 output = StreamingOutput()
-picam2.encoder.output = output
-picam2.start_encoder()
-picam2.start()
+picam2.start_recording(jpeg_encoder.JpegEncoder(), output)
 
 try:
     address = ('', 8000)
     server = StreamingServer(address, StreamingHandler)
     server.serve_forever()
 finally:
-    picam2.stop()
-    picam2.stop_encoder()
+    picam2.stop_recording()

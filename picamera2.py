@@ -747,6 +747,21 @@ class Picamera2:
             raise RuntimeError("Must pass encoder instance")
         self._encoder = value
 
+    def start_recording(self, encoder, output):
+        """Start recording a video using the given encoder and to the given output.
+        Output may be a string in which case the correspondingly named file is opened."""
+        if isinstance(output, str):
+            output = open(output, 'wb')
+        encoder.output = output
+        self.encoder = encoder
+        self.start_encoder()
+        self.start()
+
+    def stop_recording(self):
+        """Stop recording a video. The encode and output are stopped and closed."""
+        self.stop()
+        self.stop_encoder()
+        self.encoder.output.close()
 
 class CompletedRequest:
     def __init__(self, request, picam2):

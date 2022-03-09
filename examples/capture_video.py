@@ -13,10 +13,6 @@ picam2.configure(video_config)
 preview = NullPreview(picam2)
 encoder = H264Encoder(10000000)
 
-encoder.output = open('test.h264', 'wb')
-picam2.encoder = encoder
-picam2.start_encoder()
-picam2.start()
+picam2.start_recording(encoder, 'test.h264')
 time.sleep(10)
-picam2.stop()
-picam2.stop_encoder()
+picam2.stop_recording()
