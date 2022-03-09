@@ -6,7 +6,7 @@
 
 import picamera2
 import null_preview
-import simplejpeg
+import jpeg_encoder
 import io
 import logging
 import socketserver
@@ -25,22 +25,15 @@ PAGE="""\
 </html>
 """
 
-output_frame = None
-output_buffer = io.BytesIO()
-output_condition = Condition()
-output_running = True
+class StreamingOutput(io.BufferedIOBase):
+    def __init__(self):
+        self.frame = None
+        self.condition = Condition()
 
-def encode_thread():
-    global output_frame
-    while output_running:
-        array = picam2.capture_array()
-        buf = simplejpeg.encode_jpeg(array, colorspace='RGBX')
-        output_buffer.truncate()
-        with output_condition:
-            output_frame = output_buffer.getvalue()
-            output_condition.notify_all()
-        output_buffer.seek(0)
-        output_buffer.write(buf)
+    def write(self, buf):
+        with self.condition:
+            self.frame = buf
+            self.condition.notify_all()
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -64,9 +57,9 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    with output_condition:
-                        output_condition.wait()
-                        frame = output_frame
+                    with output.condition:
+                        output.condition.wait()
+                        frame = output.frame
                     self.wfile.write(b'--FRAME\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
                     self.send_header('Content-Length', len(frame))
@@ -87,17 +80,17 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 
 picam2 = picamera2.Picamera2()
 preview = null_preview.NullPreview(picam2)
-picam2.configure(picam2.preview_configuration(main={"size": (640, 480)}))
+picam2.configure(picam2.video_configuration(main={"size": (640, 480)}))
+picam2.encoder = jpeg_encoder.JpegEncoder()
+output = StreamingOutput()
+picam2.encoder.output = output
+picam2.start_encoder()
 picam2.start()
-thread = Thread(target=encode_thread)
-thread.start()
 
 try:
     address = ('', 8000)
     server = StreamingServer(address, StreamingHandler)
     server.serve_forever()
 finally:
-    output_running = False
-    thread.join()
-    preview.stop()
     picam2.stop()
+    picam2.stop_encoder()
