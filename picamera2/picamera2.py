@@ -638,7 +638,7 @@ class Picamera2:
 
         return display_request
 
-    def wait(self):
+    def _wait(self):
         """Wait for the event loop to finish an operation and signal us."""
         if not self.async_operation_in_progress:
             raise RuntimeError("Waiting for non-existent operation!")
@@ -682,12 +682,12 @@ class Picamera2:
             else:
                 self.dispatch_functions([(lambda: self.capture_file_(filename, name))], signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def switch_mode_(self, camera_config):
-        self.stop_()
+        self._stop()
         self.configure_(camera_config)
-        self.start_()
+        self.start_camera()
         self.async_result = self.camera_config
         return True
 
@@ -696,7 +696,7 @@ class Picamera2:
         functions = [(lambda: self.switch_mode_(camera_config))]
         self.dispatch_functions(functions, signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def switch_mode_and_capture_file(self, camera_config, filename, name="main", wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture an image to file, then return
@@ -729,7 +729,7 @@ class Picamera2:
             else:
                 self.dispatch_functions([self.capture_request_], signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def switch_mode_capture_request_and_stop(self, camera_config, wait=True, signal_function=signal_event):
         """ """
@@ -737,7 +737,7 @@ class Picamera2:
         def capture_request_and_stop_(self):
             self.capture_request_()
             request = self.async_result
-            self.stop_()
+            self._stop()
             self.async_result = request
             return True
 
@@ -745,7 +745,7 @@ class Picamera2:
                      (lambda: capture_request_and_stop_(self))]
         self.dispatch_functions(functions, signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def capture_metadata_(self):
         request = self.completed_requests.pop(0)
@@ -762,7 +762,7 @@ class Picamera2:
             else:
                 self.dispatch_functions([self.capture_metadata_], signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def capture_buffer_(self, name):
         request = self.completed_requests.pop(0)
@@ -779,7 +779,7 @@ class Picamera2:
             else:
                 self.dispatch_functions([(lambda: self.capture_buffer_(name))], signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
@@ -797,7 +797,7 @@ class Picamera2:
                      (lambda: capture_buffer_and_switch_back_(self, preview_config, name))]
         self.dispatch_functions(functions, signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def capture_array_(self, name):
         request = self.completed_requests.pop(0)
@@ -814,7 +814,7 @@ class Picamera2:
             else:
                 self.dispatch_functions([(lambda: self.capture_array_(name))], signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def switch_mode_and_capture_array(self, camera_config, name="main", wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture the image array data, then return
@@ -832,7 +832,7 @@ class Picamera2:
                      (lambda: capture_array_and_switch_back_(self, preview_config, name))]
         self.dispatch_functions(functions, signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def capture_image_(self, name):
         request = self.completed_requests.pop(0)
@@ -849,7 +849,7 @@ class Picamera2:
             else:
                 self.dispatch_functions([(lambda: self.make_image_(name))], signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def switch_mode_and_capture_image(self, camera_config, name="main", wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture the image, then return
@@ -867,7 +867,7 @@ class Picamera2:
                      (lambda: capture_image_and_switch_back_(self, preview_config, name))]
         self.dispatch_functions(functions, signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def start_encoder(self):
         streams = self.camera_configuration()
