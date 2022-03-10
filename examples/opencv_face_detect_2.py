@@ -2,15 +2,15 @@
 
 import cv2
 
-from qt_gl_preview import *
-from picamera2 import *
+from picamera2.picamera2 import *
 
 # This version creates a lores YUV stream, extracts the Y channel and runs the face
 # detector directly on that. We use the supplied OpenGL accelerated preview window
 # and delegate the face box drawing to its callback function, thereby running the
 # preview at the full rate with face updates as and when they are ready.
 
-face_detector = cv2.CascadeClassifier("/usr/local/lib/python3.9/dist-packages/cv2/data/haarcascade_frontalface_default.xml")
+face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
+
 
 def draw_faces(request):
     stream = request.picam2.stream_map["main"]
@@ -22,8 +22,9 @@ def draw_faces(request):
             cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0, 0))
         del im
 
+
 picam2 = Picamera2()
-preview = QtGlPreview(picam2)
+picam2.start_preview(Preview.QTGL)
 config = picam2.preview_configuration(main={"size": (640, 480)},
                                       lores={"size": (320, 240), "format": "YUV420"})
 picam2.configure(config)
@@ -38,5 +39,5 @@ picam2.start()
 
 while True:
     buffer = picam2.capture_buffer("lores")
-    grey = buffer[:s1*h1].reshape((h1, s1))
+    grey = buffer[:s1 * h1].reshape((h1, s1))
     faces = face_detector.detectMultiScale(grey, 1.1, 3)

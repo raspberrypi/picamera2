@@ -1,6 +1,7 @@
-import picamera2
+import picamera2.picamera2
 import pykms
-from null_preview import *
+from picamera2.previews.null_preview import *
+
 
 class DrmPreview(NullPreview):
     FMT_MAP = {
@@ -14,10 +15,10 @@ class DrmPreview(NullPreview):
         "YVU420": pykms.PixelFormat.YVU420,
     }
 
-    def __init__(self, picam2, x=0, y=0, width=640, height=480):
+    def __init__(self, x=0, y=0, width=640, height=480):
         self.init_drm(x, y, width, height)
         self.stop_count = 0
-        super().__init__(picam2, width=width, height=height)
+        super().__init__(width=width, height=height)
 
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()
@@ -46,7 +47,7 @@ class DrmPreview(NullPreview):
 
         if fb not in self.drmfbs:
             if self.stop_count != picam2.stop_count:
-                if picam2.verbose:
+                if picam2.verbose_console:
                     print("Garbage collecting", len(self.drmfbs), "dmabufs")
                 self.drmfbs = {}
                 self.stop_count = picam2.stop_count
@@ -54,7 +55,7 @@ class DrmPreview(NullPreview):
             fmt = self.FMT_MAP[cfg.pixelFormat]
             if self.plane is None:
                 self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
-                if picam2.verbose:
+                if picam2.verbose_console:
                     print("Got plane", self.plane, "for format", fmt)
                 assert(self.plane)
             fd = fb.fd(0)
@@ -70,7 +71,7 @@ class DrmPreview(NullPreview):
             else:
                 drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
             self.drmfbs[fb] = drmfb
-            if picam2.verbose:
+            if picam2.verbose_console:
                 print("Made drm fb", drmfb, "for request", completed_request.request)
 
         drmfb = self.drmfbs[fb]

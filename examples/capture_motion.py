@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 
-from null_preview import *
-from h264_encoder import *
-from picamera2 import *
+from picamera2.encoders.h264_encoder import *
+from picamera2.picamera2 import *
 from signal import pause
 import numpy as np
 import time
@@ -12,7 +11,7 @@ picam2 = Picamera2()
 video_config = picam2.video_configuration(main={"size": (1280, 720), "format": "RGB888"}, 
                                           lores={"size": lsize, "format": "YUV420"})
 picam2.configure(video_config)
-preview = NullPreview(picam2)
+picam2.start_preview()
 encoder = H264Encoder(1000000)
 picam2.encoder = encoder
 picam2.start()

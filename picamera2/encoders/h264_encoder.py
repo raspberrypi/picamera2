@@ -7,8 +7,9 @@ import fcntl
 import mmap
 import select
 import time
-from encoder import *
+from picamera2.encoders.encoder import *
 from v4l2 import *
+
 
 class H264Encoder(Encoder):
 
@@ -88,8 +89,8 @@ class H264Encoder(Encoder):
             buffer.length = 1
             buffer.m.planes = planes
             ret = fcntl.ioctl(self.vd, VIDIOC_QUERYBUF, buffer)
-            self.bufs[i] = ( mmap.mmap(self.vd.fileno(), buffer.m.planes[0].length, mmap.PROT_READ | mmap.PROT_WRITE, mmap.MAP_SHARED,
-                               offset=buffer.m.planes[0].m.mem_offset) , buffer.m.planes[0].length)
+            self.bufs[i] = (mmap.mmap(self.vd.fileno(), buffer.m.planes[0].length, mmap.PROT_READ | mmap.PROT_WRITE, mmap.MAP_SHARED,
+                                      offset=buffer.m.planes[0].m.mem_offset), buffer.m.planes[0].length)
             ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buffer)
 
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
@@ -174,8 +175,8 @@ class H264Encoder(Encoder):
                         ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
 
                         # Release frame from camera
-                        l = self.buf_frame.get()
-                        l.release()
+                        queue_item = self.buf_frame.get()
+                        queue_item.release()
 
     def encode(self, stream, request):
         # Don't start encoding if we don't have an output handle

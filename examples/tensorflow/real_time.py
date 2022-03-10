@@ -32,88 +32,91 @@ import numpy as np
 from PIL import Image
 from PIL import ImageFont, ImageDraw
 
-from qt_gl_preview import *
-from picamera2 import *
+from picamera2.picamera2 import *
 
 normalSize = (640, 480)
 lowresSize = (320, 240)
 
 rectangles = []
 
+
 def ReadLabelFile(file_path):
-  with open(file_path, 'r') as f:
-    lines = f.readlines()
-  ret = {}
-  for line in lines:
-    pair = line.strip().split(maxsplit=1)
-    ret[int(pair[0])] = pair[1].strip()
-  return ret
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+    ret = {}
+    for line in lines:
+        pair = line.strip().split(maxsplit=1)
+        ret[int(pair[0])] = pair[1].strip()
+    return ret
+
 
 def DrawRectangles(request):
-   stream = request.picam2.stream_map["main"]
-   fb = request.request.buffers[stream]
-   with fb.mmap(0) as b:
-       im = np.array(b, copy=False, dtype=np.uint8).reshape((normalSize[1],normalSize[0], 4))
+    stream = request.picam2.stream_map["main"]
+    fb = request.request.buffers[stream]
+    with fb.mmap(0) as b:
+        im = np.array(b, copy=False, dtype=np.uint8).reshape((normalSize[1], normalSize[0], 4))
 
-       for rect in rectangles:
-          rect_start = (int(rect[0]*2) - 5, int(rect[1]*2) - 5)
-          rect_end = (int(rect[2]*2) + 5, int(rect[3]*2) + 5)
-          cv2.rectangle(im, rect_start, rect_end, (0,255,0,0))
-       del im
+        for rect in rectangles:
+            rect_start = (int(rect[0] * 2) - 5, int(rect[1] * 2) - 5)
+            rect_end = (int(rect[2] * 2) + 5, int(rect[3] * 2) + 5)
+            cv2.rectangle(im, rect_start, rect_end, (0, 255, 0, 0))
+        del im
 
-def InferenceTensorFlow( image, model, output, label=None):
-   global rectangles
 
-   if label:
-       labels = ReadLabelFile(label)
-   else:
-       labels = None
+def InferenceTensorFlow(image, model, output, label=None):
+    global rectangles
 
-   interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-   interpreter.allocate_tensors()
+    if label:
+        labels = ReadLabelFile(label)
+    else:
+        labels = None
 
-   input_details = interpreter.get_input_details()
-   output_details = interpreter.get_output_details()
-   height = input_details[0]['shape'][1]
-   width = input_details[0]['shape'][2]
-   floating_model = False
-   if input_details[0]['dtype'] == np.float32:
-       floating_model = True
+    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter.allocate_tensors()
 
-   rgb = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
-   initial_h, initial_w, channels = rgb.shape
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    height = input_details[0]['shape'][1]
+    width = input_details[0]['shape'][2]
+    floating_model = False
+    if input_details[0]['dtype'] == np.float32:
+        floating_model = True
 
-   picture = cv2.resize(rgb, (width, height))
+    rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    initial_h, initial_w, channels = rgb.shape
 
-   input_data = np.expand_dims(picture, axis=0)
-   if floating_model:
-      input_data = (np.float32(input_data) - 127.5) / 127.5
+    picture = cv2.resize(rgb, (width, height))
 
-   interpreter.set_tensor(input_details[0]['index'], input_data)
+    input_data = np.expand_dims(picture, axis=0)
+    if floating_model:
+        input_data = (np.float32(input_data) - 127.5) / 127.5
 
-   interpreter.invoke()
+    interpreter.set_tensor(input_details[0]['index'], input_data)
 
-   detected_boxes = interpreter.get_tensor(output_details[0]['index'])
-   detected_classes = interpreter.get_tensor(output_details[1]['index'])
-   detected_scores = interpreter.get_tensor(output_details[2]['index'])
-   num_boxes = interpreter.get_tensor(output_details[3]['index'])
+    interpreter.invoke()
 
-   rectangles = []
-   for i in range(int(num_boxes)):
-      top, left, bottom, right = detected_boxes[0][i]
-      classId = int(detected_classes[0][i])
-      score = detected_scores[0][i]
-      if score > 0.5:
-          xmin = left * initial_w
-          ymin = bottom * initial_h
-          xmax = right * initial_w
-          ymax = top * initial_h
-          if labels:
-              print(labels[classId], 'score = ', score)
-          else:
-              print ('score = ', score)
-          box = [xmin, ymin, xmax, ymax]
-          rectangles.append(box)
+    detected_boxes = interpreter.get_tensor(output_details[0]['index'])
+    detected_classes = interpreter.get_tensor(output_details[1]['index'])
+    detected_scores = interpreter.get_tensor(output_details[2]['index'])
+    num_boxes = interpreter.get_tensor(output_details[3]['index'])
+
+    rectangles = []
+    for i in range(int(num_boxes)):
+        top, left, bottom, right = detected_boxes[0][i]
+        classId = int(detected_classes[0][i])
+        score = detected_scores[0][i]
+        if score > 0.5:
+            xmin = left * initial_w
+            ymin = bottom * initial_h
+            xmax = right * initial_w
+            ymax = top * initial_h
+            if labels:
+                print(labels[classId], 'score = ', score)
+            else:
+                print('score = ', score)
+            box = [xmin, ymin, xmax, ymax]
+            rectangles.append(box)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -122,18 +125,18 @@ def main():
     parser.add_argument('--output', help='File path of the output image.')
     args = parser.parse_args()
 
-    if ( args.output):
-      output_file = args.output
+    if (args.output):
+        output_file = args.output
     else:
-      output_file = 'out.jpg'
+        output_file = 'out.jpg'
 
-    if ( args.label ):
-      label_file = args.label
+    if (args.label):
+        label_file = args.label
     else:
-      label_file = None
+        label_file = None
 
     picam2 = Picamera2()
-    preview = QtGlPreview(picam2)
+    picam2.start_preview(Preview.QTGL)
     config = picam2.preview_configuration(main={"size": normalSize},
                                           lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
@@ -145,8 +148,9 @@ def main():
 
     while True:
         buffer = picam2.capture_buffer("lores")
-        grey = buffer[:stride*lowresSize[1]].reshape((lowresSize[1], stride))
-        result = InferenceTensorFlow( grey, args.model, output_file, label_file )
+        grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+        result = InferenceTensorFlow(grey, args.model, output_file, label_file)
+
 
 if __name__ == '__main__':
-  main()
+    main()

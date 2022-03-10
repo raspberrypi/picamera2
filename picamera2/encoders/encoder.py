@@ -1,8 +1,9 @@
 from v4l2 import *
 import io
 
+
 class Encoder:
-    
+
     def __init__(self):
         self._width = 0
         self._height = 0

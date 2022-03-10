@@ -1,5 +1,6 @@
-from multi_encoder import *
+from picamera2.encoders.multi_encoder import *
 import simplejpeg
+
 
 class JpegEncoder(MultiEncoder):
     def __init__(self, num_threads=4, q=85, colour_space='RGBX'):

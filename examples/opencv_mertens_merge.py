@@ -3,14 +3,13 @@
 import cv2
 import time
 
-from null_preview import *
-from picamera2 import *
+from picamera2.picamera2 import *
 
 # Simple Mertens merge with 3 exposures. No image alignment or anything fancy.
 RATIO = 3.0
 
 picam2 = Picamera2()
-preview = NullPreview(picam2)
+picam2.start_preview()
 picam2.configure(picam2.preview_configuration())
 picam2.start()
 
