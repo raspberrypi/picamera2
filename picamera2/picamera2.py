@@ -185,7 +185,29 @@ class Picamera2:
                 raise RuntimeError("Unable to stop preview.")
         else:
             raise RuntimeError("No preview specified.")
+
+    def _stop(self, request=None):
+        self.camera.stop()
         self.cm.getReadyRequests()  # Could anything here need flushing?
+        self.started = False
+        self.stop_count += 1
+        self.completed_requests = []
+        self.log.info("Camera has stopped.")
+
+    def stop_camera(self):
+        #Will there be situations were the user will want to stop the camera but also keep the preview open? Preview blanking?
+        try:  #If the user didn't stop the camera preview separately, close it.
+            if self._preview is not None:
+                self.stop_preview()
+        except:
+            pass
+        if self.asynchronous:
+            self.dispatch_functions([self._stop])
+            self._wait()
+            return True
+        else:
+            self._stop()
+            return True
     def close_camera(self):
         self.stop_camera()
         self.release_camera()
