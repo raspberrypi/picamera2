@@ -30,12 +30,3 @@ def YUV420_to_RGB(YUV_in, size, matrix=YUV2RGB_JPEG, rb_swap=True, final_width=0
 
     return RGB
 
-
-
-             
-
-    # def video_stream_config(self,config,**kwargs):
-    #     default_cfg = self._get_default_config(role = VIDEO)
-    #     for key in default
-        
-
