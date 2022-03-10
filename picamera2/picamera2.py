@@ -116,6 +116,36 @@ class Picamera2:
         else:
             raise RuntimeError("Failed to acquire camera {} ({})".format(
                 camera_num, self.camera_manager.cameras[camera_num]))
+    def start_preview(self,method = "NULL",width = 600, height = 480,
+                      x = None, y = None):
+        """
+        Width and height are used by all previews except for the null preview.
+        x and y are only used by the DRM preview.
+        """
+        try:
+            self._preview.stop()
+            del self._preview
+            time.sleep(1)
+        except:
+            pass
+        method = method.lower() #Force supplied string to lower for clarity.
+        if "null" in method:
+            self._preview = NullPreview(self)
+        elif "qt" in method and "gl" in method:
+            self._preview = QtGlPreview(self,width = width, height = height)
+        elif "qt" in method and "gl" not in method:
+            self._preview = QtPreview(self,width=width, height=height)
+        elif "drm" in method:
+            if x is None or y is None:
+                print("Must supply x and y when DRM preview is specified.")
+                raise ValueError
+            else:
+                self._preview = DrmPreview(self,x=x,y=y,width = width,
+                                           height = height)
+        else:
+            raise ValueError("A valid preview method must be supplied.")
+        if self._preview:
+            return True
 
         self.sensor_resolution = camera.properties["PixelArraySize"]
         self.sensor_format = camera.generateConfiguration([libcamera.StreamRole.Raw]).at(0).pixelFormat
