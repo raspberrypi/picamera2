@@ -20,7 +20,14 @@ class Picamera2:
         self.cidx = camera_num
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level = verbose_console)
+        self._reset_flags()
+        try:
+            self.open_camera()
             self.log.debug(f"{self.cm}")
+        except:
+            self.log.error("Camera __init__ sequence did not complete.")
+            raise RuntimeError("Camera __init__ sequence did not complete.")
+
     def _reset_flags(self):
         self.camera = None
         self.is_acquired = None
