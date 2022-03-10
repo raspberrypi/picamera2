@@ -57,10 +57,10 @@ class Picamera2:
     def __exit__(self,exc_type, exc_val, exc_traceback):
         self.close_camera()
 
-    def __del__(self):
-        """Free any resources that are held."""
-        self.verbose_print("Freeing resources for", self)
-        self.close_camera()
+    # def __del__(self):
+    #     self.log.debug(f"Resources now free: {self}")
+    #     self.close_camera()
+
     def initialize_camera(self):
         if isinstance(self.cidx,str):
             try:
