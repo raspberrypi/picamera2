@@ -21,12 +21,11 @@ VIEW = libcamera.StreamRole.Viewfinder
 
 
 class Picamera2:
-    """Picamera2 class"""
 
-    def __init__(self, camera_num=0, verbose=1):
+    """Welcome to the PiCamera2 class."""
+
+    def __init__(self, camera_num=0, verbose_console=2):
         """Initialise camera system and acquire the camera for use."""
-        self.camera_manager = libcamera.CameraManager.singleton()
-        self.verbose = verbose
         self.cm = libcamera.CameraManager.singleton()
         self.cidx = camera_num
         self.verbose_console = verbose_console
