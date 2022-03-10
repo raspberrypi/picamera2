@@ -173,6 +173,18 @@ class Picamera2:
         else:
             self.log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
+
+    def stop_preview(self):
+        if self._preview:
+            try:
+                self._preview.stop()
+                del self._preview
+                self._preview = None
+                return True
+            except:
+                raise RuntimeError("Unable to stop preview.")
+        else:
+            raise RuntimeError("No preview specified.")
         self.cm.getReadyRequests()  # Could anything here need flushing?
     def close_camera(self):
         self.stop_camera()
