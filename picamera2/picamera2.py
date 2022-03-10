@@ -155,7 +155,24 @@ class Picamera2:
             return True
 
 
+    def start_camera(self,controls = {}):
+        if self.is_configured is False:
+            self.log.error("Camera must be configured before starting!")
+            raise RuntimeError("Camera must be configured before starting!")
 
+        if self._preview is None: #Assume the user did not want a preview.
+            self.start_preview('null')
+
+        status = self.camera.start(self.controls | controls)
+        if status >= 0:
+            for request in self.make_requests():
+                self.camera.queueRequest(request)
+            self.is_running = True
+            self.started = True
+            self.log.info("Camera has started!")
+        else:
+            self.log.error("Camera did not start properly.")
+            raise RuntimeError("Camera did not start properly.")
         self.cm.getReadyRequests()  # Could anything here need flushing?
     def close_camera(self):
         self.stop_camera()
