@@ -19,7 +19,14 @@ class Picamera2:
         self.cm = libcamera.CameraManager.singleton()
         self.cidx = camera_num
             self.log.debug(f"{self.cm}")
+    def _reset_flags(self):
         self.camera = None
+        self.is_acquired = None
+        self.is_open = None
+        self.default_stream = None
+        self.default_controls = None
+        self.is_configured = None
+        self._preview = None
         self.camera_config = None
         self.libcamera_config = None
         self.streams = None
@@ -39,17 +46,7 @@ class Picamera2:
         self._encoder = None
         self.request_callback = None
         self.completed_requests = []
-        self.lock = threading.Lock() # protects the functions and completed_requests fields
-
-        
-        self.verbose_print("Camera manager:", self.camera_manager)
-        self.verbose_print("Made", self)
-
-        self.open_camera(camera_num)
-
-    def verbose_print(self, *args):
-        if self.verbose > 0:
-            print(*args)
+        self.lock = threading.Lock() #protects the functions and completed_requests fields
 
     def __enter__(self):
         return self
