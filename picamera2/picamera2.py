@@ -925,7 +925,7 @@ class CompletedRequest:
     def save(self, name, filename):
         """Save a JPEG or PNG image of the named stream's buffer."""
         # This is probably a hideously expensive way to do a capture.
-        start_time = time.time()
+        start_time = time.monotonic()
         img = self.make_image(name)
         if filename.split('.')[-1].lower() in ('jpg', 'jpeg') and img.mode == "RGBA":
             # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
@@ -935,9 +935,6 @@ class CompletedRequest:
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
         img.save(filename, compress_level=png_compress_level, quality=jpeg_quality)
-        if self.picam2.verbose:
-            end_time = time.time()
-            print("Saved", self, "to file", filename)
-            print("Time taken for encode:", (end_time - start_time) * 1000, "ms")
-
-
+        end_time = time.monotonic()
+        self.picam2.log.info(f"Saved {self} to file {filename}.")
+        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
