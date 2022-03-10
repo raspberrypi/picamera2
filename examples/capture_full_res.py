@@ -2,18 +2,17 @@
 
 # Capture a JPEG while still running in the preview mode.
 
-from qt_gl_preview import *
-from picamera2 import *
+from picamera2.picamera2 import *
 import time
 
 picam2 = Picamera2()
-preview = QtGlPreview(picam2)
+picam2.start_preview('QTGL')
 
 preview_config = picam2.preview_configuration()
 capture_config = picam2.still_configuration()
 picam2.configure(preview_config)
 
-picam2.start()
+picam2.start_camera()
 time.sleep(2)
 
 picam2.switch_mode_and_capture_file(capture_config, "test_full.jpg")
