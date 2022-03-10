@@ -15,6 +15,12 @@ from picamera2.previews.qt_preview import *
 from picamera2.previews.drm_preview import *
 
 
+STILL = libcamera.StreamRole.StillCapture
+RAW = libcamera.StreamRole.Raw
+VIDEO = libcamera.StreamRole.VideoRecording
+VIEW = libcamera.StreamRole.Viewfinder
+
+
 class Picamera2:
     """Picamera2 class"""
 
