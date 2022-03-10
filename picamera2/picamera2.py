@@ -155,21 +155,18 @@ class Picamera2:
             return True
 
 
-    def close_camera(self):
-        # Release this camera for use by others.
-        if self.started:
-            self.stop()
-        if self.camera is not None:
-            self.verbose_print("Closing camera:", self.camera)
-            self.camera.release()
-            self.camera = None
-            self.verbose_print("Camera closed")
 
         self.cm.getReadyRequests()  # Could anything here need flushing?
+    def close_camera(self):
+        self.stop_camera()
+        self.release_camera()
+        self.is_open = False
+        self.is_configured = False
         self.camera_config = None
         self.libcamera_config = None
         self.streams = None
         self.stream_map = None
+        self.log.info(f'Camera closed successfully.')
 
     def make_initial_stream_config(self, stream_config, updates):
         # Take an initial stream_config and add any user updates.
