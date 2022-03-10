@@ -18,6 +18,8 @@ class Picamera2:
         self.verbose = verbose
         self.cm = libcamera.CameraManager.singleton()
         self.cidx = camera_num
+        self.verbose_console = verbose_console
+        self.log = initialize_logger(console_level = verbose_console)
             self.log.debug(f"{self.cm}")
     def _reset_flags(self):
         self.camera = None
