@@ -9,9 +9,6 @@ from picamera2.encoders.encoder import Encoder
 import time
 from picamera2.utils.picamera2_logger import *
 from picamera2.previews.null_preview import *
-from picamera2.previews.qt_gl_preview import *
-from picamera2.previews.qt_preview import *
-from picamera2.previews.drm_preview import *
 
 
 STILL = libcamera.StreamRole.StillCapture
@@ -26,14 +23,14 @@ class Picamera2:
 
     def __init__(self, camera_num=0, verbose_console=2):
         """Initialise camera system and acquire the camera for use."""
-        self.cm = libcamera.CameraManager.singleton()
+        self.camera_manager = libcamera.CameraManager.singleton()
         self.cidx = camera_num
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level = verbose_console)
         self._reset_flags()
         try:
             self.open_camera()
-            self.log.debug(f"{self.cm}")
+            self.log.debug(f"{self.camera_manager}")
         except:
             self.log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -73,18 +70,19 @@ class Picamera2:
     def __exit__(self,exc_type, exc_val, exc_traceback):
         self.close_camera()
 
-    # def __del__(self):
-    #     self.log.debug(f"Resources now free: {self}")
-    #     self.close_camera()
+    def __del__(self):
+        # Without this libcamera will complain if we shut down without closing the camera.
+        self.log.debug(f"Resources now free: {self}")
+        self.close_camera()
 
     def initialize_camera(self):
         if isinstance(self.cidx,str):
             try:
-                self.camera = self.cm.get(self.cidx)
+                self.camera = self.camera_manager.get(self.cidx)
             except:
-                self.camera = self.cm.find(self.cidx)
+                self.camera = self.camera_manager.find(self.cidx)
         elif isinstance(self.cidx,int):
-            self.camera = self.cm.cameras[self.cidx]
+            self.camera = self.camera_manager.cameras[self.cidx]
         if self.camera is not None:
             self.__identify_camera()
             self.default_controls = self.camera.controls
@@ -102,7 +100,7 @@ class Picamera2:
 
     def __identify_camera(self):
         self.cid = self.camera.id
-        for idx, address in enumerate(self.cm.cameras):
+        for idx, address in enumerate(self.camera_manager.cameras):
             if address == self.camera:
                 self.cidx = idx
                 break
@@ -123,45 +121,22 @@ class Picamera2:
                 self.is_open = True
                 self.log.info("Camera now open.")
 
-    def start_preview(self,method = "NULL",width = 600, height = 480,
-                      x = None, y = None):
+    def start_preview(self, preview=None):
         """
-        Width and height are used by all previews except for the null preview.
-        x and y are only used by the DRM preview.
+        Start the given preview which drives the camera processing.
         """
-        try:
-            self._preview.stop()
-            del self._preview
-            time.sleep(1)
-        except:
-            pass
-        method = method.lower() #Force supplied string to lower for clarity.
-        if "null" in method:
-            self._preview = NullPreview(self)
-        elif "qt" in method and "gl" in method:
-            self._preview = QtGlPreview(self,width = width, height = height)
-        elif "qt" in method and "gl" not in method:
-            self._preview = QtPreview(self,width=width, height=height)
-        elif "drm" in method:
-            if x is None or y is None:
-                print("Must supply x and y when DRM preview is specified.")
-                raise ValueError
-            else:
-                self._preview = DrmPreview(self,x=x,y=y,width = width,
-                                           height = height)
-        else:
-            raise ValueError("A valid preview method must be supplied.")
         if self._preview:
-            return True
+            raise RuntimeError("A preview is already running")
 
+        if preview is None:
+            preview = NullPreview()
+
+        preview.start(self)
 
     def start_camera(self,controls = {}):
         if self.is_configured is False:
             self.log.error("Camera must be configured before starting!")
             raise RuntimeError("Camera must be configured before starting!")
-
-        if self._preview is None: #Assume the user did not want a preview.
-            self.start_preview('null')
 
         status = self.camera.start(self.controls | controls)
         if status >= 0:
@@ -188,19 +163,13 @@ class Picamera2:
 
     def _stop(self, request=None):
         self.camera.stop()
-        self.cm.getReadyRequests()  # Could anything here need flushing?
+        self.camera_manager.getReadyRequests()  # Could anything here need flushing?
         self.started = False
         self.stop_count += 1
         self.completed_requests = []
         self.log.info("Camera has stopped.")
 
     def stop_camera(self):
-        #Will there be situations were the user will want to stop the camera but also keep the preview open? Preview blanking?
-        try:  #If the user didn't stop the camera preview separately, close it.
-            if self._preview is not None:
-                self.stop_preview()
-        except:
-            pass
         if self.asynchronous:
             self.dispatch_functions([self._stop])
             self._wait()
@@ -532,7 +501,7 @@ class Picamera2:
         self.camera.start(self.camera_config["controls"] | controls)
         for request in self.make_requests():
             self.camera.queueRequest(request)
-        self.verbose_print("Camera started")
+        self.log.info("Camera started")
         self.started = True
 
     def start(self, controls={}):
@@ -546,7 +515,7 @@ class Picamera2:
         self.started = False
         self.stop_count += 1
         self.completed_requests = []
-        self.verbose_print("Camera stopped")
+        self.log.info("Camera stopped")
         return True
 
     def stop(self):
@@ -555,7 +524,7 @@ class Picamera2:
             raise RuntimeError("Camera was not started")
         if self.asynchronous:
             self.dispatch_functions([self.stop_])
-            self.wait()
+            self._wait()
         else:
             self.stop_()
 
@@ -567,8 +536,8 @@ class Picamera2:
 
     def get_completed_requests(self):
         # Return all the requests that libcamera has completed.
-        data = os.read(self.cm.efd, 8)
-        requests = [CompletedRequest(req, self) for req in self.cm.getReadyRequests()
+        data = os.read(self.camera_manager.efd, 8)
+        requests = [CompletedRequest(req, self) for req in self.camera_manager.getReadyRequests()
                     if req.status == libcamera.RequestStatus.Complete]
         self.frames += len(requests)
         return requests

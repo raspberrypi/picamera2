@@ -1,6 +1,5 @@
 import picamera2.picamera2
 import threading
-import atexit
 
 class NullPreview:
     def thread_func(self, picam2):
@@ -8,8 +7,7 @@ class NullPreview:
 
         picam2.asynchronous = True
         sel = selectors.DefaultSelector()
-        sel.register(picam2.cm.efd, selectors.EVENT_READ, self.handle_request)
-        atexit.register(self.stop)
+        sel.register(picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request)
         self.event.set()
 
         while self.running:
@@ -18,14 +16,15 @@ class NullPreview:
                 callback = key.data
                 callback(picam2)
 
-        atexit.unregister(self.stop)
         picam2.asynchronous = False
 
-    def __init__(self, picam2, width=None, height=None):
+    def __init__(self, width=None, height=None):
         # Ignore width and height as they are meaningless. We only accept them so as to
         # be a drop-in replacement for the Qt/DRM previews.
         self.size = (width, height)
         self.event = threading.Event()
+
+    def start(self, picam2):
         self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
         self.running = True
