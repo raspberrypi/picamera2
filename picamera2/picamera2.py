@@ -5,7 +5,6 @@ import libcamera
 import numpy as np
 import threading
 from PIL import Image
-from encoder import Encoder
 from picamera2.encoders.encoder import Encoder
 import time
 from picamera2.utils.picamera2_logger import *
