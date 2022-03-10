@@ -16,6 +16,8 @@ class Picamera2:
         """Initialise camera system and acquire the camera for use."""
         self.camera_manager = libcamera.CameraManager.singleton()
         self.verbose = verbose
+        self.cm = libcamera.CameraManager.singleton()
+            self.log.debug(f"{self.cm}")
         self.camera = None
         self.camera_config = None
         self.libcamera_config = None
@@ -58,6 +60,9 @@ class Picamera2:
         """Free any resources that are held."""
         self.verbose_print("Freeing resources for", self)
         self.close_camera()
+                self.camera = self.cm.get(self.cidx)
+                self.camera = self.cm.find(self.cidx)
+            self.camera = self.cm.cameras[self.cidx]
 
     def open_camera(self, camera_num=0):
         # Acquire a camera for exclusive use.
@@ -65,6 +70,7 @@ class Picamera2:
         if camera.acquire() >= 0:
             self.camera = camera
             self.verbose_print("Opened camera:", self.camera)
+        for idx, address in enumerate(self.cm.cameras):
         else:
             raise RuntimeError("Failed to acquire camera {} ({})".format(
                 camera_num, self.camera_manager.cameras[camera_num]))
@@ -82,6 +88,7 @@ class Picamera2:
             self.camera = None
             self.verbose_print("Camera closed")
 
+        self.cm.getReadyRequests()  # Could anything here need flushing?
         self.camera_config = None
         self.libcamera_config = None
         self.streams = None
@@ -424,6 +431,8 @@ class Picamera2:
         # Return all the requests that libcamera has completed.
         data = os.read(self.camera_manager.efd, 8)
         requests = [CompletedRequest(req, self) for req in self.camera_manager.getReadyRequests()
+        data = os.read(self.cm.efd, 8)
+        requests = [CompletedRequest(req, self) for req in self.cm.getReadyRequests()
                     if req.status == libcamera.RequestStatus.Complete]
         self.frames += len(requests)
         return requests
