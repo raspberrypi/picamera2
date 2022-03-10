@@ -190,6 +190,8 @@ class Picamera2:
             raise RuntimeError("Camera was not released!")
 
     def close_camera(self):
+        if self._preview:
+            self.stop_preview()
         self.stop_camera()
         self.release_camera()
         self.is_open = False
