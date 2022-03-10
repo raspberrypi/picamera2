@@ -1,11 +1,11 @@
-import picamera2
+import picamera2.picamera2
 import threading
 import atexit
 
 class QtPreview:
     def thread_func(self, picam2, width, height):
         # Running Qt in a thread other than the main thread is a bit tricky...
-        from q_picamera2 import QApplication, QPicamera2
+        from picamera2.encoders.q_picamera2 import QApplication, QPicamera2
 
         self.app = QApplication([])
         self.size = (width, height)

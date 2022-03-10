@@ -11,7 +11,7 @@ class QPicamera2(QWidget):
         self.picamera2 = picam2
         self.label = QLabel(self)
         self.label.resize(width, height)
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.cm.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)

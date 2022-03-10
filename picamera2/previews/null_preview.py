@@ -1,4 +1,4 @@
-import picamera2
+import picamera2.picamera2
 import threading
 import atexit
 
@@ -8,7 +8,7 @@ class NullPreview:
 
         picam2.asynchronous = True
         sel = selectors.DefaultSelector()
-        sel.register(picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request)
+        sel.register(picam2.cm.efd, selectors.EVENT_READ, self.handle_request)
         atexit.register(self.stop)
         self.event.set()
 
