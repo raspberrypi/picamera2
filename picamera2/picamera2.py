@@ -302,7 +302,7 @@ class Picamera2:
         # We will create each stream with the "viewfinder" role just to get the stream
         # configuration objects, and note the positions our named streams will have in
         # libcamera's stream list.
-        roles = [libcamera.StreamRole.Viewfinder]
+        roles = [VIEW]
         index = 1
         self.main_index = 0
         self.lores_index = -1
@@ -310,10 +310,10 @@ class Picamera2:
         if camera_config["lores"] is not None:
             self.lores_index = index
             index += 1
-            roles += [libcamera.StreamRole.Viewfinder]
+            roles += [VIEW]
         if camera_config["raw"] is not None:
             self.raw_index = index
-            roles += [libcamera.StreamRole.Raw]
+            roles += [RAW]
 
         # Make the libcamera configuration, and then we'll write all our parameters over
         # the ones it gave us.
@@ -407,7 +407,7 @@ class Picamera2:
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()
         self.update_camera_config(camera_config, libcamera_config)
-        self.verbose_print("Requesting configuration:", camera_config)
+        self.log.debug(f"Requesting configuration: {camera_config}")
         if status == libcamera.ConfigurationStatus.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
         elif status == libcamera.ConfigurationStatus.Adjusted:
@@ -416,14 +416,14 @@ class Picamera2:
         # Configure libcamera.
         if self.camera.configure(libcamera_config):
             raise RuntimeError("Configuration failed: {}".format(camera_config))
-        self.verbose_print("Configuration successful!")
-        self.verbose_print("Final configuration:", camera_config)
+        self.log.info("Configuration successful!")
+        self.log.debug(f"Final configuration: {camera_config}")
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
         self.stream_map["lores"] = libcamera_config.at(self.lores_index).stream if self.lores_index >= 0 else None
         self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
-        self.verbose_print("Streams:", self.stream_map)
+        self.log.debug(f"Streams: {self.stream_map}")
 
         # These name the streams that we will display/encode. An application could change them.
         self.display_stream_name = "main"
@@ -434,8 +434,10 @@ class Picamera2:
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
-                raise RuntimeError("Failed to allocate buffers")
-            self.verbose_print("Allocated", len(self.allocator.buffers(stream)), "buffers for stream", i)
+                self.logger.critical("Failed to allocate buffers.")
+                raise RuntimeError("Failed to allocate buffers.")
+            msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
+            self.log.debug(msg)
 
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
@@ -546,8 +548,7 @@ class Picamera2:
             # in the list to be tried again next time.
             if self.functions:
                 function = self.functions[0]
-                if self.verbose > 2:
-                    print("Execute function", function)
+                self.log.debug(f"Execute function: {function}")
                 if function():
                     self.functions = self.functions[1:]
                 # Once we've done everything, signal the fact to the thread that requested this work.
