@@ -14,10 +14,10 @@ class DrmPreview(NullPreview):
         "YVU420": pykms.PixelFormat.YVU420,
     }
 
-    def __init__(self, picam2, x=0, y=0, width=640, height=480):
+    def __init__(self, x=0, y=0, width=640, height=480):
         self.init_drm(x, y, width, height)
         self.stop_count = 0
-        super().__init__(picam2, width=width, height=height)
+        super().__init__(width=width, height=height)
 
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()

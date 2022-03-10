@@ -132,6 +132,7 @@ class Picamera2:
             preview = NullPreview()
 
         preview.start(self)
+        self._preview = preview
 
     def start_camera(self,controls = {}):
         if self.is_configured is False:
