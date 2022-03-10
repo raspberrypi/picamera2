@@ -473,7 +473,7 @@ class Picamera2:
         if status == libcamera.ConfigurationStatus.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
         elif status == libcamera.ConfigurationStatus.Adjusted:
-            self.verbose_print("Camera configuration has been adjusted!")
+            self.log.info("Camera configuration has been adjusted!")
 
         # Configure libcamera.
         if self.camera.configure(libcamera_config):
@@ -567,8 +567,6 @@ class Picamera2:
 
     def get_completed_requests(self):
         # Return all the requests that libcamera has completed.
-        data = os.read(self.camera_manager.efd, 8)
-        requests = [CompletedRequest(req, self) for req in self.camera_manager.getReadyRequests()
         data = os.read(self.cm.efd, 8)
         requests = [CompletedRequest(req, self) for req in self.cm.getReadyRequests()
                     if req.status == libcamera.RequestStatus.Complete]
@@ -712,7 +710,7 @@ class Picamera2:
                      (lambda: capture_and_switch_back_(self, filename, preview_config))]
         self.dispatch_functions(functions, signal_function)
         if wait:
-            return self.wait()
+            return self._wait()
 
     def capture_request_(self):
         self.async_result = self.completed_requests.pop(0)
