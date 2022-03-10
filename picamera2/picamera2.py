@@ -61,12 +61,28 @@ class Picamera2:
         """Free any resources that are held."""
         self.verbose_print("Freeing resources for", self)
         self.close_camera()
+    def initialize_camera(self):
         if isinstance(self.cidx,str):
+            try:
                 self.camera = self.cm.get(self.cidx)
             except:
                 self.camera = self.cm.find(self.cidx)
         elif isinstance(self.cidx,int):
             self.camera = self.cm.cameras[self.cidx]
+        if self.camera is not None:
+            self.__identify_camera()
+            self.default_controls = self.camera.controls
+            self.camera_properties = self.camera.properties
+
+            #The next two lines could be placed elsewhere?
+            self.sensor_resolution = self.camera.properties["PixelArraySize"]
+            self.sensor_format = self.camera.generateConfiguration([RAW]).at(0).pixelFormat
+
+            self.log.info('Initialization successful.')
+            return True
+        else:
+            self.log.error("Initialization failed.")
+            raise RuntimeError("Initialization failed.")
 
     def __identify_camera(self):
         self.cid = self.camera.id
