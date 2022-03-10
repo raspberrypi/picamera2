@@ -17,6 +17,7 @@ class Picamera2:
         self.camera_manager = libcamera.CameraManager.singleton()
         self.verbose = verbose
         self.cm = libcamera.CameraManager.singleton()
+        self.cidx = camera_num
             self.log.debug(f"{self.cm}")
         self.camera = None
         self.camera_config = None
@@ -60,8 +61,11 @@ class Picamera2:
         """Free any resources that are held."""
         self.verbose_print("Freeing resources for", self)
         self.close_camera()
+        if isinstance(self.cidx,str):
                 self.camera = self.cm.get(self.cidx)
+            except:
                 self.camera = self.cm.find(self.cidx)
+        elif isinstance(self.cidx,int):
             self.camera = self.cm.cameras[self.cidx]
 
     def open_camera(self, camera_num=0):
@@ -70,7 +74,12 @@ class Picamera2:
         if camera.acquire() >= 0:
             self.camera = camera
             self.verbose_print("Opened camera:", self.camera)
+    def __identify_camera(self):
+        self.cid = self.camera.id
         for idx, address in enumerate(self.cm.cameras):
+            if address == self.camera:
+                self.cidx = idx
+                break
         else:
             raise RuntimeError("Failed to acquire camera {} ({})".format(
                 camera_num, self.camera_manager.cameras[camera_num]))
