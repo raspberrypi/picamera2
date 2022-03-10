@@ -6,7 +6,13 @@ import numpy as np
 import threading
 from PIL import Image
 from encoder import Encoder
+from picamera2.encoders.encoder import Encoder
 import time
+from picamera2.utils.picamera2_logger import *
+from picamera2.previews.null_preview import *
+from picamera2.previews.qt_gl_preview import *
+from picamera2.previews.qt_preview import *
+from picamera2.previews.drm_preview import *
 
 
 class Picamera2:
