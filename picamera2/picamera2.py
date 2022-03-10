@@ -68,18 +68,19 @@ class Picamera2:
         elif isinstance(self.cidx,int):
             self.camera = self.cm.cameras[self.cidx]
 
-    def open_camera(self, camera_num=0):
-        # Acquire a camera for exclusive use.
-        camera = self.camera_manager.cameras[camera_num]
-        if camera.acquire() >= 0:
-            self.camera = camera
-            self.verbose_print("Opened camera:", self.camera)
     def __identify_camera(self):
         self.cid = self.camera.id
         for idx, address in enumerate(self.cm.cameras):
             if address == self.camera:
                 self.cidx = idx
                 break
+
+    def acquire_camera(self):
+        status = self.camera.acquire()
+        if status >= 0:
+            self.is_acquired = True
+            self.log.info("Camera acquired.")
+            return True
         else:
             raise RuntimeError("Failed to acquire camera {} ({})".format(
                 camera_num, self.camera_manager.cameras[camera_num]))
