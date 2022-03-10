@@ -114,8 +114,15 @@ class Picamera2:
             self.log.info("Camera acquired.")
             return True
         else:
-            raise RuntimeError("Failed to acquire camera {} ({})".format(
-                camera_num, self.camera_manager.cameras[camera_num]))
+            self.log.error("Acquisition failed.")
+            raise RuntimeError("Acquisition failed.")
+
+    def open_camera(self):
+        if self.initialize_camera():
+            if self.acquire_camera():
+                self.is_open = True
+                self.log.info("Camera now open.")
+
     def start_preview(self,method = "NULL",width = 600, height = 480,
                       x = None, y = None):
         """
@@ -147,8 +154,6 @@ class Picamera2:
         if self._preview:
             return True
 
-        self.sensor_resolution = camera.properties["PixelArraySize"]
-        self.sensor_format = camera.generateConfiguration([libcamera.StreamRole.Raw]).at(0).pixelFormat
 
     def close_camera(self):
         # Release this camera for use by others.
