@@ -208,6 +208,17 @@ class Picamera2:
         else:
             self._stop()
             return True
+
+    def release_camera(self):
+        status = self.camera.release()
+        if status >= 0:
+            self.is_acquired = False
+            self.log.info("Camera has been released successfully.")
+            return True
+        else:
+            self.log.error("Camera was not released!")
+            raise RuntimeError("Camera was not released!")
+
     def close_camera(self):
         self.stop_camera()
         self.release_camera()
