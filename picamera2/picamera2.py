@@ -18,7 +18,7 @@ from enum import Enum
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
 VIDEO = libcamera.StreamRole.VideoRecording
-VIEW = libcamera.StreamRole.Viewfinder
+VIEWFINDER = libcamera.StreamRole.Viewfinder
 
 
 class Preview(Enum):
@@ -363,7 +363,7 @@ class Picamera2:
         # We will create each stream with the "viewfinder" role just to get the stream
         # configuration objects, and note the positions our named streams will have in
         # libcamera's stream list.
-        roles = [VIEW]
+        roles = [VIEWFINDER]
         index = 1
         self.main_index = 0
         self.lores_index = -1
@@ -371,7 +371,7 @@ class Picamera2:
         if camera_config["lores"] is not None:
             self.lores_index = index
             index += 1
-            roles += [VIEW]
+            roles += [VIEWFINDER]
         if camera_config["raw"] is not None:
             self.raw_index = index
             roles += [RAW]
