@@ -22,6 +22,7 @@ VIEWFINDER = libcamera.StreamRole.Viewfinder
 
 
 class Preview(Enum):
+    """Enum that applications can pass to the start_preview method."""
     NULL = 0
     DRM = 1
     QT = 2
@@ -32,7 +33,7 @@ class Picamera2:
 
     """Welcome to the PiCamera2 class."""
 
-    def __init__(self, camera_num=0, verbose_console=2):
+    def __init__(self, camera_num=0, verbose_console=1):
         """Initialise camera system and open the camera for use."""
         self.camera_manager = libcamera.CameraManager.singleton()
         self.camera_idx = camera_num
@@ -48,10 +49,8 @@ class Picamera2:
 
     def _reset_flags(self):
         self.camera = None
-        self.is_open = None
-        self.default_stream = None
+        self.is_open = False
         self.default_controls = None
-        self.is_configured = None
         self._preview = None
         self.camera_config = None
         self.libcamera_config = None
@@ -154,7 +153,7 @@ class Picamera2:
         self._preview = preview
 
     def start_camera(self,controls = {}):
-        if self.is_configured is False:
+        if self.libcamera_config is None:
             self.log.error("Camera must be configured before starting!")
             raise RuntimeError("Camera must be configured before starting!")
 
@@ -207,7 +206,6 @@ class Picamera2:
             if self.camera.release() < 0:
                 raise RuntimeError("Failed to release camera")
             self.is_open = False
-            self.is_configured = False
             self.camera_config = None
             self.libcamera_config = None
             self.streams = None
@@ -714,7 +712,7 @@ class Picamera2:
             return self._wait()
 
     def switch_mode_capture_request_and_stop(self, camera_config, wait=True, signal_function=signal_event):
-        """ """
+        """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
 
         def capture_request_and_stop_(self):
             self.capture_request_()
