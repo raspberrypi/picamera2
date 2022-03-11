@@ -1,12 +1,12 @@
-from picamera2.picamera2 import Picamera2
+from picamera2.picamera2 import *
 import time
 
 print("Preview re-initialized after start.")
 picam2 = Picamera2()
 preview = picam2.preview_configuration()
 picam2.configure(preview)
-picam2.start_camera()
-picam2.start_preview('QT')
+picam2.start()
+picam2.start_preview(Preview.QT)
 np_array = picam2.capture_array()
 print(np_array)
 time.sleep(10)
@@ -19,8 +19,8 @@ print("Preview initialized before start.")
 picam2 = Picamera2()
 preview = picam2.preview_configuration()
 picam2.configure(preview)
-picam2.start_preview('QT')
-picam2.start_camera()
+picam2.start_preview(Preview.QT)
+picam2.start()
 np_array = picam2.capture_array()
 print(np_array)
 time.sleep(10)

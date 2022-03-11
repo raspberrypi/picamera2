@@ -6,7 +6,7 @@ def main():
     with Picamera2() as picam2:
         preview = picam2.preview_configuration()
         picam2.configure(preview)
-        picam2.start_camera()
+        picam2.start()
         picam2.start_preview()
         metadata = picam2.capture_file("context_test.jpg")
         print(metadata)
@@ -18,7 +18,7 @@ def main():
     picam2 = Picamera2()
     preview = picam2.preview_configuration()
     picam2.configure(preview)
-    picam2.start_camera()
+    picam2.start()
     picam2.start_preview()
     metadata = picam2.capture_file("no_context_test.jpg")
     print(metadata)

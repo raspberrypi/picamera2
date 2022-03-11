@@ -1,4 +1,4 @@
-from picamera2.picamera2 import Picamera2
+from picamera2.picamera2 import *
 import time
 
 
@@ -15,13 +15,13 @@ def main():
     picam2.configure(preview)
 
 
-    picam2.start_camera()
+    picam2.start()
 
 
     qtgl1 = time.monotonic()
     print("QT GL Preview")
     time.sleep(buffer)
-    picam2.start_preview('QT GL')
+    picam2.start_preview(Preview.QTGL)
     time.sleep(wait)
     picam2.stop_preview()
     qtgl2 = time.monotonic()
@@ -29,7 +29,7 @@ def main():
     null1 = time.monotonic()
     print("Null Preview")
     time.sleep(buffer)
-    picam2.start_preview('nuLL')
+    picam2.start_preview(Preview.NULL)
     time.sleep(wait)
     picam2.stop_preview()
     null2 = time.monotonic()
@@ -38,7 +38,7 @@ def main():
     qt1 = time.monotonic()
     print("QT Preview")
     time.sleep(buffer)
-    picam2.start_preview('Qt')
+    picam2.start_preview(Preview.QT)
     time.sleep(wait)
     picam2.stop_preview()
     qt2 = time.monotonic()
