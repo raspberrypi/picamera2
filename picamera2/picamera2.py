@@ -35,7 +35,7 @@ class Picamera2:
     def __init__(self, camera_num=0, verbose_console=2):
         """Initialise camera system and open the camera for use."""
         self.camera_manager = libcamera.CameraManager.singleton()
-        self.cidx = camera_num
+        self.camera_idx = camera_num
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level = verbose_console)
         self._reset_flags()
@@ -86,13 +86,13 @@ class Picamera2:
         self.close_camera()
 
     def initialize_camera(self):
-        if isinstance(self.cidx,str):
+        if isinstance(self.camera_idx,str):
             try:
-                self.camera = self.camera_manager.get(self.cidx)
+                self.camera = self.camera_manager.get(self.camera_idx)
             except:
-                self.camera = self.camera_manager.find(self.cidx)
-        elif isinstance(self.cidx,int):
-            self.camera = self.camera_manager.cameras[self.cidx]
+                self.camera = self.camera_manager.find(self.camera_idx)
+        elif isinstance(self.camera_idx,int):
+            self.camera = self.camera_manager.cameras[self.camera_idx]
         if self.camera is not None:
             self.__identify_camera()
             self.default_controls = self.camera.controls
@@ -109,10 +109,9 @@ class Picamera2:
             raise RuntimeError("Initialization failed.")
 
     def __identify_camera(self):
-        self.cid = self.camera.id
         for idx, address in enumerate(self.camera_manager.cameras):
             if address == self.camera:
-                self.cidx = idx
+                self.camera_idx = idx
                 break
 
     def open_camera(self):
