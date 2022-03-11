@@ -33,7 +33,7 @@ class Picamera2:
     """Welcome to the PiCamera2 class."""
 
     def __init__(self, camera_num=0, verbose_console=2):
-        """Initialise camera system and acquire the camera for use."""
+        """Initialise camera system and open the camera for use."""
         self.camera_manager = libcamera.CameraManager.singleton()
         self.cidx = camera_num
         self.verbose_console = verbose_console
@@ -48,7 +48,6 @@ class Picamera2:
 
     def _reset_flags(self):
         self.camera = None
-        self.is_acquired = None
         self.is_open = None
         self.default_stream = None
         self.default_controls = None
@@ -116,21 +115,15 @@ class Picamera2:
                 self.cidx = idx
                 break
 
-    def acquire_camera(self):
-        status = self.camera.acquire()
-        if status >= 0:
-            self.is_acquired = True
-            self.log.info("Camera acquired.")
-            return True
-        else:
-            self.log.error("Acquisition failed.")
-            raise RuntimeError("Acquisition failed.")
-
     def open_camera(self):
         if self.initialize_camera():
-            if self.acquire_camera():
+            if self.camera.acquire() >= 0:
                 self.is_open = True
                 self.log.info("Camera now open.")
+            else:
+                raise RuntimeError("Failed to acquire camera")
+        else:
+            raise RuntimeError("Failed to initialize camera")
 
     def start_preview(self, preview=None, **kwargs):
         """
@@ -190,12 +183,13 @@ class Picamera2:
             raise RuntimeError("No preview specified.")
 
     def _stop(self, request=None):
-        self.camera.stop()
-        self.camera_manager.getReadyRequests()  # Could anything here need flushing?
-        self.started = False
-        self.stop_count += 1
-        self.completed_requests = []
-        self.log.info("Camera has stopped.")
+        if self.started:
+            self.camera.stop()
+            self.camera_manager.getReadyRequests()  # Could anything here need flushing?
+            self.started = False
+            self.stop_count += 1
+            self.completed_requests = []
+            self.log.info("Camera has stopped.")
 
     def stop_camera(self):
         if self.asynchronous:
@@ -206,28 +200,20 @@ class Picamera2:
             self._stop()
             return True
 
-    def release_camera(self):
-        status = self.camera.release()
-        if status >= 0:
-            self.is_acquired = False
-            self.log.info("Camera has been released successfully.")
-            return True
-        else:
-            self.log.error("Camera was not released!")
-            raise RuntimeError("Camera was not released!")
-
     def close_camera(self):
         if self._preview:
             self.stop_preview()
-        self.stop_camera()
-        self.release_camera()
-        self.is_open = False
-        self.is_configured = False
-        self.camera_config = None
-        self.libcamera_config = None
-        self.streams = None
-        self.stream_map = None
-        self.log.info(f'Camera closed successfully.')
+        if self.is_open:
+            self.stop_camera()
+            if self.camera.release() < 0:
+                raise RuntimeError("Failed to release camera")
+            self.is_open = False
+            self.is_configured = False
+            self.camera_config = None
+            self.libcamera_config = None
+            self.streams = None
+            self.stream_map = None
+            self.log.info(f'Camera closed successfully.')
 
     def make_initial_stream_config(self, stream_config, updates):
         # Take an initial stream_config and add any user updates.
