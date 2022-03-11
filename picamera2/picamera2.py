@@ -276,7 +276,7 @@ class Picamera2:
                 "controls": controls}
 
     def video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}):
-        "Make a configuration suitable for still video recording."
+        "Make a configuration suitable for video recording."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
@@ -573,7 +573,7 @@ class Picamera2:
         return requests
 
     def process_requests(self):
-        # This is the function that the event loop, which returns externally to us, must
+        # This is the function that the event loop, which runs externally to us, must
         # call.
         requests = self.get_completed_requests()
         if not requests:
