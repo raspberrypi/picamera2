@@ -23,7 +23,7 @@ def main():
     metadata = picam2.capture_file("no_context_test.jpg")
     print(metadata)
     picam2.stop_preview()
-    picam2.close_camera()
+    picam2.close()
 
 
 if __name__ == "__main__":

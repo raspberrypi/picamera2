@@ -53,7 +53,7 @@ def main():
     # drm2 = time.monotonic()
 
     #Close the camera.
-    picam2.close_camera()
+    picam2.close()
 
     print(f"QT GL Cycle Results: {qtgl2-qtgl1-wait-buffer} s")
     print(f"Null Cycle Results: {null2-null1-wait-buffer} s")

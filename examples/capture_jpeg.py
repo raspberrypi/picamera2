@@ -19,4 +19,4 @@ time.sleep(2)
 metadata = picam2.capture_file("test.jpg")
 print(metadata)
 
-picam2.close_camera()
+picam2.close()

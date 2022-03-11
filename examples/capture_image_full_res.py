@@ -20,4 +20,4 @@ image.show()
 
 time.sleep(5)
 
-picam2.close_camera()
+picam2.close()

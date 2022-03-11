@@ -11,7 +11,7 @@ np_array = picam2.capture_array()
 print(np_array)
 time.sleep(10)
 picam2.stop_preview()
-picam2.close_camera()
+picam2.close()
 
 
 
@@ -25,6 +25,6 @@ np_array = picam2.capture_array()
 print(np_array)
 time.sleep(10)
 picam2.stop_preview()
-picam2.close_camera()
+picam2.close()
 
 

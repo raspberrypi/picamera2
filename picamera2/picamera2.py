@@ -77,12 +77,12 @@ class Picamera2:
         return self
 
     def __exit__(self,exc_type, exc_val, exc_traceback):
-        self.close_camera()
+        self.close()
 
     def __del__(self):
         # Without this libcamera will complain if we shut down without closing the camera.
         self.log.debug(f"Resources now free: {self}")
-        self.close_camera()
+        self.close()
 
     def initialize_camera(self):
         if isinstance(self.camera_idx,str):
@@ -164,7 +164,7 @@ class Picamera2:
         else:
             raise RuntimeError("No preview specified.")
 
-    def close_camera(self):
+    def close(self):
         if self._preview:
             self.stop_preview()
         if self.is_open:
