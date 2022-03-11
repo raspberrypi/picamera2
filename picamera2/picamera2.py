@@ -9,12 +9,23 @@ from picamera2.encoders.encoder import Encoder
 import time
 from picamera2.utils.picamera2_logger import *
 from picamera2.previews.null_preview import *
+from picamera2.previews.drm_preview import *
+from picamera2.previews.qt_preview import *
+from picamera2.previews.qt_gl_preview import *
+from enum import Enum
 
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
 VIDEO = libcamera.StreamRole.VideoRecording
 VIEW = libcamera.StreamRole.Viewfinder
+
+
+class Preview(Enum):
+    NULL = 0
+    DRM = 1
+    QT = 2
+    QTGL = 3
 
 
 class Picamera2:
@@ -121,15 +132,31 @@ class Picamera2:
                 self.is_open = True
                 self.log.info("Camera now open.")
 
-    def start_preview(self, preview=None):
+    def start_preview(self, preview=None, **kwargs):
         """
-        Start the given preview which drives the camera processing.
+        Start the given preview which drives the camera processing. The preview
+        may be either:
+          None - in which case a NullPreview is made,
+          a Preview enum value - in which case a preview of that type is made,
+          or an actual preview object.
+
+        When using the enum form, extra keyword arguments can be supplied that
+        will be forwarded to the preview class constructor.
         """
         if self._preview:
             raise RuntimeError("A preview is already running")
 
         if preview is None:
             preview = NullPreview()
+        elif isinstance(preview, Preview):
+            preview_table = {Preview.NULL: NullPreview,
+                             Preview.DRM: DrmPreview,
+                             Preview.QT: QtPreview,
+                             Preview.QTGL: QtGlPreview}
+            preview = preview_table[preview](**kwargs)
+        else:
+            # Assume it's already a preview object.
+            pass
 
         preview.start(self)
         self._preview = preview

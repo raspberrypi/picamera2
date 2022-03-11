@@ -2,7 +2,6 @@
 
 import cv2
 
-from picamera2.previews.qt_gl_preview import *
 from picamera2.picamera2 import *
 
 # This version creates a lores YUV stream, extracts the Y channel and runs the face
@@ -23,7 +22,7 @@ def draw_faces(request):
         del im
 
 picam2 = Picamera2()
-picam2.start_preview(QtGlPreview())
+picam2.start_preview(Preview.QTGL)
 config = picam2.preview_configuration(main={"size": (640, 480)},
                                       lores={"size": (320, 240), "format": "YUV420"})
 picam2.configure(config)

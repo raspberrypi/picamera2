@@ -5,7 +5,6 @@
 # Note: needs simplejpeg to be installed (pip3 install simplejpeg).
 
 from picamera2.picamera2 import *
-from picamera2.previews.null_preview import *
 from picamera2.encoders.jpeg_encoder import *
 import io
 import logging
@@ -79,7 +78,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
 
 picam2 = Picamera2()
-picam2.start_preview(NullPreview())
+picam2.start_preview()
 picam2.configure(picam2.video_configuration(main={"size": (640, 480)}))
 output = StreamingOutput()
 picam2.start_recording(JpegEncoder(), output)

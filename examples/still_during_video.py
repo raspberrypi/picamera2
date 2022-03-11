@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from picamera2.previews.null_preview import *
 from picamera2.encoders.h264_encoder import *
 from picamera2.picamera2 import *
 import time
@@ -16,7 +15,7 @@ video_config = picam2.video_configuration(main_stream, lores_stream)
 picam2.configure(video_config)
 picam2.encode_stream_name = "lores"
 
-picam2.start_preview(NullPreview())
+picam2.start_preview()
 encoder = H264Encoder(10000000)
 
 picam2.start_recording(encoder, 'test.h264')

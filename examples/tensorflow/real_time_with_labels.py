@@ -32,8 +32,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageFont, ImageDraw
 
-from qt_gl_preview import *
-from picamera2 import *
+from picamera2.picamera2 import *
 
 normalSize = (640, 480)
 lowresSize = (320, 240)
@@ -139,7 +138,7 @@ def main():
       label_file = None
 
     picam2 = Picamera2()
-    preview = QtGlPreview(picam2)
+    picam2.start_preview(Preview.QTGL)
     config = picam2.preview_configuration(main={"size": normalSize},
                                           lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
