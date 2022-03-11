@@ -65,6 +65,19 @@ sudo apt install -y libatlas-base-dev
 sudo pip3 install numpy --upgrade
 ```
 
+## Contibuting
+
+We are happy to receive pull requests that will fix bugs, add features and generally improve the code. If possible, pull requests would ideally be:
+
+- Restricted to one change or feature each.
+- The commit history should consist of a number of commits that are as easy to review as possible.
+- Where changes are likely to be more involved, we would invite authors to start a discussion with us first so that we can agree a good way forward.
+- All the tests and examples should be working after each commit in the pull request. We'll shortly be adding some automated testing to the repository to make it easier to test if things have become broken.
+- Any documentation should be updated accordingly. Where appropriate, new examples and tests would be welcomed.
+- The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi, so that we can continue to distribute it as open source to all our users.
+
+Thank you!
+
 ## How *Picamera2* Works
 
 Readers are recommended to refer to the supplied [examples](#examples) in conjunction with the descriptions below.
@@ -74,7 +87,7 @@ Readers are recommended to refer to the supplied [examples](#examples) in conjun
 The camera system should be opened as shown.
 
 ```
-from picamera2 import *
+from picamera2.picamera2 import *
 
 picam2 = Picamera2()
 ```
@@ -157,16 +170,15 @@ The *Picamera2* class implements most of the camera functionality, however, it d
 - Use the `NullPreview` class. This class actually generates no preview window at all and merely supplies an event loop that drives the camera.
 - In a Qt application, the `QPicamer2` or `QGlPicamera2` widgets are provided and automatically use the Qt event loop to drive the camera.
 
-In all cases creating one of these objects starts the event loop, though it will not receive any frames until `Picamera2.start` is called.
+To start the event loop, the `start_preview` method should be called. It can be passed an actual preview object, or for convenience can be passed one of the Preview enum values (see below). If given no arguments at all, a `NullPreview` is created. When running under a Qt even loop, `start_preview` should _not_ be called at all.
 
 Example:
 
 ```
-from picamera2 import *
-from qt_gl_preview import *
+from picamera2.picamera2 import *
 
 picam2 = Picamera2()
-preview = QtGlPreview(picam2)
+picam2.start_preview(Preview.QTGL)
 
 config = picam2.preview_configuration()
 picam2.configure(config)
@@ -174,9 +186,18 @@ picam2.configure(config)
 picam2.start()
 ```
 
-To use the DRM preview window, use `from drm_preview import *` and `preview = DrmPreview(picam2)` instead.
+Note that
+```
+from picamera2.previews.qt_gl_preview import *
+picam2.start_preview(QtGlPreview())
+```
+is equivalent to `picam2.start_preview(Preview.QTGL)`.
 
-For no preview window at all, use `from null_preview import *` and `preview = NullPreview(picam2)` instead.
+To use the DRM preview window, use `picam2.start_preview(Preview.DRM)` instead.
+
+To use the Qt (non-GL) preview window, use `picam2.start_preview(Preview.QT)` instead.
+
+For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`.
 
 Please refer to the supplied examples for more information.
 
