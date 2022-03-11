@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-from null_preview import *
-from picamera2 import *
+from picamera2.previews.null_preview import *
+from picamera2.picamera2 import *
+from picamera2.converters import *
 import cv2
 
 cv2.startWindowThread()
 
 picam2 = Picamera2()
-preview = NullPreview(picam2)
+picam2.start_preview(NullPreview())
 config = picam2.preview_configuration(lores={"size": (640, 480)})
 picam2.configure(config)
 picam2.start()

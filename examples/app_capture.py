@@ -3,8 +3,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
 
-from q_gl_picamera2 import *
-from picamera2 import *
+from picamera2.previews.q_gl_picamera2 import *
+from picamera2.picamera2 import *
 
 def request_callback(request):
         label.setText(''.join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items()))

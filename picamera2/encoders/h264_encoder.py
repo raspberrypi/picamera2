@@ -7,7 +7,7 @@ import fcntl
 import mmap
 import select
 import time
-from encoder import *
+from picamera2.encoders.encoder import *
 from v4l2 import *
 
 class H264Encoder(Encoder):

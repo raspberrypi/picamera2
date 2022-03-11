@@ -3,10 +3,11 @@
 # Capture a JPEG while still running in the preview mode.
 
 from picamera2.picamera2 import *
+from picamera2.previews.qt_gl_preview import *
 import time
 
 picam2 = Picamera2()
-picam2.start_preview('QTGL')
+picam2.start_preview(QtGlPreview())
 
 preview_config = picam2.preview_configuration()
 capture_config = picam2.still_configuration()
