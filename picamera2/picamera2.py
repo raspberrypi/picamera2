@@ -152,22 +152,6 @@ class Picamera2:
         preview.start(self)
         self._preview = preview
 
-    def start_camera(self,controls = {}):
-        if self.libcamera_config is None:
-            self.log.error("Camera must be configured before starting!")
-            raise RuntimeError("Camera must be configured before starting!")
-
-        status = self.camera.start(self.controls | controls)
-        if status >= 0:
-            for request in self.make_requests():
-                self.camera.queueRequest(request)
-            self.is_running = True
-            self.started = True
-            self.log.info("Camera has started!")
-        else:
-            self.log.error("Camera did not start properly.")
-            raise RuntimeError("Camera did not start properly.")
-
     def stop_preview(self):
         if self._preview:
             try:
@@ -180,29 +164,11 @@ class Picamera2:
         else:
             raise RuntimeError("No preview specified.")
 
-    def _stop(self, request=None):
-        if self.started:
-            self.camera.stop()
-            self.camera_manager.getReadyRequests()  # Could anything here need flushing?
-            self.started = False
-            self.stop_count += 1
-            self.completed_requests = []
-            self.log.info("Camera has stopped.")
-
-    def stop_camera(self):
-        if self.asynchronous:
-            self.dispatch_functions([self._stop])
-            self.wait()
-            return True
-        else:
-            self._stop()
-            return True
-
     def close_camera(self):
         if self._preview:
             self.stop_preview()
         if self.is_open:
-            self.stop_camera()
+            self.stop()
             if self.camera.release() < 0:
                 raise RuntimeError("Failed to release camera")
             self.is_open = False
@@ -505,36 +471,42 @@ class Picamera2:
 
     def start_(self, controls={}):
         """Start the camera system running."""
-        if self.camera is None:
-            raise RuntimeError("Camera has not been opened")
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
             raise RuntimeError("Camera already started")
-        self.camera.start(self.camera_config["controls"] | controls)
-        for request in self.make_requests():
-            self.camera.queueRequest(request)
-        self.log.info("Camera started")
-        self.started = True
+        if self.camera.start(self.camera_config["controls"] | controls) >= 0:
+            for request in self.make_requests():
+                self.camera.queueRequest(request)
+            self.log.info("Camera started")
+            self.started = True
+        else:
+            self.log.error("Camera did not start properly.")
+            raise RuntimeError("Camera did not start properly.")
 
     def start(self, controls={}):
         """Start the camera system running."""
+        if self.camera_config is None:
+            raise RuntimeError("Camera has not been configured")
         self.start_(controls)
 
     def stop_(self, request=None):
-        # Stop the camera.
-        self.camera.stop()
-        self.camera_manager.getReadyRequests()  # Could anything here need flushing?
-        self.started = False
-        self.stop_count += 1
-        self.completed_requests = []
-        self.log.info("Camera stopped")
+        """Stop the camera. Only call this function directly from within the camera event
+        loop, such as in a Qt application."""
+        if self.started:
+            self.camera.stop()
+            self.camera_manager.getReadyRequests()  # Could anything here need flushing?
+            self.started = False
+            self.stop_count += 1
+            self.completed_requests = []
+            self.log.info("Camera stopped")
         return True
 
     def stop(self):
         """Stop the camera."""
         if not self.started:
-            raise RuntimeError("Camera was not started")
+            self.log.debug("Camera was not started")
+            return
         if self.asynchronous:
             self.dispatch_functions([self.stop_])
             self.wait()
@@ -665,9 +637,9 @@ class Picamera2:
             return self.wait()
 
     def switch_mode_(self, camera_config):
-        self._stop()
+        self.stop_()
         self.configure_(camera_config)
-        self.start_camera()
+        self.start_()
         self.async_result = self.camera_config
         return True
 
@@ -717,7 +689,7 @@ class Picamera2:
         def capture_request_and_stop_(self):
             self.capture_request_()
             request = self.async_result
-            self._stop()
+            self.stop_()
             self.async_result = request
             return True
 
