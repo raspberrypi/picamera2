@@ -50,7 +50,7 @@ class Picamera2:
     def _reset_flags(self):
         self.camera = None
         self.is_open = False
-        self.default_controls = None
+        self.camera_controls = None
         self._preview = None
         self.camera_config = None
         self.libcamera_config = None
@@ -94,7 +94,7 @@ class Picamera2:
             self.camera = self.camera_manager.cameras[self.camera_idx]
         if self.camera is not None:
             self.__identify_camera()
-            self.default_controls = self.camera.controls
+            self.camera_controls = self.camera.controls
             self.camera_properties = self.camera.properties
 
             # The next two lines could be placed elsewhere?
