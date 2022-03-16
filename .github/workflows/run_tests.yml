@@ -15,9 +15,6 @@ jobs:
         fetch-depth: 1
         clean: true
 
-    - name: printenv
-      run: env
-
     - name: Test
       run: DISPLAY=:0 PYTHONPATH=/home/pi/_work/picamera2/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2 python3 ${{github.workspace}}/tools/run_tests.py -p ${{github.workspace}}
       timeout-minutes: 30
