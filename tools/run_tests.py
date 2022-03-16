@@ -69,7 +69,8 @@ def run_tests(tests):
                     pass
                 elif "error" in line:
                     print("\tERROR")
-                    print("\t", line)
+                    for line2 in output:
+                        print(line2)
                     test_passed = False
                     num_failed = num_failed + 1
                     break
