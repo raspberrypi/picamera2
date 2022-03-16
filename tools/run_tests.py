@@ -67,6 +67,8 @@ def run_tests(tests):
                     pass
                 elif "qxcbconnection" in line:  # this can come out when running headless
                     pass
+                elif "xdg_runtime_dir" in line:  # this one too when running on behalf of GitHub
+                    pass
                 elif "error" in line:
                     print("\tERROR")
                     print("\t", line)
