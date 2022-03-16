@@ -7,6 +7,8 @@ examples/controls.py
 examples/controls_2.py
 examples/exposure_fixed.py
 examples/metadata.py
+examples/opencv_face_detect_2.py
+examples/opencv_mertens_merge.py
 examples/preview.py
 examples/preview_x_forwarding.py
 examples/raw.py
@@ -14,6 +16,7 @@ examples/rotation.py
 examples/still_during_video.py
 examples/switch_mode.py
 examples/switch_mode_2.py
+examples/yuv_to_rgb.py
 examples/zoom.py
 tests/context_test.py
 tests/preview_cycle_test.py
