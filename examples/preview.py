@@ -14,3 +14,5 @@ picam2.configure(preview_config)
 
 picam2.start()
 time.sleep(5)
+
+picam2.stop()
