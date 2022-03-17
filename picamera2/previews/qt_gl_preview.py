@@ -24,7 +24,6 @@ class QtGlPreview:
         atexit.unregister(self.stop)
         self.qpicamera2.picamera2.asynchronous = False
         # Again, all necessary to keep Qt quiet.
-        del self.qpicamera2.camera_notifier
         del self.qpicamera2
         del self.app
 
