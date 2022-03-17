@@ -81,3 +81,11 @@ class DrmPreview(NullPreview):
         if self.current:
             self.current.release()
         self.current = completed_request
+
+    def stop(self):
+        super().stop()
+        # Seem to need some of this in order to be able to create another DrmPreview.
+        self.drmfbs = {}
+        self.crtc = None
+        self.resman = None
+        self.card = None
