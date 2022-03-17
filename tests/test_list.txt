@@ -18,3 +18,4 @@ examples/zoom.py
 tests/context_test.py
 tests/preview_cycle_test.py
 tests/preview_location_test.py
+tests/qt_gl_preview_test.py
