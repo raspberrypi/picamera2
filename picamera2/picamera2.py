@@ -444,7 +444,7 @@ class Picamera2:
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
-                self.logger.critical("Failed to allocate buffers.")
+                self.log.critical("Failed to allocate buffers.")
                 raise RuntimeError("Failed to allocate buffers.")
             msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
             self.log.debug(msg)
