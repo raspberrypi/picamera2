@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtCore import Qt
 
 import sys
+import threading
 import os
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
@@ -84,12 +85,17 @@ class QGlPicamera2(QWidget):
         self.setAttribute(Qt.WA_PaintOnScreen)
         self.setAttribute(Qt.WA_NativeWindow)
 
+        self.lock = threading.Lock()
+        self.count = 0
+        self.overlay_present = False
         self.buffers = {}
         self.surface = None
         self.current_request = None
         self.stop_count = 0
         self.egl = EglState()
         self.init_gl()
+        # set_overlay could be called before the first frame arrives, hence:
+        eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
         self.picamera2 = picam2
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
@@ -110,12 +116,16 @@ class QGlPicamera2(QWidget):
         surface = eglCreateWindowSurface(self.egl.display, self.egl.config,
                                          native_surface, None)
 
-        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
-
         self.surface = surface
 
     def init_gl(self):
         self.create_surface()
+
+        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        self.overlay_texture = glGenTextures(1)
 
         vertShaderSrc = """
             attribute vec2 aPosition;
@@ -128,7 +138,7 @@ class QGlPicamera2(QWidget):
                 texcoord.y = 1.0 - aPosition.y;
             }
         """
-        fragShaderSrc = """
+        fragShaderSrc_image = """
             #extension GL_OES_EGL_image_external : enable
             precision mediump float;
             varying vec2 texcoord;
@@ -139,12 +149,25 @@ class QGlPicamera2(QWidget):
                 gl_FragColor = texture2D(texture, texcoord);
             }
         """
+        fragShaderSrc_overlay = """
+            precision mediump float;
+            varying vec2 texcoord;
+            uniform sampler2D overlay;
 
-        program = shaders.compileProgram(
+            void main()
+            {
+                gl_FragColor = texture2D(overlay, texcoord);
+            }
+        """
+
+        self.program_image = shaders.compileProgram(
             shaders.compileShader(vertShaderSrc, GL_VERTEX_SHADER),
-            shaders.compileShader(fragShaderSrc, GL_FRAGMENT_SHADER)
+            shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
         )
-        glUseProgram(program)
+        self.program_overlay = shaders.compileProgram(
+            shaders.compileShader(vertShaderSrc, GL_VERTEX_SHADER),
+            shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER)
+        )
 
         vertPositions = [
             0.0, 0.0,
@@ -153,11 +176,16 @@ class QGlPicamera2(QWidget):
             0.0, 1.0
         ]
 
-        inputAttrib = glGetAttribLocation(program, "aPosition")
+        inputAttrib = glGetAttribLocation(self.program_image, "aPosition")
         glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
         glEnableVertexAttribArray(inputAttrib)
 
-        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+        inputAttrib = glGetAttribLocation(self.program_overlay, "aPosition")
+        glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
+        glEnableVertexAttribArray(inputAttrib)
+
+        glUseProgram(self.program_overlay)
+        glUniform1i(glGetUniformLocation(self.program_overlay, "overlay"), 0)
 
     class Buffer:
         # libcamera format string -> DRM fourcc, note that 24-bit formats are not supported
@@ -227,7 +255,31 @@ class QGlPicamera2(QWidget):
 
             eglDestroyImageKHR(display, image)
 
+    def set_overlay(self, overlay):
+        with self.lock:
+            if overlay is None:
+                self.overlay_present = False
+            else:
+                # All this swapping round of contexts is a bit icky, but I'd rather copy
+                # the overlay here so that the user doesn't have to worry about us still
+                # using it after this function returns.
+                eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+                glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+                (height, width, channels) = overlay.shape
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay)
+                eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+                self.overlay_present = True
+
     def repaint(self, completed_request):
+        with self.lock:
+            self.repaint_with_lock(completed_request)
+
+    def repaint_with_lock(self, completed_request):
+        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
         if completed_request.request not in self.buffers:
             if self.stop_count != self.picamera2.stop_count:
                 if self.picamera2.verbose_console:
@@ -243,14 +295,21 @@ class QGlPicamera2(QWidget):
 
         buffer = self.buffers[completed_request.request]
 
+        glUseProgram(self.program_image)
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture)
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
+
+        if self.overlay_present:
+            glUseProgram(self.program_overlay)
+            glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
+            glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
         eglSwapBuffers(self.egl.display, self.surface)
 
         if self.current_request:
             self.current_request.release()
         self.current_request = completed_request
+        eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
     @pyqtSlot()
     def handle_requests(self):
