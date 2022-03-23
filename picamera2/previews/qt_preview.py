@@ -45,3 +45,6 @@ class QtPreview:
         if hasattr(self, "app"):
             self.app.quit()
         self.thread.join()
+
+    def set_overlay(self, overlay):
+        self.qpicamera2.set_overlay(overlay)
