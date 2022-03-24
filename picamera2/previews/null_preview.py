@@ -32,6 +32,10 @@ class NullPreview:
         self.thread.start()
         self.event.wait()
 
+    def set_overlay(self, overlay):
+        # This only exists so as to have the same interface as other preview windows.
+        pass
+
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()
         if completed_request:
