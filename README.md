@@ -207,6 +207,30 @@ For no preview window at all, use `picam2.start_preview()` or `picam2.start_prev
 
 Please refer to the supplied examples for more information.
 
+### Overlays
+
+All the preview window implementations support simply overlays, which allows images with an alpha channel to be blended on top of the camera image. The facility is intended for adding simple graphics over the camera image rather than for complex high frame rate animations.
+
+An overlay must be a `numpy` array of shape `(height, width, 4)`. Every pixel consists of 4 values, in the order RGBA, so the final value of the four is the alpha channel, and must also have the datatype `numpy.uint8`.
+
+Once the preview has been started using the `start_preview` method, an overlay may be applied using the `Picamera2.set_overlay` method. The overlay is copied internally and so the application may continue to update the overlay as soon as the `set_overlay` call has returned. Note that the overlay on the display is only re-drawn when the next camera frame arrives.
+
+Overlays will always be stetched to cover the complete camera image. For example:
+```
+from picamera2.picamera2 import *
+import numpy as np
+
+picam2 = Picamera2()
+picam2.configure(picam2.preview_configuration({"size": (640, 480)}))
+picam2.start_preview(Preview.QTGL)
+overlay = np.zeros((200, 200, 4), dtype=np.uint8)
+overlay[:100, 100:] = (255, 0, 0, 64)  # red
+overlay[100:, :100] = (0, 255, 0, 64)  # green
+overlay[100:, 100:] = (0, 0, 255, 64)  # blue
+picam2.set_overlay(overlay)
+picam2.start()
+```
+
 ### Requests and Capturing
 
 *libcamera* works by receiving *requests* from an application and returning them once they have been completed. Most simply, a *request* contains a buffer for each of the configured streams and completing the request means filling each of the buffers with an image from the camera. All the images in a request are created from a single raw frame from the sensor.
@@ -379,6 +403,10 @@ But please note that we generally advise **against** doing too much processing w
 
 In this example we use the `NullPreview` so as to drive the camera system without a preview window, and supply controls to the `start` method (as in [exposure_fixed.py](#exposure_fixedpy)) so as to get pre-determined exposure values. Finally we use *OpenCV*'s *Mertens merge* image fusion method to get HDR-like images.
 
+### [overlay_drm.py](examples/overlay_drm.py)
+
+This example, and the other similar _overlay_ examples, show very trivially how to superimpose an alpha-blended overlay over the camera image. All the preview window implementations share the same `set_overlay` interface.
+
 ### [preview.py](examples/preview.py)
 
 Starts a camera preview window. In this case we use the `QtGlPreview` to display the images. This implementation uses GPU hardware acceleration which is therefore normally the most efficient way display them (through X Windows).
@@ -398,6 +426,12 @@ This example requests the raw stream alongside the main one, and shows how you w
 ### [rotation.py](examples/rotation.py)
 
 *Picamera2* allows horizontal or vertical flips to be applied to camera images, or both together to give a 180 degree rotation.
+
+### [still_during_video.py](examples/still_during_video.py)
+
+Here we show how to record a lower resolution video whilst simultaneously capturing a higher resolution still image. The video encoder can be instructed to capture the low resolution (_lores_) stream instead of the main stream, which in this case is set to be half the sensor's maximum resolution.
+
+The reason for this choice is that, at this resolution, the camera can still deliver us frames at 30fps. If the Pi has enough memory we could technically request the full resolution, giving us very high resolution JPEGs, however the camera would then be restricted to run at a lower framerate.
 
 ### [switch_mode.py](#examples/switch_mode.py)
 
