@@ -9,6 +9,9 @@ examples/exposure_fixed.py
 examples/metadata.py
 examples/opencv_face_detect_2.py
 examples/opencv_mertens_merge.py
+examples/overlay_gl.py
+examples/overlay_null.py
+examples/overlay_qt.py
 examples/preview.py
 examples/preview_x_forwarding.py
 examples/raw.py
