@@ -45,7 +45,7 @@ Finally fetch the *Picamera2* repository. There are a couple of dependencies to 
 
 ```
 cd
-sudo pip3 install pyopengl
+sudo pip3 install pyopengl piexif
 sudo apt install -y python3-pyqt5
 git clone https://github.com/raspberrypi/picamera2.git
 ```
