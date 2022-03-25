@@ -13,6 +13,7 @@ from picamera2.previews.drm_preview import *
 from picamera2.previews.qt_preview import *
 from picamera2.previews.qt_gl_preview import *
 from enum import Enum
+import piexif
 
 
 STILL = libcamera.StreamRole.StillCapture
@@ -958,14 +959,24 @@ class CompletedRequest:
         # This is probably a hideously expensive way to do a capture.
         start_time = time.monotonic()
         img = self.make_image(name)
+        exif = b''
         if filename.split('.')[-1].lower() in ('jpg', 'jpeg') and img.mode == "RGBA":
             # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
             # doesn't like RGBA to we have to bodge that to RGBX.
             img.mode = "RGBX"
+            # Make up some extra EXIF data.
+            metadata = self.get_metadata()
+            zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
+                        piexif.ImageIFD.Model: self.picam2.camera.id,
+                        piexif.ImageIFD.Software: "Picamera2"}
+            total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
+            exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                        piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
+            exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
         # compress_level=1 saves pngs much faster, and still gets most of the compression.
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
-        img.save(filename, compress_level=png_compress_level, quality=jpeg_quality)
+        img.save(filename, compress_level=png_compress_level, quality=jpeg_quality, exif=exif)
         end_time = time.monotonic()
         self.picam2.log.info(f"Saved {self} to file {filename}.")
         self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
