@@ -6,11 +6,12 @@ import numpy as np
 import threading
 from PIL import Image
 import time
+
 try:
     from pidng.core import PICAM2DNG
     from pidng.camdefs import Picamera2Camera
 except:
-    print("PiDNG Package is missing. ")
+    print("PiDNG Package is missing.")
 
 
 class Picamera2:
@@ -832,6 +833,7 @@ class CompletedRequest:
             print("Time taken for encode:", (end_time - start_time) * 1000, "ms")
 
     def save_dng(self, filename, name="raw"):
+        """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.time()
         raw = self.make_array(name)
 
