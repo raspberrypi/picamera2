@@ -269,6 +269,14 @@ picam2.configure(preview_configuration)
 picam2.start()
 ```
 
+## The Tuning File
+
+Being Python-based, _Picamera2_ is a good environment for inspecting and altering the _tuning files_ that Raspberry Pi ships for all its supported cameras.
+
+A _tuning file_ lists all the parameters needed for a specific camera to produce images of acceptable quality, configuring both hardware (specifically of the ISP, or _Image Signal Processor_) and also of the 3A and other real-time algorithms that run to control the behaviour of the camera system.
+
+This is a more advanced topic, so readers are referred to the [Raspberry Pi Camera Algorithm and Tuning Guide](https://datasheets.raspberrypi.com/camera/raspberry-pi-camera-guide.pdf), and to chapter 5 in particular, for a more detailed explanation. We also provide an example [`tuning_file.py`](#tuning_filepy) which illustrates one simple way to use this feature.
+
 ## Examples
 
 A number of small example programs are provided in the [`examples`](examples) folder. Users who are new to *Picamera2* should probably start with the following:
@@ -407,6 +415,12 @@ Example of how to switch between one camera mode and another. In this case we re
 ### [switch_mode_2.py](examples/switch_mode_2.py)
 
 Alternative example of how to switch camera modes (like [switch_mode.py](#switch_modepy)). Under the hood both methods are in fact doing exactly the same thing.
+
+### [tuning_file.py](examples/tuning_file.py)
+
+The camera _tuning file_ is actually a JSON file, so it can be readily loaded into a Python application. We provide a function `load_tuning_file` to do exactly this, and then the tuning file object, a Python dictionary, is easily manipulated.
+
+When the `Picamera2` instance is created, it can optionally be passed either the file name of a custom camera tuning file, or a Python tuning file object. In this example we substitute the default exposure profile for one that prefers longer exposure times, and only ramps the analogue gain as a last resort. For more information on the algorithms and parameters permitted in the tuning file, please consult the [Raspberry Pi Camera Algorithm and Tuning Guide](https://datasheets.raspberrypi.com/camera/raspberry-pi-camera-guide.pdf).
 
 ### [yuv_to_rgb.py](examples/yuv_to_rgb.py)
 
