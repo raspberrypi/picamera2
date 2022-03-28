@@ -16,6 +16,7 @@ examples/rotation.py
 examples/still_during_video.py
 examples/switch_mode.py
 examples/switch_mode_2.py
+examples/tuning_file.py
 examples/zoom.py
 tests/context_test.py
 tests/preview_cycle_test.py

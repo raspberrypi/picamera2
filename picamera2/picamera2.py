@@ -7,6 +7,8 @@ import threading
 from PIL import Image
 from picamera2.encoders.encoder import Encoder
 import time
+import tempfile
+import json
 from picamera2.utils.picamera2_logger import *
 from picamera2.previews.null_preview import *
 from picamera2.previews.drm_preview import *
@@ -33,8 +35,36 @@ class Picamera2:
 
     """Welcome to the PiCamera2 class."""
 
-    def __init__(self, camera_num=0, verbose_console=1):
+    @staticmethod
+    def load_tuning_file(tuning_file, dir=None):
+        """Load the named tuning file. If dir is given, then only that directory is checked,
+        otherwise a list of likely installation directories is searched."""
+        if dir is not None:
+            dirs = [dir]
+        else:
+            dirs = ["/home/pi/libcamera/src/ipa/raspberrypi/data",
+                    "/usr/local/share/libcamera/ipa/raspberrypi",
+                    "/usr/share/libcamera/ipa/raspberrypi"]
+        for dir in dirs:
+            file = os.path.join(dir, tuning_file)
+            if os.path.isfile(file):
+                with open(file, 'r') as fp:
+                    return json.load(fp)
+        raise RuntimeError("Tuning file not found")
+
+    def __init__(self, camera_num=0, verbose_console=1, tuning=None):
         """Initialise camera system and open the camera for use."""
+        tuning_file = None
+        if tuning is not None:
+            if isinstance(tuning, str):
+                os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning
+            else:
+                tuning_file = tempfile.NamedTemporaryFile('w')
+                json.dump(tuning, tuning_file)
+                tuning_file.flush()  # but leave it open as closing it will delete it
+                os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning_file.name
+        else:
+            os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
         self.camera_manager = libcamera.CameraManager.singleton()
         self.camera_idx = camera_num
         self.verbose_console = verbose_console
@@ -46,6 +76,9 @@ class Picamera2:
         except Exception:
             self.log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
+        finally:
+            if tuning_file is not None:
+                tuning_file.close()  # delete the temporary file
 
     def _reset_flags(self):
         self.camera = None
