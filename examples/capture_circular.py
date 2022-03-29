@@ -13,6 +13,7 @@ picam2.configure(video_config)
 picam2.start_preview()
 encoder = H264Encoder(1000000)
 encoder.buffersize = 30 * 5
+encoder.output = open("/dev/null", 'wb')
 picam2.encoder = encoder
 picam2.start()
 picam2.start_encoder()
