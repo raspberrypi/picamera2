@@ -1,4 +1,5 @@
 from v4l2 import *
+import collections
 import io
 
 
@@ -11,6 +12,22 @@ class Encoder:
         self._format = None
         self._output = None
         self._running = False
+        self._circular = None
+        self._circularpos = 0
+
+    @property
+    def buffersize(self):
+        return self._buffersize
+
+    @buffersize.setter
+    def buffersize(self, value):
+        if not isinstance(value, int):
+            raise RuntimeError("Buffer size must be integer")
+        self._buffersize = value
+        if value == 0:
+            self._circular = None
+        else:
+            self._circular = collections.deque(maxlen=value)
 
     @property
     def width(self):
@@ -71,6 +88,17 @@ class Encoder:
 
     def encode(self, stream, request):
         pass
+
+    def dumpbuffer(self, filename):
+        output = open(filename, "wb")
+        first = False
+        for frame in list(self._circular):
+            naltype = frame[4] & 0x1F
+            if naltype == 0x7 or naltype == 0x8:
+                first = True
+            if first:
+                output.write(frame)
+        output.close()
 
     def _start(self):
         if self._running:

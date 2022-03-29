@@ -17,6 +17,7 @@ class H264Encoder(Encoder):
         super().__init__()
         self.bufs = {}
         self._bitrate = bitrate
+        self.vd = None
 
     def _start(self):
         super()._start()
@@ -59,6 +60,16 @@ class H264Encoder(Encoder):
         fmt.fmt.pix_mp.plane_fmt[0].bytesperline = 0
         fmt.fmt.pix_mp.plane_fmt[0].sizeimage = 512 << 10
         fcntl.ioctl(self.vd, VIDIOC_S_FMT, fmt)
+
+        ext = v4l2_ext_controls()
+        extc = v4l2_ext_control()
+        extc.id = (0x00990000 | 0x900) + 226  # V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER
+        extc.value = 1
+        extc.size = 0
+        ext.controls = ctypes.pointer(extc)
+        ext.count = 1
+        ext.ctrl_class = V4L2_CTRL_CLASS_MPEG
+        fcntl.ioctl(self.vd, VIDIOC_S_EXT_CTRLS, ext)
 
         NUM_OUTPUT_BUFFERS = 6
         NUM_CAPTURE_BUFFERS = 12
@@ -160,6 +171,8 @@ class H264Encoder(Encoder):
                         if self._output is not None:
                             self._output.write(b)
                             self._output.flush()
+                        if self._circular is not None:
+                            self._circular += [b]
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
@@ -183,7 +196,7 @@ class H264Encoder(Encoder):
         # as the header seems only to be sent with the first frame
         if self._output is None:
             return
-        if self.vd.closed:
+        if self.vd is None or self.vd.closed:
             return
         cfg = stream.configuration
         fb = request.request.buffers[stream]
