@@ -71,7 +71,8 @@ We are happy to receive pull requests that will fix bugs, add features and gener
 - Restricted to one change or feature each.
 - The commit history should consist of a number of commits that are as easy to review as possible.
 - Where changes are likely to be more involved, we would invite authors to start a discussion with us first so that we can agree a good way forward.
-- All the tests and examples should be working after each commit in the pull request. We'll shortly be adding some automated testing to the repository to make it easier to test if things have become broken.
+- All the tests and examples should be working after each commit in the pull request. The repository implements some automated testing and style checking to help ensure  this.
+- Please try to avoid adding merge commits as this will help keep the commit history a bit more readable.
 - Any documentation should be updated accordingly. Where appropriate, new examples and tests would be welcomed.
 - The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
 - We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend putting
