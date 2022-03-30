@@ -212,7 +212,10 @@ class Commit:
                               self.commit],
                              stdout=subprocess.PIPE).stdout.decode('utf-8')
         files = ret.splitlines()
-        self._files = [CommitFile(f) for f in files[1:]]
+        if files[1]:
+            self._files = [CommitFile(f) for f in files[1:]]
+        else:
+            self._files = []
         self._title = files[0]
 
     def files(self, filter='AMR'):
@@ -730,7 +733,13 @@ def main(argv):
 
     issues = 0
     for commit in commits:
-        issues += check_style(top_level, commit)
+        if not commit._files:
+            print(f"{'*' * 80}\n{commit.commit}\n{'*' * 80}")
+            msg = "No files found - is this a merge commit?"
+            print('%s%s%s' % (Colours.fg(Colours.Yellow), msg, Colours.reset()))
+            issues += 1
+        else:
+            issues += check_style(top_level, commit)
         print('')
 
     if issues:
