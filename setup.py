@@ -23,4 +23,4 @@ setup(name='picamera2',
       },
       packages=['picamera2', 'picamera2.encoders', 'picamera2.previews', 'picamera2.utils'],
       python_requires='>=3.7',
-      install_requires=['PyQt5', 'pyopengl', 'piexif'])
+      install_requires=['PyQt5', 'pyopengl', 'piexif', 'v4l2@git+https://github.com/RaspberryPiFoundation/python-v4l2.git#egg=v4l2'])
