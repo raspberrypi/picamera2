@@ -13,7 +13,6 @@ class Encoder:
         self._output = None
         self._running = False
         self._circular = None
-        self._circularpos = 0
 
     @property
     def buffersize(self):
@@ -85,6 +84,13 @@ class Encoder:
         if not isinstance(value, io.BufferedIOBase):
             raise RuntimeError("Must pass BufferedIOBase")
         self._output = value
+
+    def outputframe(self, frame):
+        if self._output is not None:
+            self._output.write(frame)
+            self._output.flush()
+        if self._circular is not None:
+            self._circular += [frame]
 
     def encode(self, stream, request):
         pass

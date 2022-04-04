@@ -168,11 +168,7 @@ class H264Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        if self._output is not None:
-                            self._output.write(b)
-                            self._output.flush()
-                        if self._circular is not None:
-                            self._circular += [b]
+                        self.outputframe(b)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
