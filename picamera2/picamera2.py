@@ -376,16 +376,22 @@ class Picamera2:
         return libcamera_config
 
     def align_stream(self, stream_config):
-        # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
-        # This matches the hardware behaviour and means we can be more efficient.
+        #Adjust the image size so that all planes are a mutliple of 32 bytes wide.
+        #This matches the hardware behaviour and means we can be more efficient.
+        self.user_supplied_size = stream_config["size"]
         align = 32
         if stream_config["format"] in ("YUV420", "YVU420"):
             align = 64  # because the UV planes will have half this alignment
         elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
             align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
-        size = stream_config["size"]
-        stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
+        
+        #stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
 
+        width = int(np.ceil(stream_config["size"][0]/align)*align)
+        height = int(np.ceil(stream_config["size"][1]/(align/2))*(align/2))
+        self.generated_size = (width,height)
+        stream_config["size"] = (width,height)
+        
     def is_YUV(self, fmt):
         return fmt in ("NV21", "NV12", "YUV420", "YVU420", "YVYU", "YUYV", "UYVY", "VYUY")
 
@@ -916,6 +922,7 @@ class CompletedRequest:
         self.lock = threading.Lock()
         self.picam2 = picam2
         self.stop_count = picam2.stop_count
+        self.user_supplied_size = picam2.user_supplied_size
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to
@@ -972,11 +979,15 @@ class CompletedRequest:
                 array = array.reshape((h, stride))
                 array = np.asarray(array[:, :w * 3], order='C')
             image = array.reshape((h, w, 3))
+            uw,uh = self.user_supplied_size
+            image = image[:uh,:uw,:]
         elif fmt in ("XBGR8888", "XRGB8888"):
             if stride != w * 4:
                 array = array.reshape((h, stride))
                 array = np.asarray(array[:, :w * 4], order='C')
             image = array.reshape((h, w, 4))
+            uw,uh = self.user_supplied_size
+            image = image[:uh,:uw,:]
         elif fmt[0] == 'S':  # raw formats
             image = array.reshape((h, stride))
         else:
