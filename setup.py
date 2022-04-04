@@ -16,7 +16,7 @@ setup(name='picamera2',
       long_description=long_description,
       long_description_content_type='text/markdown',
       author='Raspberry Pi & Raspberry Pi Foundation',
-      author_email='web@raspberrypi.org',
+      author_email='picamera2@raspberrypi.com',
       url='https://github.com/RaspberryPi/picamera2',
       project_urls={
           'Bug Tracker': 'https://github.com/RaspberryPi/picamera2/issues',
