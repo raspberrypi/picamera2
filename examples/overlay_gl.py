@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from picamera2.picamera2 import *
 import numpy as np
 import time
