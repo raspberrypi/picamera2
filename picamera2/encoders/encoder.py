@@ -95,16 +95,26 @@ class Encoder:
     def encode(self, stream, request):
         pass
 
-    def dumpbuffer(self, filename):
+    def dumpbuffer(self, filename, filename2):
         output = open(filename, "wb")
         first = False
-        for frame in list(self._circular):
+        lastiframe = None
+        index = 0
+        circ = list(self._circular)
+        for frame in circ:
             naltype = frame[4] & 0x1F
             if naltype == 0x7 or naltype == 0x8:
                 first = True
+                lastiframe = index
             if first:
                 output.write(frame)
+            index += 1
         output.close()
+        output2 = open(filename2, "wb")
+        if lastiframe is not None:
+            for frame in circ[lastiframe:len(circ)]:
+                output2.write(frame)
+        self._output = output2
 
     def _start(self):
         if self._running:
