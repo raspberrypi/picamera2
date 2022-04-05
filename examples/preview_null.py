@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 import time
-from picamera2.picamera2 import *
+from PiCamera2.PiCamera2 import *
 
-picam2 = Picamera2()
+picam2 = PiCamera2()
 config = picam2.preview_configuration()
 picam2.configure(config)
 

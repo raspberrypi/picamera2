@@ -4,8 +4,8 @@
 # Run this script, then point a web browser at http:<this-ip-address>:8000
 # Note: needs simplejpeg to be installed (pip3 install simplejpeg).
 
-from picamera2.picamera2 import *
-from picamera2.encoders.jpeg_encoder import *
+from PiCamera2.PiCamera2 import *
+from PiCamera2.encoders.jpeg_encoder import *
 import io
 import logging
 import socketserver
@@ -15,10 +15,10 @@ from http import server
 PAGE = """\
 <html>
 <head>
-<title>picamera2 MJPEG streaming demo</title>
+<title>PiCamera2 MJPEG streaming demo</title>
 </head>
 <body>
-<h1>Picamera2 MJPEG Streaming Demo</h1>
+<h1>PiCamera2 MJPEG Streaming Demo</h1>
 <img src="stream.mjpg" width="640" height="480" />
 </body>
 </html>
@@ -81,7 +81,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
 
 
-picam2 = Picamera2()
+picam2 = PiCamera2()
 picam2.start_preview()
 picam2.configure(picam2.video_configuration(main={"size": (640, 480)}))
 output = StreamingOutput()

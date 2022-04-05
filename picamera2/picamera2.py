@@ -5,15 +5,15 @@ import libcamera
 import numpy as np
 import threading
 from PIL import Image
-from picamera2.encoders.encoder import Encoder
+from PiCamera2.encoders.encoder import Encoder
 import time
 import tempfile
 import json
-from picamera2.utils.picamera2_logger import *
-from picamera2.previews.null_preview import *
-from picamera2.previews.drm_preview import *
-from picamera2.previews.qt_preview import *
-from picamera2.previews.qt_gl_preview import *
+from PiCamera2.utils.PiCamera2_logger import *
+from PiCamera2.previews.null_preview import *
+from PiCamera2.previews.drm_preview import *
+from PiCamera2.previews.qt_preview import *
+from PiCamera2.previews.qt_gl_preview import *
 from enum import Enum
 import piexif
 
@@ -32,7 +32,7 @@ class Preview(Enum):
     QTGL = 3
 
 
-class Picamera2:
+class PiCamera2:
 
     """Welcome to the PiCamera2 class."""
 
@@ -1024,7 +1024,7 @@ class CompletedRequest:
             metadata = self.get_metadata()
             zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
                         piexif.ImageIFD.Model: self.picam2.camera.id,
-                        piexif.ImageIFD.Software: "Picamera2"}
+                        piexif.ImageIFD.Software: "PiCamera2"}
             total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
             exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
                         piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}

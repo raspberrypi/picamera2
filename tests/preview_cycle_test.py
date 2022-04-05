@@ -1,4 +1,4 @@
-from picamera2.picamera2 import *
+from PiCamera2.PiCamera2 import *
 import time
 
 
@@ -8,7 +8,7 @@ buffer = 1
 def main():
 
     #First we create a camera instance.
-    picam2 = Picamera2()
+    picam2 = PiCamera2()
 
     #Let's set it up for previewing.
     preview = picam2.preview_configuration()

@@ -1,4 +1,4 @@
-from picamera2.encoders.encoder import *
+from PiCamera2.encoders.encoder import *
 import threading
 import queue
 from concurrent.futures import ThreadPoolExecutor

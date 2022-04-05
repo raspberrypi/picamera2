@@ -1,4 +1,4 @@
-import picamera2.picamera2
+import PiCamera2.PiCamera2
 import threading
 
 

@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
-from picamera2.encoders.h264_encoder import *
-from picamera2.picamera2 import *
+from PiCamera2.encoders.h264_encoder import *
+from PiCamera2.PiCamera2 import *
 import socket
 import time
 import os
 
-picam2 = Picamera2()
+picam2 = PiCamera2()
 video_config = picam2.video_configuration({"size": (1280, 720)})
 picam2.configure(video_config)
 picam2.start_preview()

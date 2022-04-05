@@ -2,14 +2,14 @@
 
 from datetime import datetime,timezone
 import os
-from picamera2.picamera2 import *
-from picamera2.converters import *
+from PiCamera2.PiCamera2 import *
+from PiCamera2.converters import *
 
 
 user = os.getlogin() #Get the current user.
 save_dir = f'/home/{user}/Pictures' #Let's save images to this directory.
 
-picam2 = Picamera2()
+picam2 = PiCamera2()
 config = picam2.still_configuration()
 picam2.configure(config)
 picam2.start_preview()

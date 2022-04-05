@@ -1,4 +1,4 @@
-import picamera2
+import PiCamera2
 import selectors
 import threading
 import queue
@@ -7,7 +7,7 @@ import fcntl
 import mmap
 import select
 import time
-from picamera2.encoders.encoder import *
+from PiCamera2.encoders.encoder import *
 from v4l2 import *
 
 

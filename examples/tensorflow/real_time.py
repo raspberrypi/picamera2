@@ -4,7 +4,7 @@
 # Author: Alasdair Allan <alasdair@raspberrypi.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
-# A TensorFlow Lite example for Picamera2 on Raspberry Pi OS Bullseye
+# A TensorFlow Lite example for PiCamera2 on Raspberry Pi OS Bullseye
 #
 # Install necessary dependences before starting,
 #
@@ -32,7 +32,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageFont, ImageDraw
 
-from picamera2.picamera2 import *
+from PiCamera2.PiCamera2 import *
 
 normalSize = (640, 480)
 lowresSize = (320, 240)
@@ -135,7 +135,7 @@ def main():
     else:
         label_file = None
 
-    picam2 = Picamera2()
+    picam2 = PiCamera2()
     picam2.start_preview(Preview.QTGL)
     config = picam2.preview_configuration(main={"size": normalSize},
                                           lores={"size": lowresSize, "format": "YUV420"})

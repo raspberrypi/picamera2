@@ -1,9 +1,9 @@
-from picamera2.picamera2 import *
+from PiCamera2.PiCamera2 import *
 
 def main():
     print("With context...")
     time.sleep(1)
-    with Picamera2() as picam2:
+    with PiCamera2() as picam2:
         preview = picam2.preview_configuration()
         picam2.configure(preview)
         picam2.start()
@@ -15,7 +15,7 @@ def main():
     
     print("Without context...")
     time.sleep(1)
-    picam2 = Picamera2()
+    picam2 = PiCamera2()
     preview = picam2.preview_configuration()
     picam2.configure(preview)
     picam2.start()

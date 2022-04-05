@@ -2,10 +2,10 @@
 
 # Capture a PNG while still running in the preview mode.
 
-from picamera2.picamera2 import *
+from PiCamera2.PiCamera2 import *
 import time
 
-picam2 = Picamera2()
+picam2 = PiCamera2()
 picam2.start_preview(Preview.QTGL)
 
 preview_config = picam2.preview_configuration(main={"size": (800, 600)})

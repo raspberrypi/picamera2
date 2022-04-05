@@ -6,15 +6,15 @@ from PIL.ImageQt import ImageQt
 import numpy as np
 
 
-class QPicamera2(QWidget):
+class QPiCamera2(QWidget):
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
-        self.picamera2 = picam2
+        self.PiCamera2 = picam2
         self.label = QLabel(self)
         self.label.resize(width, height)
         self.overlay = None
         self.painter = QtGui.QPainter()
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
+        self.camera_notifier = QSocketNotifier(self.PiCamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
@@ -37,14 +37,14 @@ class QPicamera2(QWidget):
 
     @pyqtSlot()
     def handle_requests(self):
-        request = self.picamera2.process_requests()
+        request = self.PiCamera2.process_requests()
         if not request:
             return
 
-        if self.picamera2.display_stream_name is not None:
+        if self.PiCamera2.display_stream_name is not None:
             # This all seems horribly expensive. Pull request welcome if you know a better way!
             size = self.label.size()
-            img = request.make_image(self.picamera2.display_stream_name, size.width(), size.height())
+            img = request.make_image(self.PiCamera2.display_stream_name, size.width(), size.height())
             qim = ImageQt(img)
             self.painter.begin(qim)
             overlay = self.overlay

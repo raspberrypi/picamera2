@@ -2,9 +2,9 @@
 
 TensorFlow Lite inferencing examples that carry out real-time object detection and labelling in a QT preview window using the [MobileNet V2](https://arxiv.org/abs/1801.04381) network trained on the [COCO dataset](https://cocodataset.org/#home).
 
-## Installing Picamera2
+## Installing PiCamera2
 
-Ensure that you have installed the Picamera2 library along with OpenCV. 
+Ensure that you have installed the PiCamera2 library along with OpenCV. 
 
 ```
 $ sudo apt update
@@ -15,7 +15,7 @@ $ sudo apt install -y meson
 $ sudo pip3 install pyyaml ply
 $ sudo pip3 install --upgrade meson
 $ sudo apt install -y libglib2.0-dev libgstreamer-plugins-base1.0-dev
-$ git clone --branch picamera2 git@github.com:raspberrypi/libcamera.git
+$ git clone --branch PiCamera2 git@github.com:raspberrypi/libcamera.git
 $ cd libcamera
 $ meson build --buildtype=release -Dpipelines=raspberrypi -Dipas=raspberrypi -Dv4l2=true -Dgstreamer=enabled -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=enabled -Ddocumentation=disabled -Dpycamera=enabled
 $ ninja -C build 
@@ -30,11 +30,11 @@ $ ninja -C build
 $ cd
 $ sudo pip3 install pyopengl
 $ sudo apt install python3-pyqt5
-$ git clone git@github.com:raspberrypi/picamera2.git
+$ git clone git@github.com:raspberrypi/PiCamera2.git
 $ sudo pip3 install opencv-python==4.4.0.46
 $ sudo apt install -y libatlas-base-dev
 $ sudo pip3 install numpy --upgrade
-$ export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py
+$ export PYTHONPATH=/home/pi/PiCamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py
 ```
 
 **NOTE:** Instructions are for the 32-bit version of Raspberry Pi OS.
