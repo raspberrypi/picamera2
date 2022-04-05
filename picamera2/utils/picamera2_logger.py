@@ -11,7 +11,7 @@ Console Level Options
 
 
 def initialize_logger(console_level):
-    logger = logging.getLogger('PiCamera2')
+    logger = logging.getLogger('picamera2')
     logger.setLevel(logging.DEBUG)
     if not logger.handlers:
         console = logging.StreamHandler()

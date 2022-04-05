@@ -24,7 +24,7 @@ from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
 from OpenGL.GL import shaders
 
-from PiCamera2.previews.gl_helpers import *
+from picamera2.previews.gl_helpers import *
 
 
 class EglState:
@@ -77,7 +77,7 @@ class EglState:
         eglMakeCurrent(self.display, EGL_NO_SURFACE, EGL_NO_SURFACE, self.context)
 
 
-class QGlPiCamera2(QWidget):
+class QGlPicamera2(QWidget):
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.resize(width, height)
@@ -97,8 +97,8 @@ class QGlPiCamera2(QWidget):
         # set_overlay could be called before the first frame arrives, hence:
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
-        self.PiCamera2 = picam2
-        self.camera_notifier = QSocketNotifier(self.PiCamera2.camera_manager.efd,
+        self.picamera2 = picam2
+        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
@@ -281,15 +281,15 @@ class QGlPiCamera2(QWidget):
     def repaint_with_lock(self, completed_request):
         eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
         if completed_request.request not in self.buffers:
-            if self.stop_count != self.PiCamera2.stop_count:
-                if self.PiCamera2.verbose_console:
+            if self.stop_count != self.picamera2.stop_count:
+                if self.picamera2.verbose_console:
                     print("Garbage collect", len(self.buffers), "textures")
                 for (req, buffer) in self.buffers.items():
                     glDeleteTextures(buffer.texture, 1)
                 self.buffers = {}
-                self.stop_count = self.PiCamera2.stop_count
+                self.stop_count = self.picamera2.stop_count
 
-            if self.PiCamera2.verbose_console:
+            if self.picamera2.verbose_console:
                 print("Make buffer for request", completed_request.request)
             self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request)
 
@@ -313,9 +313,9 @@ class QGlPiCamera2(QWidget):
 
     @pyqtSlot()
     def handle_requests(self):
-        request = self.PiCamera2.process_requests()
+        request = self.picamera2.process_requests()
         if request:
-            if self.PiCamera2.display_stream_name is not None:
+            if self.picamera2.display_stream_name is not None:
                 self.repaint(request)
             else:
                 request.release()

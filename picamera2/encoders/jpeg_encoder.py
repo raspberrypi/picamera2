@@ -1,4 +1,4 @@
-from PiCamera2.encoders.multi_encoder import *
+from picamera2.encoders.multi_encoder import *
 import simplejpeg
 
 

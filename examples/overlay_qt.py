@@ -1,8 +1,8 @@
-from PiCamera2.PiCamera2 import *
+from picamera2.picamera2 import *
 import numpy as np
 import time
 
-picam2 = PiCamera2()
+picam2 = Picamera2()
 picam2.configure(picam2.preview_configuration())
 picam2.start_preview(Preview.QT)
 picam2.start()

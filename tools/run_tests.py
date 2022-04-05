@@ -15,24 +15,24 @@ import sys
 # folder and should be self-checking, returning a non-zero exit code if they
 # are deemed to have failed.
 #
-# The script assumes the PiCamera2 code is in /home/pi/PiCamera2, the list
+# The script assumes the Picamera2 code is in /home/pi/picamera2, the list
 # of tests to run is in tests/test_list.txt below that. The tests run in
-# the folder /home/pi/PiCamera2_tests where temporary files can be created,
+# the folder /home/pi/picamera2_tests where temporary files can be created,
 # and which are deleted before each test starts. These locations can be
 # altered with the options:
 #
-# -d - folder for temporary files where the tests run (default /home/pi/PiCamera2_tests)
-# -p - location where the PiCamera2 repository has been cloned (default /home/pi/PiCamera2)
+# -d - folder for temporary files where the tests run (default /home/pi/picamera2_tests)
+# -p - location where the picamera2 repository has been cloned (default /home/pi/picamera2)
 # -t - file listing tests to be run (default tests/test_list.txt)
 #
 # Within the test list file, entries should be one per line and give the
-# location under the PiCamera2 folder. Any individual test must take less
+# location under the picamera2 folder. Any individual test must take less
 # than 30 seconds, otherwise they will be deemed to have timed out.
 # Any line starting with # is ignored. The special value EOL is also
 # recognised, which stops the reading of any further tests from the file.
 
 
-def load_test_list(test_list_file, PiCamera2_dir):
+def load_test_list(test_list_file, picamera2_dir):
     tests = []
     with open(test_list_file, 'r') as f:
         for test in f:
@@ -40,7 +40,7 @@ def load_test_list(test_list_file, PiCamera2_dir):
             if test == "EOL":
                 break
             elif not test.startswith('#'):
-                tests.append(os.path.join(PiCamera2_dir, test))
+                tests.append(os.path.join(picamera2_dir, test))
     return tests
 
 
@@ -87,23 +87,23 @@ def run_tests(tests):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PiCamera2 automated tests')
-    parser.add_argument('--dir', '-d', action='store', default='/home/pi/PiCamera2_tests',
+    parser = argparse.ArgumentParser(description='picamera2 automated tests')
+    parser.add_argument('--dir', '-d', action='store', default='/home/pi/picamera2_tests',
                         help='Folder in which to run tests')
-    parser.add_argument('--PiCamera2-dir', '-p', action='store', default='/home/pi/PiCamera2',
-                        help='Location of PiCamera2 folder')
+    parser.add_argument('--picamera2-dir', '-p', action='store', default='/home/pi/picamera2',
+                        help='Location of picamera2 folder')
     parser.add_argument('--test-list-file', '-t', action='store', default='tests/test_list.txt',
                         help='File containing list of tests to run')
     args = parser.parse_args()
 
     dir = args.dir
-    PiCamera2_dir = args.PiCamera2_dir
-    test_list_file = os.path.join(PiCamera2_dir, args.test_list_file)
+    picamera2_dir = args.picamera2_dir
+    test_list_file = os.path.join(picamera2_dir, args.test_list_file)
     print("dir:", dir)
-    print("PiCamera2 dir:", PiCamera2_dir)
+    print("Picamera2 dir:", picamera2_dir)
     print("Test list file:", test_list_file)
 
-    tests = load_test_list(test_list_file, PiCamera2_dir)
+    tests = load_test_list(test_list_file, picamera2_dir)
 
     if not os.path.exists(dir):
         os.makedirs(dir)

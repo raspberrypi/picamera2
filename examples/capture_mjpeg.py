@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-from PiCamera2.encoders.jpeg_encoder import *
-from PiCamera2.PiCamera2 import *
+from picamera2.encoders.jpeg_encoder import *
+from picamera2.picamera2 import *
 import time
 
-picam2 = PiCamera2()
+picam2 = Picamera2()
 video_config = picam2.video_configuration(main={"size": (1920, 1080)})
 picam2.configure(video_config)
 

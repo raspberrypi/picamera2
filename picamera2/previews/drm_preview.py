@@ -1,8 +1,8 @@
-import PiCamera2.PiCamera2
+import picamera2.picamera2
 import pykms
 import mmap
 import numpy as np
-from PiCamera2.previews.null_preview import *
+from picamera2.previews.null_preview import *
 
 dd = None
 

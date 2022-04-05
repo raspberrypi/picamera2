@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
-from PiCamera2.encoders.h264_encoder import *
-from PiCamera2.PiCamera2 import *
+from picamera2.encoders.h264_encoder import *
+from picamera2.picamera2 import *
 import time
 import os
 
 # Encode a VGA stream, and capture a higher resolution still image half way through.
 
-picam2 = PiCamera2()
+picam2 = Picamera2()
 half_resolution = [dim // 2 for dim in picam2.sensor_resolution]
 main_stream = {"size": half_resolution}
 lores_stream = {"size": (640, 480)}
