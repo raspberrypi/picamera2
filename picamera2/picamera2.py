@@ -10,6 +10,7 @@ import time
 import tempfile
 import json
 from picamera2.utils.picamera2_logger import *
+from picamera2.sensors import *
 from picamera2.previews.null_preview import *
 from picamera2.previews.drm_preview import *
 from picamera2.previews.qt_preview import *
@@ -214,6 +215,16 @@ class Picamera2:
             self.stream_map = None
             self.log.info(f'Camera closed successfully.')
 
+    def list_sensor_modes(self):
+        """Return all the raw modes for that this sensor has."""
+        sensor = self.camera.id.split('/')[-1].split('@')[0]
+        return list_sensor_modes(sensor)
+
+    def get_sensor_mode(self, mode):
+        """Return a suggested raw mode for a given sensor use case."""
+        sensor = self.camera.id.split('/')[-1].split('@')[0]
+        return get_sensor_mode(sensor, mode)
+
     def make_initial_stream_config(self, stream_config, updates):
         # Take an initial stream_config and add any user updates.
         if updates is None:
@@ -231,6 +242,8 @@ class Picamera2:
         main = self.make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        if isinstance(raw, SensorMode):
+            raw = self.get_sensor_mode(raw)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         controls = {"NoiseReductionMode": 3} | controls
         return {"use_case": "preview",
