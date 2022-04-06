@@ -19,7 +19,7 @@ class NullPreview:
 
         picam2.asynchronous = False
 
-    def __init__(self, width=None, height=None):
+    def __init__(self, x=None, y=None, width=None, height=None):
         # Ignore width and height as they are meaningless. We only accept them so as to
         # be a drop-in replacement for the Qt/DRM previews.
         self.size = (width, height)
