@@ -206,6 +206,8 @@ To use the Qt (non-GL) preview window, use `picam2.start_preview(Preview.QT)` in
 
 For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`.
 
+Preview windows can be be assigned a particular location on the screen (`picam2.start_preview(Preview.QTGL, x=100, y=200)`).
+
 Please refer to the supplied examples for more information.
 
 ### Overlays

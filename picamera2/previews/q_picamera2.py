@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot, QSocketNotifier
+from PyQt5.QtCore import pyqtSlot, QSocketNotifier, Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel
 from PIL import Image
 from PIL.ImageQt import ImageQt

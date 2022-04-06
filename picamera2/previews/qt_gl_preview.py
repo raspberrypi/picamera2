@@ -4,13 +4,15 @@ import atexit
 
 
 class QtGlPreview:
-    def thread_func(self, picam2, width, height):
+    def thread_func(self, picam2):
         # Running Qt in a thread other than the main thread is a bit tricky...
-        from picamera2.previews.q_gl_picamera2 import QApplication, QGlPicamera2
+        from picamera2.previews.q_gl_picamera2 import QApplication, QGlPicamera2, Qt
 
         self.app = QApplication([])
-        self.size = (width, height)
-        self.qpicamera2 = QGlPicamera2(picam2, width=width, height=height)
+        self.size = (self.width, self.height)
+        self.qpicamera2 = QGlPicamera2(picam2, width=self.width, height=self.height)
+        if self.x is not None and self.y is not None:
+            self.qpicamera2.move(self.x, self.y)
         self.qpicamera2.setWindowTitle("QtGlPreview")
         self.qpicamera2.show()
         picam2.asynchronous = True
@@ -27,14 +29,15 @@ class QtGlPreview:
         del self.qpicamera2
         del self.app
 
-    def __init__(self, width=640, height=480):
+    def __init__(self, x=None, y=None, width=640, height=480):
+        self.x = x
+        self.y = y
         self.width = width
         self.height = height
 
     def start(self, picam2):
         self.event = threading.Event()
-        self.thread = threading.Thread(target=self.thread_func,
-                                       args=(picam2, self.width, self.height))
+        self.thread = threading.Thread(target=self.thread_func, args=(picam2, ))
         self.thread.setDaemon(True)
         self.thread.start()
         self.event.wait()
