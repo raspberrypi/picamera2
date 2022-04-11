@@ -1,11 +1,12 @@
-import picamera2
+import picamera2.picamera2
 import threading
 import atexit
+
 
 class QtGlPreview:
     def thread_func(self, picam2, width, height):
         # Running Qt in a thread other than the main thread is a bit tricky...
-        from q_gl_picamera2 import QApplication, QGlPicamera2
+        from picamera2.previews.q_gl_picamera2 import QApplication, QGlPicamera2
 
         self.app = QApplication([])
         self.size = (width, height)
@@ -13,6 +14,8 @@ class QtGlPreview:
         self.qpicamera2.setWindowTitle("QtGlPreview")
         self.qpicamera2.show()
         picam2.asynchronous = True
+        # Can't get Qt to exit tidily without this. Possibly an artifact of running
+        # it in another thread?
         atexit.register(self.stop)
         self.event.set()
 
@@ -20,13 +23,18 @@ class QtGlPreview:
 
         atexit.unregister(self.stop)
         self.qpicamera2.picamera2.asynchronous = False
-        del self.qpicamera2.camera_notifier
+        # Again, all necessary to keep Qt quiet.
         del self.qpicamera2
         del self.app
 
-    def __init__(self, picam2, width=640, height=480):
+    def __init__(self, width=640, height=480):
+        self.width = width
+        self.height = height
+
+    def start(self, picam2):
         self.event = threading.Event()
-        self.thread = threading.Thread(target=self.thread_func, args=(picam2, width, height))
+        self.thread = threading.Thread(target=self.thread_func,
+                                       args=(picam2, self.width, self.height))
         self.thread.setDaemon(True)
         self.thread.start()
         self.event.wait()
@@ -35,3 +43,6 @@ class QtGlPreview:
         if hasattr(self, "app"):
             self.app.quit()
         self.thread.join()
+
+    def set_overlay(self, overlay):
+        self.qpicamera2.set_overlay(overlay)

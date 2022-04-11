@@ -4,16 +4,15 @@
 # Run this script, then point a web browser at http:<this-ip-address>:8000
 # Note: needs simplejpeg to be installed (pip3 install simplejpeg).
 
-import picamera2
-import null_preview
-import simplejpeg
+from picamera2.picamera2 import *
+from picamera2.encoders.jpeg_encoder import *
 import io
 import logging
 import socketserver
 from threading import Condition, Thread
 from http import server
 
-PAGE="""\
+PAGE = """\
 <html>
 <head>
 <title>picamera2 MJPEG streaming demo</title>
@@ -25,22 +24,17 @@ PAGE="""\
 </html>
 """
 
-output_frame = None
-output_buffer = io.BytesIO()
-output_condition = Condition()
-output_running = True
 
-def encode_thread():
-    global output_frame
-    while output_running:
-        array = picam2.capture_array()
-        buf = simplejpeg.encode_jpeg(array, colorspace='BGRX')
-        output_buffer.truncate()
-        with output_condition:
-            output_frame = output_buffer.getvalue()
-            output_condition.notify_all()
-        output_buffer.seek(0)
-        output_buffer.write(buf)
+class StreamingOutput(io.BufferedIOBase):
+    def __init__(self):
+        self.frame = None
+        self.condition = Condition()
+
+    def write(self, buf):
+        with self.condition:
+            self.frame = buf
+            self.condition.notify_all()
+
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -64,9 +58,9 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    with output_condition:
-                        output_condition.wait()
-                        frame = output_frame
+                    with output.condition:
+                        output.condition.wait()
+                        frame = output.frame
                     self.wfile.write(b'--FRAME\r\n')
                     self.send_header('Content-Type', 'image/jpeg')
                     self.send_header('Content-Length', len(frame))
@@ -81,23 +75,21 @@ class StreamingHandler(server.BaseHTTPRequestHandler):
             self.send_error(404)
             self.end_headers()
 
+
 class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     allow_reuse_address = True
     daemon_threads = True
 
-picam2 = picamera2.Picamera2()
-preview = null_preview.NullPreview(picam2)
-picam2.configure(picam2.preview_configuration(main={"size": (640, 480)}))
-picam2.start()
-thread = Thread(target=encode_thread)
-thread.start()
+
+picam2 = Picamera2()
+picam2.start_preview()
+picam2.configure(picam2.video_configuration(main={"size": (640, 480)}))
+output = StreamingOutput()
+picam2.start_recording(JpegEncoder(), output)
 
 try:
     address = ('', 8000)
     server = StreamingServer(address, StreamingHandler)
     server.serve_forever()
 finally:
-    output_running = False
-    thread.join()
-    preview.stop()
-    picam2.stop()
+    picam2.stop_recording()

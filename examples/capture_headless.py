@@ -1,11 +1,12 @@
-from picamera2 import *
-from null_preview import *
+#!//usr/bin/python3
+
+from picamera2.picamera2 import *
 
 picam2 = Picamera2()
 config = picam2.still_configuration()
 picam2.configure(config)
 
-preview = NullPreview(picam2)
+picam2.start_preview()
 
 picam2.start()
 

@@ -10,7 +10,7 @@ For the time being, the documentation here is mostly based on a number of suppli
 
 ## Installation
 
-These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck. Note that I found OpenCV more of a pain to install on a 64-bit image, but you may know better incantations than I do (please share!).
+These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck.
 
 First install and build *libcamera* according to the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
 
@@ -34,29 +34,56 @@ meson build
 ninja -C build
 ```
 
+You will also need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
+
+```
+cd
+git clone https://github.com/RaspberryPiFoundation/python-v4l2.git
+```
+
 Finally fetch the *Picamera2* repository. There are a couple of dependencies to download first.
 
 ```
 cd
-sudo pip3 install pyopengl
+sudo pip3 install pyopengl piexif
 sudo apt install -y python3-pyqt5
 git clone https://github.com/raspberrypi/picamera2.git
 ```
 
 To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
 ```
-export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py
+export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2
 ```
 
-**A note on OpenCV**
+**OpenCV**
 
-I had some difficulties installing the latest version, and the version from apt didn't seem to include the Haar classifiers. But the following appears to work:
+OpenCV can be installed from `apt` as follows. Normally this should avoid the very long build times that can sometimes be required by other methods.
 
 ```
-sudo pip3 install opencv-python==4.4.0.46
-sudo apt install -y libatlas-base-dev
-sudo pip3 install numpy --upgrade
+sudo apt install -y python3-opencv
+sudo apt install -y opencv-data
 ```
+
+## Contributing
+
+We are happy to receive pull requests that will fix bugs, add features and generally improve the code. If possible, pull requests would ideally be:
+
+- Restricted to one change or feature each.
+- The commit history should consist of a number of commits that are as easy to review as possible.
+- Where changes are likely to be more involved, we would invite authors to start a discussion with us first so that we can agree a good way forward.
+- All the tests and examples should be working after each commit in the pull request. The repository implements some automated testing and style checking to help ensure  this.
+- Please try to avoid adding merge commits as this will help keep the commit history a bit more readable.
+- Any documentation should be updated accordingly. Where appropriate, new examples and tests would be welcomed.
+- The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
+- We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend putting
+```
+#!/bin/bash
+
+exec git diff --cached | ./tools/checkstyle.py --staged
+```
+into your `.git/hooks/pre-commit` file.
+
+Thank you!
 
 ## How *Picamera2* Works
 
@@ -67,7 +94,7 @@ Readers are recommended to refer to the supplied [examples](#examples) in conjun
 The camera system should be opened as shown.
 
 ```
-from picamera2 import *
+from picamera2.picamera2 import *
 
 picam2 = Picamera2()
 ```
@@ -150,16 +177,15 @@ The *Picamera2* class implements most of the camera functionality, however, it d
 - Use the `NullPreview` class. This class actually generates no preview window at all and merely supplies an event loop that drives the camera.
 - In a Qt application, the `QPicamer2` or `QGlPicamera2` widgets are provided and automatically use the Qt event loop to drive the camera.
 
-In all cases creating one of these objects starts the event loop, though it will not receive any frames until `Picamera2.start` is called.
+To start the event loop, the `start_preview` method should be called. It can be passed an actual preview object, or for convenience can be passed one of the Preview enum values (see below). If given no arguments at all, a `NullPreview` is created. When running under a Qt even loop, `start_preview` should _not_ be called at all.
 
 Example:
 
 ```
-from picamera2 import *
-from qt_gl_preview import *
+from picamera2.picamera2 import *
 
 picam2 = Picamera2()
-preview = QtGlPreview(picam2)
+picam2.start_preview(Preview.QTGL)
 
 config = picam2.preview_configuration()
 picam2.configure(config)
@@ -167,11 +193,44 @@ picam2.configure(config)
 picam2.start()
 ```
 
-To use the DRM preview window, use `from drm_preview import *` and `preview = DrmPreview(picam2)` instead.
+Note that
+```
+from picamera2.previews.qt_gl_preview import *
+picam2.start_preview(QtGlPreview())
+```
+is equivalent to `picam2.start_preview(Preview.QTGL)`.
 
-For no preview window at all, use `from null_preview import *` and `preview = NullPreview(picam2)` instead.
+To use the DRM preview window, use `picam2.start_preview(Preview.DRM)` instead.
+
+To use the Qt (non-GL) preview window, use `picam2.start_preview(Preview.QT)` instead.
+
+For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`.
 
 Please refer to the supplied examples for more information.
+
+### Overlays
+
+All the preview window implementations support simply overlays, which allows images with an alpha channel to be blended on top of the camera image. The facility is intended for adding simple graphics over the camera image rather than for complex high frame rate animations.
+
+An overlay must be a `numpy` array of shape `(height, width, 4)`. Every pixel consists of 4 values, in the order RGBA, so the final value of the four is the alpha channel, and must also have the datatype `numpy.uint8`.
+
+Once the preview has been started using the `start_preview` method, an overlay may be applied using the `Picamera2.set_overlay` method. The overlay is copied internally and so the application may continue to update the overlay as soon as the `set_overlay` call has returned. Note that the overlay on the display is only re-drawn when the next camera frame arrives.
+
+Overlays will always be stetched to cover the complete camera image. For example:
+```
+from picamera2.picamera2 import *
+import numpy as np
+
+picam2 = Picamera2()
+picam2.configure(picam2.preview_configuration({"size": (640, 480)}))
+picam2.start_preview(Preview.QTGL)
+overlay = np.zeros((200, 200, 4), dtype=np.uint8)
+overlay[:100, 100:] = (255, 0, 0, 64)  # red
+overlay[100:, :100] = (0, 255, 0, 64)  # green
+overlay[100:, 100:] = (0, 0, 255, 64)  # blue
+picam2.set_overlay(overlay)
+picam2.start()
+```
 
 ### Requests and Capturing
 
@@ -234,6 +293,14 @@ picam2.configure(preview_configuration)
 picam2.start()
 ```
 
+## The Tuning File
+
+Being Python-based, _Picamera2_ is a good environment for inspecting and altering the _tuning files_ that Raspberry Pi ships for all its supported cameras.
+
+A _tuning file_ lists all the parameters needed for a specific camera to produce images of acceptable quality, configuring both hardware (specifically of the ISP, or _Image Signal Processor_) and also of the 3A and other real-time algorithms that run to control the behaviour of the camera system.
+
+This is a more advanced topic, so readers are referred to the [Raspberry Pi Camera Algorithm and Tuning Guide](https://datasheets.raspberrypi.com/camera/raspberry-pi-camera-guide.pdf), and to chapter 5 in particular, for a more detailed explanation. We also provide an example [`tuning_file.py`](#tuning_filepy) which illustrates one simple way to use this feature.
+
 ## Examples
 
 A number of small example programs are provided in the [`examples`](examples) folder. Users who are new to *Picamera2* should probably start with the following:
@@ -247,6 +314,7 @@ Once you've looked at these, you might like to investigate some further topics:
 - [`capture_image_full_res.py`](#capture_image_full_respy) - you can capture *PIL* images or *numpy* arrays, not just JPEG or PNG files.
 - [`metadata.py`](#metadatapy) - how to find out the camera's current parameters. Also look at [`metadata_with_image.py`](#metadata_with_imagepy) to see how to capture the exact parameters that apply to a specific image.
 - [`controls.py`](#controlspy) and [`exposure_fixed.py`](#exposure_fixedpy) for how to set the camera controls for yourself, either while it's running or when it starts.
+- [`capture_video.py`](#capture_videopy) shows you how to capture an h.264 video file.
 
 Finally, for more advanced use cases:
 
@@ -254,6 +322,7 @@ Finally, for more advanced use cases:
 - If you'd like to embed camera functionality in a *PyQt* application, please look at [`app_capture.py`](#app_capturepy).
 - To find out how and why you might want to use a low resolution ("lores") stream, please look at [`opencv_face_detect_2.py`](#opencv_face_detect_2py).
 - To capture raw camera buffers, please see [`raw.py`](#rawpy).
+- For an example of how you might capture and stream h.264 video over the network, please check [`capture_stream.py`](#capture_streampy).
 
 ### [app_capture.py](examples/app_capture.py)
 
@@ -278,6 +347,14 @@ This is the simplest way to capture a JPEG. It starts a preview window and then 
 ### [capture_png.py](examples/capture_png.py)
 
 Like [capture_jpeg.py](#capture_jpegpy), only it saves a PNG file rather than a JPEG.
+
+### [capture_stream.py](examples/capture_stream.py)
+
+Only slightly more complicated than capturing video to a file, we can route the output of the hardware video encoder to a network socket instead.
+
+### [capture_video.py](examples/capture_video.py)
+
+This is pretty much the simplest way to capture and encode the images into an h.264 file.
 
 ### [controls.py](examples/controls.py)
 
@@ -335,6 +412,10 @@ But please note that we generally advise **against** doing too much processing w
 
 In this example we use the `NullPreview` so as to drive the camera system without a preview window, and supply controls to the `start` method (as in [exposure_fixed.py](#exposure_fixedpy)) so as to get pre-determined exposure values. Finally we use *OpenCV*'s *Mertens merge* image fusion method to get HDR-like images.
 
+### [overlay_drm.py](examples/overlay_drm.py)
+
+This example, and the other similar _overlay_ examples, show very trivially how to superimpose an alpha-blended overlay over the camera image. All the preview window implementations share the same `set_overlay` interface.
+
 ### [preview.py](examples/preview.py)
 
 Starts a camera preview window. In this case we use the `QtGlPreview` to display the images. This implementation uses GPU hardware acceleration which is therefore normally the most efficient way display them (through X Windows).
@@ -355,6 +436,12 @@ This example requests the raw stream alongside the main one, and shows how you w
 
 *Picamera2* allows horizontal or vertical flips to be applied to camera images, or both together to give a 180 degree rotation.
 
+### [still_during_video.py](examples/still_during_video.py)
+
+Here we show how to record a lower resolution video whilst simultaneously capturing a higher resolution still image. The video encoder can be instructed to capture the low resolution (_lores_) stream instead of the main stream, which in this case is set to be half the sensor's maximum resolution.
+
+The reason for this choice is that, at this resolution, the camera can still deliver us frames at 30fps. If the Pi has enough memory we could technically request the full resolution, giving us very high resolution JPEGs, however the camera would then be restricted to run at a lower framerate.
+
 ### [switch_mode.py](#examples/switch_mode.py)
 
 Example of how to switch between one camera mode and another. In this case we reduce the number of very large buffers (for the "other" configuration) down to 3 to save some memory.
@@ -362,6 +449,12 @@ Example of how to switch between one camera mode and another. In this case we re
 ### [switch_mode_2.py](examples/switch_mode_2.py)
 
 Alternative example of how to switch camera modes (like [switch_mode.py](#switch_modepy)). Under the hood both methods are in fact doing exactly the same thing.
+
+### [tuning_file.py](examples/tuning_file.py)
+
+The camera _tuning file_ is actually a JSON file, so it can be readily loaded into a Python application. We provide a function `load_tuning_file` to do exactly this, and then the tuning file object, a Python dictionary, is easily manipulated.
+
+When the `Picamera2` instance is created, it can optionally be passed either the file name of a custom camera tuning file, or a Python tuning file object. In this example we substitute the default exposure profile for one that prefers longer exposure times, and only ramps the analogue gain as a last resort. For more information on the algorithms and parameters permitted in the tuning file, please consult the [Raspberry Pi Camera Algorithm and Tuning Guide](https://datasheets.raspberrypi.com/camera/raspberry-pi-camera-guide.pdf).
 
 ### [yuv_to_rgb.py](examples/yuv_to_rgb.py)
 

@@ -2,17 +2,16 @@
 
 import cv2
 
-from null_preview import *
-from picamera2 import *
+from picamera2.picamera2 import *
 
 # Grab images as numpy arrays and leave everything else to OpenCV.
 
-face_detector = cv2.CascadeClassifier("/usr/local/lib/python3.9/dist-packages/cv2/data/haarcascade_frontalface_default.xml")
+face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
 cv2.startWindowThread()
 
 picam2 = Picamera2()
-preview = NullPreview(picam2)
-picam2.configure(picam2.preview_configuration(main={"size": (640, 480)}))
+picam2.start_preview()
+picam2.configure(picam2.preview_configuration(main={"format": 'XRGB8888', "size": (640, 480)}))
 picam2.start()
 
 while True:
