@@ -13,10 +13,11 @@ from v4l2 import *
 
 class H264Encoder(Encoder):
 
-    def __init__(self, bitrate):
+    def __init__(self, bitrate, repeat=False):
         super().__init__()
         self.bufs = {}
         self._bitrate = bitrate
+        self._repeat = repeat
         self.vd = None
 
     def _start(self):
@@ -61,15 +62,16 @@ class H264Encoder(Encoder):
         fmt.fmt.pix_mp.plane_fmt[0].sizeimage = 512 << 10
         fcntl.ioctl(self.vd, VIDIOC_S_FMT, fmt)
 
-        ext = v4l2_ext_controls()
-        extc = v4l2_ext_control()
-        extc.id = (0x00990000 | 0x900) + 226  # V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER
-        extc.value = 1
-        extc.size = 0
-        ext.controls = ctypes.pointer(extc)
-        ext.count = 1
-        ext.ctrl_class = V4L2_CTRL_CLASS_MPEG
-        fcntl.ioctl(self.vd, VIDIOC_S_EXT_CTRLS, ext)
+        if self._repeat:
+            ext = v4l2_ext_controls()
+            extc = v4l2_ext_control()
+            extc.id = V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER
+            extc.value = 1
+            extc.size = 0
+            ext.controls = ctypes.pointer(extc)
+            ext.count = 1
+            ext.ctrl_class = V4L2_CTRL_CLASS_MPEG
+            fcntl.ioctl(self.vd, VIDIOC_S_EXT_CTRLS, ext)
 
         NUM_OUTPUT_BUFFERS = 6
         NUM_CAPTURE_BUFFERS = 12
