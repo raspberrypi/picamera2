@@ -10,17 +10,28 @@ from os import getenv
 with open("README.md") as readme:
     long_description = readme.read()
 
-setup(name='picamera2',
-      version='0.1.0',
-      description='picamera2 library',
-      long_description=long_description,
-      long_description_content_type='text/markdown',
-      author='Raspberry Pi & Raspberry Pi Foundation',
-      author_email='picamera2@raspberrypi.com',
-      url='https://github.com/RaspberryPi/picamera2',
-      project_urls={
-          'Bug Tracker': 'https://github.com/RaspberryPi/picamera2/issues',
-      },
-      packages=['picamera2', 'picamera2.encoders', 'picamera2.previews', 'picamera2.utils'],
-      python_requires='>=3.7',
-      install_requires=['PyQt5', 'pyopengl', 'piexif', 'v4l2@git+https://github.com/RaspberryPiFoundation/python-v4l2.git#egg=v4l2'])
+setup(
+    name='picamera2',
+    version='0.1.0',
+    description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author='Raspberry Pi & Raspberry Pi Foundation',
+    author_email='picamera2@raspberrypi.com',
+    url='https://github.com/RaspberryPi/picamera2',
+    project_urls={
+        'Bug Tracker': 'https://github.com/RaspberryPi/picamera2/issues',
+    },
+    license='BSD 2-Clause',
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
+    ],
+    packages=['picamera2', 'picamera2.encoders', 'picamera2.previews', 'picamera2.utils'],
+    python_requires='>=3.7',
+    install_requires=['PyQt5', 'pyopengl', 'piexif', 'v4l2-python3']
+)
