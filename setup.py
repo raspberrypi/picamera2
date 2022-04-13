@@ -12,7 +12,7 @@ with open("README.md") as readme:
 
 setup(name='picamera2',
       version='0.1.0',
-      description='picamera2 library',
+    description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
       long_description=long_description,
       long_description_content_type='text/markdown',
       author='Raspberry Pi & Raspberry Pi Foundation',
@@ -24,4 +24,12 @@ setup(name='picamera2',
       packages=['picamera2', 'picamera2.encoders', 'picamera2.previews', 'picamera2.utils'],
       python_requires='>=3.7',
       licence='BSD 2-Clause License',
+      classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
+      ],
       install_requires=['numpy', 'PyQt5', 'pyopengl', 'piexif', 'simplejpeg', 'pillow', 'v4l2-python3'])
