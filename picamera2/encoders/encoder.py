@@ -1,4 +1,5 @@
 from v4l2 import *
+from .output import *
 import collections
 import io
 
@@ -12,21 +13,6 @@ class Encoder:
         self._format = None
         self._output = None
         self._running = False
-        self._circular = None
-
-    @property
-    def buffersize(self):
-        return self._buffersize
-
-    @buffersize.setter
-    def buffersize(self, value):
-        if not isinstance(value, int):
-            raise RuntimeError("Buffer size must be integer")
-        self._buffersize = value
-        if value == 0:
-            self._circular = None
-        else:
-            self._circular = collections.deque(maxlen=value)
 
     @property
     def width(self):
@@ -81,40 +67,12 @@ class Encoder:
 
     @output.setter
     def output(self, value):
-        if not isinstance(value, io.BufferedIOBase):
-            raise RuntimeError("Must pass BufferedIOBase")
+        if not isinstance(value, Output):
+            raise RuntimeError("Must pass Output")
         self._output = value
-
-    def outputframe(self, frame):
-        if self._output is not None:
-            self._output.write(frame)
-            self._output.flush()
-        if self._circular is not None:
-            self._circular += [frame]
 
     def encode(self, stream, request):
         pass
-
-    def dumpbuffer(self, filename, filename2):
-        output = open(filename, "wb")
-        first = False
-        lastiframe = None
-        index = 0
-        circ = list(self._circular)
-        for frame in circ:
-            naltype = frame[4] & 0x1F
-            if naltype == 0x7 or naltype == 0x8:
-                first = True
-                lastiframe = index
-            if first:
-                output.write(frame)
-            index += 1
-        output.close()
-        output2 = open(filename2, "wb")
-        if lastiframe is not None:
-            for frame in circ[lastiframe:len(circ)]:
-                output2.write(frame)
-        self._output = output2
 
     def _start(self):
         if self._running:

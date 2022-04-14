@@ -11,9 +11,8 @@ video_config = picam2.video_configuration(main={"size": (1280, 720), "format": "
                                           lores={"size": lsize, "format": "YUV420"})
 picam2.configure(video_config)
 picam2.start_preview()
-encoder = H264Encoder(1000000)
-encoder.buffersize = 30 * 5
-encoder.output = open("/dev/null", 'wb')
+encoder = H264Encoder(1000000, repeat=True)
+encoder.output = CircularFileOutput()
 picam2.encoder = encoder
 picam2.start()
 picam2.start_encoder()
@@ -33,13 +32,15 @@ while True:
         if mse > 7:
             if not encoding:
                 epoch = int(time.time())
-                encoder.dumpbuffer("{}-before.h264".format(epoch), "{}.h264".format(epoch))
+                encoder.output.dumpbuffer("{}-before.h264".format(epoch))
+                encoder.output.fileoutput = "{}.h264".format(epoch)
+                encoder.output.recording = True
                 encoding = True
                 print("New Motion", mse)
             ltime = time.time()
         else:
             if encoding and time.time() - ltime > 5.0:
-                encoder.output = open("/dev/null", 'wb')
+                encoder.output.recording = False
                 encoding = False
     prev = cur
 
