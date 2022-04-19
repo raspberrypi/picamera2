@@ -40,7 +40,7 @@ def on_checkbox_toggled(checked):
         qpicamera2.set_overlay(None)
 
 
-qpicamera2 = QPicamera2(picam2)
+qpicamera2 = QPicamera2(picam2, width=800, height=600)
 button = QPushButton("Click to capture JPEG")
 button.clicked.connect(on_button_clicked)
 label = QLabel()
