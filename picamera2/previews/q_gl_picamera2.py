@@ -285,7 +285,7 @@ class QGlPicamera2(QWidget):
                 if self.picamera2.verbose_console:
                     print("Garbage collect", len(self.buffers), "textures")
                 for (req, buffer) in self.buffers.items():
-                    glDeleteTextures(buffer.texture, 1)
+                    glDeleteTextures(1, [buffer.texture])
                 self.buffers = {}
                 self.stop_count = self.picamera2.stop_count
 
