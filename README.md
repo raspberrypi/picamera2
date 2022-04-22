@@ -332,6 +332,8 @@ This is a very simple *PyQt* application. It creates a camera preview widget tha
 
 We also use the `Picamera2` object's *request callback*, which is called whenever an image is about to be displayed in the preview pane. Here we just fetch the camera's current parameters (the *metadata*) and write all of the information to a text pane.
 
+There is a second version of this [app_capture2.py](examples/app_capture2.py) that is very similar but uses the Qt signal/slot mechanism to regain control when the capture operation is complete. Camera operations may not block the main Qt thread because that is the same thread that actually handles camera activity, so this would result in a deadlock.
+
 ### [capture_full_res.py](examples/capture_full_res.py)
 
 This application starts a preview window and then performs a full resolution JPEG capture. The preview normally uses one of the camera's faster readout modes, so we have to pick a separate *capture* mode, and *switch* to it, for the final capture.

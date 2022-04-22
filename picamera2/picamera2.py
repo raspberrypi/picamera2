@@ -603,9 +603,10 @@ class Picamera2:
                     self.functions = self.functions[1:]
                 # Once we've done everything, signal the fact to the thread that requested this work.
                 if not self.functions:
-                    if self.async_signal_function is None:
-                        self.async_operation_in_progress = False
-                    else:
+                    if not self.async_operation_in_progress:
+                        raise RuntimeError("Waiting for non-existent asynchronous operation")
+                    self.async_operation_in_progress = False
+                    if self.async_signal_function is not None:
                         self.async_signal_function(self)
 
             # We can only hang on to a limited number of requests here, most should be recycled
@@ -628,12 +629,9 @@ class Picamera2:
 
     def wait(self):
         """Wait for the event loop to finish an operation and signal us."""
-        if not self.async_operation_in_progress:
-            raise RuntimeError("Waiting for non-existent operation!")
         self.event.wait()
         if self.event.is_set():
             self.event.clear()
-            self.async_operation_in_progress = False
         if self.async_error:
             raise self.async_error
         return self.async_result
@@ -648,6 +646,7 @@ class Picamera2:
         camera and the next operation would receive a request from after the restart."""
         if self.async_operation_in_progress:
             raise RuntimeError("Failure to wait for previous operation to finish!")
+        self.event.clear()
         self.async_error = None
         self.async_result = None
         self.async_signal_function = signal_function
@@ -666,6 +665,8 @@ class Picamera2:
         with self.lock:
             if self.completed_requests:
                 self.capture_file_(filename, name)
+                if signal_function is not None:
+                    signal_function(self)
                 return self.async_result
             else:
                 self.dispatch_functions([(lambda: self.capture_file_(filename, name))], signal_function)
@@ -713,6 +714,8 @@ class Picamera2:
         with self.lock:
             if self.completed_requests:
                 self.capture_request_()
+                if signal_function is not None:
+                    signal_function(self)
                 return self.async_result
             else:
                 self.dispatch_functions([self.capture_request_], signal_function)
@@ -746,6 +749,8 @@ class Picamera2:
         with self.lock:
             if self.completed_requests:
                 self.capture_metadata_()
+                if signal_function is not None:
+                    signal_function(self)
                 return self.async_result
             else:
                 self.dispatch_functions([self.capture_metadata_], signal_function)
@@ -763,6 +768,8 @@ class Picamera2:
         with self.lock:
             if self.completed_requests:
                 self.capture_buffer_(name)
+                if signal_function is not None:
+                    signal_function(self)
                 return self.async_result
             else:
                 self.dispatch_functions([(lambda: self.capture_buffer_(name))], signal_function)
@@ -798,6 +805,8 @@ class Picamera2:
         with self.lock:
             if self.completed_requests:
                 self.capture_array_(name)
+                if signal_function is not None:
+                    signal_function(self)
                 return self.async_result
             else:
                 self.dispatch_functions([(lambda: self.capture_array_(name))], signal_function)
@@ -833,6 +842,8 @@ class Picamera2:
         with self.lock:
             if self.completed_requests:
                 self.capture_image_(name)
+                if signal_function is not None:
+                    signal_function(self)
                 return self.async_result
             else:
                 self.dispatch_functions([(lambda: self.make_image_(name))], signal_function)

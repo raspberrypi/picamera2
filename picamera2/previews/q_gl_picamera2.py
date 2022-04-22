@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import pyqtSlot, QSocketNotifier
 from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 import sys
 import threading
@@ -74,6 +74,8 @@ class EglState:
 
 
 class QGlPicamera2(QWidget):
+    done_signal = pyqtSignal()
+
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.resize(width, height)
@@ -112,6 +114,9 @@ class QGlPicamera2(QWidget):
         if self.current_request is not None:
             self.current_request.release()
             self.current_request = None
+
+    def signal_done(self, picamera2):
+        self.done_signal.emit()
 
     def paintEngine(self):
         return None
