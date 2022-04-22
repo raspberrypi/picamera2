@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot, QSocketNotifier, Qt
+from PyQt5.QtCore import pyqtSlot, QSocketNotifier, Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel
 from PIL import Image
 from PIL.ImageQt import ImageQt
@@ -7,6 +7,8 @@ import numpy as np
 
 
 class QPicamera2(QWidget):
+    done_signal = pyqtSignal()
+
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.picamera2 = picam2
@@ -18,6 +20,9 @@ class QPicamera2(QWidget):
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
+
+    def signal_done(self, picamera2):
+        self.done_signal.emit()
 
     def set_overlay(self, overlay):
         if overlay is not None:
