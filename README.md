@@ -180,7 +180,9 @@ The *Picamera2* class implements most of the camera functionality, however, it d
 - Use the `NullPreview` class. This class actually generates no preview window at all and merely supplies an event loop that drives the camera.
 - In a Qt application, the `QPicamer2` or `QGlPicamera2` widgets are provided and automatically use the Qt event loop to drive the camera.
 
-To start the event loop, the `start_preview` method should be called. It can be passed an actual preview object, or for convenience can be passed one of the Preview enum values (see below). If given no arguments at all, a `NullPreview` is created. When running under a Qt even loop, `start_preview` should _not_ be called at all.
+In the final case (running inside a Qt application), `start_preview` should not be called at all as the Qt `exec()` function supplies the event loop.
+
+In all other cases, the user should call `start_preview` before starting *Picamera2* with the `Picamera2.start` method. The call to `start_preview` may be omitted in which case *Picamera2* will automatically start the "null" preview (with no preview window) when `Picamera2.start` is called.
 
 Example:
 
@@ -207,7 +209,7 @@ To use the DRM preview window, use `picam2.start_preview(Preview.DRM)` instead.
 
 To use the Qt (non-GL) preview window, use `picam2.start_preview(Preview.QT)` instead.
 
-For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`.
+For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`. Alternatively the call to `start_preview` may be omitted entirely.
 
 Preview windows can be be assigned a particular location on the screen (`picam2.start_preview(Preview.QTGL, x=100, y=200)`).
 

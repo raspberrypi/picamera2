@@ -111,6 +111,7 @@ class Picamera2:
         self.request_callback = None
         self.completed_requests = []
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
+        self.have_event_loop = False
 
     @property
     def asynchronous(self) -> bool:
@@ -183,8 +184,8 @@ class Picamera2:
         When using the enum form, extra keyword arguments can be supplied that
         will be forwarded to the preview class constructor.
         """
-        if self._preview:
-            raise RuntimeError("A preview is already running")
+        if self.have_event_loop:
+            raise RuntimeError("An event loop is already running")
 
         if preview is None:
             preview = NullPreview()
@@ -200,12 +201,14 @@ class Picamera2:
 
         preview.start(self)
         self._preview = preview
+        self.have_event_loop = True
 
     def stop_preview(self) -> None:
         if self._preview:
             try:
                 self._preview.stop()
                 self._preview = None
+                self.have_event_loop = False
             except Exception:
                 raise RuntimeError("Unable to stop preview.")
         else:
@@ -547,10 +550,23 @@ class Picamera2:
             self.log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
 
-    def start(self, controls={}) -> None:
-        """Start the camera system running."""
+    def start(self, controls={}, event_loop=True) -> None:
+        """Start the camera system running. Camera controls may be sent to the
+        camera before it starts running.
+
+        Additionally the event_loop parameter will cause an event loop
+        to be started if there is not one running already. In this
+        case the event loop will not display a window of any kind. Applications
+        wanting a preview window should use start_preview before calling this
+        function.
+
+        An application could elect not to start an event loop at all,
+        in which in which case they would have to supply their own."""
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
+        # By default we will create an event loop is there isn't one running already.
+        if event_loop and not self.have_event_loop:
+            self.start_preview(Preview.NULL)
         self.start_(controls)
 
     def stop_(self, request=None) -> None:

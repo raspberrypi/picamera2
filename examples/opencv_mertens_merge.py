@@ -12,7 +12,6 @@ from picamera2.picamera2 import Picamera2
 RATIO = 3.0
 
 picam2 = Picamera2()
-picam2.start_preview()
 picam2.configure(picam2.preview_configuration())
 picam2.start()
 
