@@ -53,7 +53,7 @@ class Picamera2:
                     return json.load(fp)
         raise RuntimeError("Tuning file not found")
 
-    def __init__(self, camera_num=0, verbose_console=1, tuning=None):
+    def __init__(self, camera_num=0, verbose_console=None, tuning=None):
         """Initialise camera system and open the camera for use."""
         tuning_file = None
         if tuning is not None:
@@ -68,6 +68,8 @@ class Picamera2:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
         self.camera_manager = libcamera.CameraManager.singleton()
         self.camera_idx = camera_num
+        if verbose_console is None:
+            verbose_console = int(os.environ.get('PICAMERA2_LOG_LEVEL', '0'))
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level=verbose_console)
         self._reset_flags()
