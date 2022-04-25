@@ -121,6 +121,10 @@ class DrmPreview(NullPreview):
 
     def stop(self):
         super().stop()
+        # We may be hanging on to a request, return it to the camera system.
+        if self.current is not None:
+            self.current.release()
+            self.current = None
         # Seem to need some of this in order to be able to create another DrmPreview.
         self.drmfbs = {}
         self.overlay_new_fb = None
