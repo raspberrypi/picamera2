@@ -107,6 +107,10 @@ class QGlPicamera2(QWidget):
         del self.camera_notifier
         eglDestroySurface(self.egl.display, self.surface)
         self.surface = None
+        # We may be hanging on to a request, return it to the camera system.
+        if self.current_request is not None:
+            self.current_request.release()
+            self.current_request = None
 
     def paintEngine(self):
         return None
