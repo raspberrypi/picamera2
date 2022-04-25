@@ -6,8 +6,6 @@ picam2 = Picamera2()
 config = picam2.still_configuration()
 picam2.configure(config)
 
-picam2.start_preview()
-
 picam2.start()
 
 np_array = picam2.capture_array()

@@ -12,6 +12,7 @@ class QPicamera2(QWidget):
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.picamera2 = picam2
+        picam2.have_event_loop = True
         self.label = QLabel(self)
         self.label.resize(width, height)
         self.overlay = None

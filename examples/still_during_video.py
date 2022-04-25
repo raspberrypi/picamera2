@@ -14,7 +14,6 @@ lores_stream = {"size": (640, 480)}
 video_config = picam2.video_configuration(main_stream, lores_stream, encode="lores")
 picam2.configure(video_config)
 
-picam2.start_preview()
 encoder = H264Encoder(10000000)
 
 picam2.start_recording(encoder, 'test.h264')

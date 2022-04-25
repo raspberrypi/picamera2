@@ -103,6 +103,7 @@ class QGlPicamera2(QWidget):
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
         self.picamera2 = picam2
+        picam2.have_event_loop = True
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)

@@ -7,6 +7,7 @@ picam2 = Picamera2()
 config = picam2.preview_configuration()
 picam2.configure(config)
 
+# In fact, picam2.start() would do this anyway for us:
 picam2.start_preview(Preview.NULL)
 
 picam2.start()
