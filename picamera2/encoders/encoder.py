@@ -78,6 +78,9 @@ class Encoder:
         if self._running:
             raise RuntimeError("Encoder already running")
         self._running = True
+        if self.output:
+            self.output.start()
 
     def _stop(self):
         self._running = False
+        self.output.stop()

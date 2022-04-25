@@ -6,6 +6,8 @@ import numpy as np
 import threading
 from PIL import Image
 from picamera2.encoders.encoder import Encoder
+from picamera2.encoders.output import *
+
 import time
 import tempfile
 import json
@@ -897,7 +899,7 @@ class Picamera2:
         """Start recording a video using the given encoder and to the given output.
         Output may be a string in which case the correspondingly named file is opened."""
         if isinstance(output, str):
-            output = open(output, 'wb')
+            output = FileOutput(output)
         encoder.output = output
         self.encoder = encoder
         self.start_encoder()
@@ -907,7 +909,6 @@ class Picamera2:
         """Stop recording a video. The encode and output are stopped and closed."""
         self.stop()
         self.stop_encoder()
-        self.encoder.output.close()
 
     def set_overlay(self, overlay):
         """Display an overlay on the camera image. The overlay may be either None,

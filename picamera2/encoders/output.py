@@ -3,36 +3,50 @@ import collections
 
 class Output:
     def __init__(self):
-        pass
+        self.recording = False
+
+    def start(self):
+        self.recording = True
+
+    def stop(self):
+        self.recording = False
 
     def outputframe(self, frame):
         pass
 
 
 class FileOutput(Output):
-    def __init__(self, filename=None):
-        self.fileoutput = filename
-        self.recording = False
+    def __init__(self, file=None):
+        super().__init__()
+        self.fileoutput = file
 
     @property
     def fileoutput(self):
         return self._fileoutput
 
     @fileoutput.setter
-    def fileoutput(self, filename):
-        if filename is None:
+    def fileoutput(self, file):
+        if file is None:
             self._fileoutput = None
         else:
-            self._fileoutput = open(filename, "wb")
+            if isinstance(file, str):
+                self._fileoutput = open(file, "wb")
+            else:
+                self._fileoutput = file
 
     def outputframe(self, frame):
         if self._fileoutput is not None and self.recording:
             self._fileoutput.write(frame)
             self._fileoutput.flush()
 
+    def stop(self):
+        super().stop()
+        self._fileoutput.close()
+
 
 class CircularOutput(Output):
     def __init__(self, filename=None, buffersize=30 * 5):
+        super().__init__()
         if filename is None:
             self._circularoutput = None
         else:

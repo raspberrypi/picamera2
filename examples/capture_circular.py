@@ -34,13 +34,13 @@ while True:
                 epoch = int(time.time())
                 encoder.output.dumpbuffer("{}-before.h264".format(epoch))
                 encoder.output.fileoutput = "{}.h264".format(epoch)
-                encoder.output.recording = True
+                encoder.output.start()
                 encoding = True
                 print("New Motion", mse)
             ltime = time.time()
         else:
             if encoding and time.time() - ltime > 5.0:
-                encoder.output.recording = False
+                encoder.output.stop()
                 encoding = False
     prev = cur
 
