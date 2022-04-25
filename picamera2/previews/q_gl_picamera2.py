@@ -43,10 +43,6 @@ class EglState:
 
         eglInitialize(self.display, major, minor)
 
-        print("EGL {} {}".format(
-            eglQueryString(self.display, EGL_VENDOR).decode(),
-            eglQueryString(self.display, EGL_VERSION).decode()))
-
         check_egl_extensions(self.display, ["EGL_EXT_image_dma_buf_import"])
 
         eglBindAPI(EGL_OPENGL_ES_API)
@@ -93,7 +89,12 @@ class QGlPicamera2(QWidget):
         self.current_request = None
         self.stop_count = 0
         self.egl = EglState()
+        if picam2.verbose_console:
+            print("EGL {} {}".format(
+                eglQueryString(self.egl.display, EGL_VENDOR).decode(),
+                eglQueryString(self.egl.display, EGL_VERSION).decode()))
         self.init_gl()
+
         # set_overlay could be called before the first frame arrives, hence:
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
