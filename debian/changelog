@@ -1,0 +1,5 @@
+picamera2 (0.3.2-1) bullseye; urgency=medium
+
+  * Initial release
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 30 Aug 2022 13:36:08 +0100

@@ -1,0 +1,21 @@
+Source: picamera2
+Section: video
+Priority: optional
+Maintainer: Serge Schneider <serge@raspberrypi.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3-setuptools, python3-all,
+ python3-pyqt5, python3-simplejpeg
+Standards-Version: 4.5.1
+Homepage: https://github.com/raspberrypi/picamera2
+Vcs-Git: https://github.com/raspberrypi/picamera2.git
+Rules-Requires-Root: no
+
+Package: python3-picamera2
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, python3-libcamera, python3-kms++ 
+Recommends: python3-pyqt5, python3-opengl
+Description: Libcamera based python library 
+ Libcamera-based replacement for Picamera which was a Python interface to the
+ Raspberry Pi's legacy camera stack. Picamera2 also presents an easy to use
+ Python API.
+ .
+ This package installs the library for Python 3.
