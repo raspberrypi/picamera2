@@ -19,6 +19,7 @@ class FileOutput(Output):
     def __init__(self, file=None):
         super().__init__()
         self.fileoutput = file
+        self._firstframe = True
 
     @property
     def fileoutput(self):
@@ -26,6 +27,7 @@ class FileOutput(Output):
 
     @fileoutput.setter
     def fileoutput(self, file):
+        self._firstframe = True
         if file is None:
             self._fileoutput = None
         else:
@@ -36,6 +38,12 @@ class FileOutput(Output):
 
     def outputframe(self, frame):
         if self._fileoutput is not None and self.recording:
+            if self._firstframe:
+                naltype = frame[4] & 0x1F
+                if not (naltype == 0x7 or naltype == 0x8):
+                    return  # Skip frame
+                else:
+                    self._firstframe = False
             self._fileoutput.write(frame)
             self._fileoutput.flush()
 
