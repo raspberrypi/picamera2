@@ -23,10 +23,12 @@ class FileOutput(Output):
 
     @property
     def fileoutput(self):
+        """Return file handle"""
         return self._fileoutput
 
     @fileoutput.setter
     def fileoutput(self, file):
+        """Change file to output frames to"""
         self._firstframe = True
         if file is None:
             self._fileoutput = None
@@ -37,6 +39,7 @@ class FileOutput(Output):
                 self._fileoutput = file
 
     def outputframe(self, frame):
+        """Output frame to file"""
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
                 naltype = frame[4] & 0x1F
@@ -48,12 +51,14 @@ class FileOutput(Output):
             self._fileoutput.flush()
 
     def stop(self):
+        """Close file handle and prevent recording"""
         super().stop()
         self._fileoutput.close()
 
 
 class CircularOutput(Output):
     def __init__(self, filename=None, buffersize=30 * 5):
+        """Creates circular buffer for 5s worth of 30fps frames"""
         super().__init__()
         if filename is None:
             self._circularoutput = None
@@ -63,10 +68,12 @@ class CircularOutput(Output):
 
     @property
     def buffersize(self):
+        """Returns size of buffer"""
         return self._buffersize
 
     @buffersize.setter
     def buffersize(self, value):
+        """Create buffer for specified number of frames"""
         if not isinstance(value, int):
             raise RuntimeError("Buffer size must be integer")
         self._buffersize = value
@@ -76,6 +83,7 @@ class CircularOutput(Output):
             self._circular = collections.deque(maxlen=value)
 
     def dumpbuffer(self, filename=None):
+        """Dump buffer to specified file"""
         if filename is None:
             if self._filename is None:
                 raise RuntimeError("Need to set filename")
@@ -94,15 +102,9 @@ class CircularOutput(Output):
                 output.write(frame)
             index += 1
         output.close()
-        """
-        output2 = open(filename2, "wb")
-        if lastiframe is not None:
-            for frame in circ[lastiframe:len(circ)]:
-                output2.write(frame)
-        self._output = output2
-        """
 
     def outputframe(self, frame):
+        """Write frame to circular buffer"""
         if self._circular is not None:
             self._circular += [frame]
 
@@ -113,5 +115,6 @@ class CircularFileOutput(FileOutput, CircularOutput):
         CircularOutput.__init__(self)
 
     def outputframe(self, frame):
+        """Write frame to both file and circular buffer"""
         FileOutput.outputframe(self, frame)
         CircularOutput.outputframe(self, frame)
