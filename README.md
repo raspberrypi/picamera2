@@ -12,57 +12,55 @@ For the time being, the documentation here is mostly based on a number of suppli
 
 These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck.
 
-First install and build *libcamera* according to the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
-
-1. Clone the picamera2 branch from the libcamera repo `https://github.com/raspberrypi/libcamera.git` (not from the usual location). You can use the command
-```
-git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
-```
-WARNING: DO NOT USE THIS REPOSITORY FOR ANY PURPOSE OTHER THAN TRYING OUT *PICAMERA2* - IT WILL NOT BE KEPT UP TO DATE WITH MAINLINE *LIBCAMERA* DEVELOPMENT AND WILL BE DELETED IN DUE COURSE.
-
-2. When configuring `meson`, add the option `-Dpycamera=enabled`.
-
-Next we need some DRM/KMS bindings:
+A version of libcamera with appropriate Python bindings, and a package with the necessary DRM/KMS bindings, are all now available from the Raspberry Pi apt repositories. Therefore, please execute:
 
 ```
-cd
-git clone https://github.com/tomba/kmsxx.git
-cd kmsxx
-git submodule update --init
-sudo apt install -y libfmt-dev libdrm-dev
-meson build
-ninja -C build
+sudo apt update
+sudo apt install -y python3-libcamera python3-kms++
 ```
+
+Normally this will be sufficient, but if you do need to rebuild libcamera from source, please follow [these instructions](#building-libcamera-from-source).
 
 You will also need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
 
 ```
-cd
-git clone https://github.com/RaspberryPiFoundation/python-v4l2.git
+pip3 install v4l2-python3
 ```
 
-Finally fetch the *Picamera2* repository. There are a couple of dependencies to download first.
+Finally fetch the *Picamera2* repository. There are some dependencies to download first.
 
 ```
 cd
-sudo pip3 install pyopengl piexif
-sudo apt install -y python3-pyqt5
+sudo pip3 install pyopengl piexif simplejpeg
+sudo apt install -y python3-pyqt5 python3-numpy
 git clone https://github.com/raspberrypi/picamera2.git
 ```
 
 To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
 ```
-export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2
+export PYTHONPATH=/home/pi/picamera2
 ```
 
-**OpenCV**
+#### OpenCV
 
-OpenCV can be installed from `apt` as follows. Normally this should avoid the very long build times that can sometimes be required by other methods.
+OpenCV is not a requirement for *Picamera2*, though a number of the supplied examples use it. It can be installed from `apt` as follows. Normally this should avoid the very long build times that can sometimes be required by other methods.
 
 ```
 sudo apt install -y python3-opencv
 sudo apt install -y opencv-data
 ```
+
+#### Building libcamera from source
+
+If you do need to build libcamera from source, please follow the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
+
+1. Clone the picamera2 branch from the libcamera repo `https://github.com/raspberrypi/libcamera.git` (not from the usual location). You can use the command
+```
+git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
+```
+
+2. When configuring `meson`, add the option `-Dpycamera=enabled`.
+
 
 ## Contributing
 
