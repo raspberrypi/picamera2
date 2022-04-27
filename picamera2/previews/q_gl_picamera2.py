@@ -32,7 +32,9 @@ class EglState:
         self.create_display()
         self.choose_config()
         self.create_context()
-        check_gl_extensions(["GL_OES_EGL_image"])
+        # GLES version earlier than 3.0 (e.g. on a Pi 3) don't support this, but it's
+        # only a check so we can skip it.
+        # check_gl_extensions(["GL_OES_EGL_image"])
 
     def create_display(self):
         xdisplay = getEGLNativeDisplay()
