@@ -224,7 +224,15 @@ class Picamera2:
             stream_config["size"] = updates["size"]
         return stream_config
 
-    def preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=4, controls={}):
+    def add_display_and_encode(self, config, display, encode):
+        if display is not None and config.get(display, None) is None:
+            raise RuntimeError(f"Display stream {display} was not defined")
+        if encode is not None and config.get(encode, None) is None:
+            raise RuntimeError(f"Encode stream {encode} was not defined")
+        config['display'] = display
+        config['encode'] = encode
+
+    def preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=4, controls={}, display="main", encode="main"):
         "Make a configuration suitable for camera preview."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -233,16 +241,18 @@ class Picamera2:
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         controls = {"NoiseReductionMode": 3} | controls
-        return {"use_case": "preview",
-                "transform": transform,
-                "colour_space": colour_space,
-                "buffer_count": buffer_count,
-                "main": main,
-                "lores": lores,
-                "raw": raw,
-                "controls": controls}
+        config = {"use_case": "preview",
+                  "transform": transform,
+                  "colour_space": colour_space,
+                  "buffer_count": buffer_count,
+                  "main": main,
+                  "lores": lores,
+                  "raw": raw,
+                  "controls": controls}
+        self.add_display_and_encode(config, display, encode)
+        return config
 
-    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=2, controls={}):
+    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=2, controls={}, display="main", encode="main"):
         "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -251,16 +261,18 @@ class Picamera2:
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         controls = {"NoiseReductionMode": 2} | controls
-        return {"use_case": "still",
-                "transform": transform,
-                "colour_space": colour_space,
-                "buffer_count": buffer_count,
-                "main": main,
-                "lores": lores,
-                "raw": raw,
-                "controls": controls}
+        config = {"use_case": "still",
+                  "transform": transform,
+                  "colour_space": colour_space,
+                  "buffer_count": buffer_count,
+                  "main": main,
+                  "lores": lores,
+                  "raw": raw,
+                  "controls": controls}
+        self.add_display_and_encode(config, display, encode)
+        return config
 
-    def video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}):
+    def video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}, display="main", encode="main"):
         "Make a configuration suitable for video recording."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -279,14 +291,16 @@ class Picamera2:
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
         controls = {"NoiseReductionMode": 1, "FrameDurationLimits": (33333, 33333)} | controls
-        return {"use_case": "video",
-                "transform": transform,
-                "colour_space": colour_space,
-                "buffer_count": buffer_count,
-                "main": main,
-                "lores": lores,
-                "raw": raw,
-                "controls": controls}
+        config = {"use_case": "video",
+                  "transform": transform,
+                  "colour_space": colour_space,
+                  "buffer_count": buffer_count,
+                  "main": main,
+                  "lores": lores,
+                  "raw": raw,
+                  "controls": controls}
+        self.add_display_and_encode(config, display, encode)
+        return config
 
     def check_stream_config(self, stream_config, name):
         # Check the parameters for a single stream.
@@ -471,9 +485,13 @@ class Picamera2:
         self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
         self.log.debug(f"Streams: {self.stream_map}")
 
-        # These name the streams that we will display/encode. An application could change them.
-        self.display_stream_name = "main"
-        self.encode_stream_name = "main"
+        # These name the streams that we will display/encode.
+        self.display_stream_name = camera_config['display']
+        if self.display_stream_name is not None and self.display_stream_name not in camera_config:
+            raise RuntimeError(f"Display stream {self.display_stream_name} was not defined")
+        self.encode_stream_name = camera_config['encode']
+        if self.encode_stream_name is not None and self.encode_stream_name not in camera_config:
+            raise RuntimeError(f"Encode stream {self.encode_stream_name} was not defined")
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
@@ -870,11 +888,11 @@ class Picamera2:
 
     def start_encoder(self):
         streams = self.camera_configuration()
-        if streams['use_case'] != "video":
-            raise RuntimeError("No video stream found")
         if self.encoder is None:
             raise RuntimeError("No encoder specified")
         name = self.encode_stream_name
+        if streams.get(name, None) is None:
+            raise RuntimeError(f"Encode stream {name} was not defined")
         self.encoder.width, self.encoder.height = streams[name]['size']
         self.encoder.format = streams[name]['format']
         self.encoder.stride = streams[name]['stride']

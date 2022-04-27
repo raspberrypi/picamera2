@@ -11,9 +11,8 @@ picam2 = Picamera2()
 half_resolution = [dim // 2 for dim in picam2.sensor_resolution]
 main_stream = {"size": half_resolution}
 lores_stream = {"size": (640, 480)}
-video_config = picam2.video_configuration(main_stream, lores_stream)
+video_config = picam2.video_configuration(main_stream, lores_stream, encode="lores")
 picam2.configure(video_config)
-picam2.encode_stream_name = "lores"
 
 picam2.start_preview()
 encoder = H264Encoder(10000000)
