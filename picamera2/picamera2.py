@@ -97,6 +97,7 @@ class Picamera2:
         self.stream_map = None
         self.started = False
         self.stop_count = 0
+        self.configure_count = 0
         self.frames = 0
         self.functions = []
         self.event = threading.Event()
@@ -513,6 +514,7 @@ class Picamera2:
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
+        self.configure_count += 1
 
     def configure(self, camera_config=None):
         """Configure the camera system with the given configuration."""
@@ -639,9 +641,9 @@ class Picamera2:
             while len(self.completed_requests) > 1:
                 self.completed_requests.pop(0).release()
 
-        # If one of the functions we ran stopped the camera, then we don't want
-        # this going back to the application.
-        if display_request.stop_count != self.stop_count:
+        # If one of the functions we ran reconfigured the camera since this request came out,
+        # then we don't want it going back to the application as the memory is not valid.
+        if display_request.configure_count != self.configure_count:
             display_request.release()
             display_request = None
 
@@ -953,6 +955,7 @@ class CompletedRequest:
         self.lock = threading.Lock()
         self.picam2 = picam2
         self.stop_count = picam2.stop_count
+        self.configure_count = picam2.configure_count
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to
