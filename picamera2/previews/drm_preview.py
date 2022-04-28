@@ -25,9 +25,17 @@ class DrmPreview(NullPreview):
 
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()
-
         if completed_request:
-            self.render_drm(picam2, completed_request)
+            if picam2.display_stream_name is not None:
+                self.render_drm(picam2, completed_request)
+                # The pipeline will stall if there's only one buffer and we always hold on to
+                # the last one. When we can, however, holding on to them is still preferred.
+                if picam2.camera_config['buffer_count'] > 1:
+                    self.release_current = True
+                else:
+                    completed_request.release()
+            else:
+                completed_request.release()
 
     def init_drm(self, x, y, width, height):
         self.card = pykms.Card()
@@ -38,6 +46,7 @@ class DrmPreview(NullPreview):
         self.plane = None
         self.drmfbs = {}
         self.current = None
+        self.release_current = False
         self.window = (x, y, width, height)
         self.overlay_plane = None
         self.overlay_fb = None
@@ -66,9 +75,12 @@ class DrmPreview(NullPreview):
             if self.stop_count != picam2.stop_count:
                 if picam2.verbose_console:
                     print("Garbage collecting", len(self.drmfbs), "dmabufs")
+                old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
                 self.drmfbs = {}
                 self.stop_count = picam2.stop_count
 
+            if cfg.pixelFormat not in self.FMT_MAP:
+                raise RuntimeError(f"Format {cfg.pixelFormat} not supported by DRM preview")
             fmt = self.FMT_MAP[cfg.pixelFormat]
             if self.plane is None:
                 self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
@@ -114,17 +126,18 @@ class DrmPreview(NullPreview):
             width, height = self.overlay_fb.width, self.overlay_fb.height
             self.crtc.set_plane(self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height)
         overlay_old_fb = None  # The new one has been sent so it's safe to let this go now
+        old_drmfbs = None  # Can chuck these away now too
 
-        if self.current:
+        if self.current and self.release_current:
             self.current.release()
         self.current = completed_request
 
     def stop(self):
         super().stop()
         # We may be hanging on to a request, return it to the camera system.
-        if self.current is not None:
+        if self.current is not None and self.release_current:
             self.current.release()
-            self.current = None
+        self.current = None
         # Seem to need some of this in order to be able to create another DrmPreview.
         self.drmfbs = {}
         self.overlay_new_fb = None

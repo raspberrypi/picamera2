@@ -263,11 +263,11 @@ class Picamera2:
         self.add_display_and_encode(config, display, encode)
         return config
 
-    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=2, controls={}, display="main", encode="main") -> dict:
+    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=1, controls={}, display="main", encode="main") -> dict:
         "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self.make_initial_stream_config({"format": "XBGR8888", "size": self.sensor_resolution}, main)
+        main = self.make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
@@ -637,7 +637,10 @@ class Picamera2:
 
             # We can only hang on to a limited number of requests here, most should be recycled
             # immediately back to libcamera. You could consider customising this number.
-            while len(self.completed_requests) > 1:
+            # When there's only one buffer in total, don't hang on to anything as it would stall
+            # the pipeline completely.
+            max_len = 0 if self.camera_config['buffer_count'] == 1 else 1
+            while len(self.completed_requests) > max_len:
                 self.completed_requests.pop(0).release()
 
         # If one of the functions we ran reconfigured the camera since this request came out,
