@@ -162,6 +162,7 @@ class H264Encoder(Encoder):
                     ctypes.memset(planes, 0, ctypes.sizeof(v4l2_plane) * VIDEO_MAX_PLANES)
                     buf.m.planes = planes
                     ret = fcntl.ioctl(self.vd, VIDIOC_DQBUF, buf)
+                    keyframe = (buf.flags & V4L2_BUF_FLAG_KEYFRAME) != 0
 
                     if ret == 0:
                         bufindex = buf.index
@@ -170,8 +171,6 @@ class H264Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        naltype = b[4] & 0x1F
-                        keyframe = (naltype == 0x7 or naltype == 0x8)
                         self.output.outputframe(b, keyframe)
 
                         # Requeue encoded buffer
