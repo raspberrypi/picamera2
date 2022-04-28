@@ -32,8 +32,7 @@ while True:
         if mse > 7:
             if not encoding:
                 epoch = int(time.time())
-                encoder.output.dumpbuffer("{}-before.h264".format(epoch))
-                encoder.output.fileoutput = "{}.h264".format(epoch)
+                encoder.output.dumpbuffer("{}-before.h264".format(epoch), "{}.h264".format(epoch))
                 encoder.output.start()
                 encoding = True
                 print("New Motion", mse)

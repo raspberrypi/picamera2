@@ -170,7 +170,9 @@ class H264Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        self.output.outputframe(b)
+                        naltype = b[4] & 0x1F
+                        keyframe = (naltype == 0x7 or naltype == 0x8)
+                        self.output.outputframe(b, keyframe)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()

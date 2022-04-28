@@ -11,7 +11,7 @@ class Output:
     def stop(self):
         self.recording = False
 
-    def outputframe(self, frame):
+    def outputframe(self, frame, keyframe=True):
         pass
 
 
@@ -20,6 +20,7 @@ class FileOutput(Output):
         super().__init__()
         self.fileoutput = file
         self._firstframe = True
+        self._before = None
 
     @property
     def fileoutput(self):
@@ -38,14 +39,25 @@ class FileOutput(Output):
             else:
                 self._fileoutput = file
 
-    def outputframe(self, frame):
+    def before(self, file, file2):
+        """Sets a 'before' file, which we write none-keyframes to
+        which would normally be discarded"""
+        self._before = open(file, "ab")
+        self.fileoutput = file2
+
+    def outputframe(self, frame, keyframe=True):
         """Output frame to file"""
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
-                naltype = frame[4] & 0x1F
-                if not (naltype == 0x7 or naltype == 0x8):
-                    return  # Skip frame
+                if not keyframe:
+                    if self._before is not None:
+                        self._before.write(frame)
+                        self._before.flush()
+                    return
                 else:
+                    if self._before:
+                        self._before.close()
+                    self._before = None
                     self._firstframe = False
             self._fileoutput.write(frame)
             self._fileoutput.flush()
@@ -90,23 +102,18 @@ class CircularOutput(Output):
             filename = self._filename
         output = open(filename, "wb")
         first = False
-        lastiframe = None
-        index = 0
         circ = list(self._circular)
-        for frame in circ:
-            naltype = frame[4] & 0x1F
-            if naltype == 0x7 or naltype == 0x8:
+        for frame, keyframe in circ:
+            if keyframe:
                 first = True
-                lastiframe = index
             if first:
                 output.write(frame)
-            index += 1
         output.close()
 
-    def outputframe(self, frame):
+    def outputframe(self, frame, keyframe=True):
         """Write frame to circular buffer"""
         if self._circular is not None:
-            self._circular += [frame]
+            self._circular += [(frame, keyframe)]
 
 
 class CircularFileOutput(FileOutput, CircularOutput):
@@ -114,7 +121,15 @@ class CircularFileOutput(FileOutput, CircularOutput):
         FileOutput.__init__(self)
         CircularOutput.__init__(self)
 
-    def outputframe(self, frame):
+    def outputframe(self, frame, keyframe=True):
         """Write frame to both file and circular buffer"""
-        FileOutput.outputframe(self, frame)
-        CircularOutput.outputframe(self, frame)
+        FileOutput.outputframe(self, frame, keyframe)
+        CircularOutput.outputframe(self, frame, keyframe)
+
+    def dumpbuffer(self, filename, filename2=None):
+        """Tag on none-keyframe frames to 'before' file if necessary"""
+        if filename2 is None:
+            CircularOutput.dumpbuffer(self, filename)
+        else:
+            CircularOutput.dumpbuffer(self, filename)
+            FileOutput.before(self, filename, filename2)
