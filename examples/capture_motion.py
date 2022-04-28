@@ -30,7 +30,7 @@ while True:
         mse = np.square(np.subtract(cur, prev)).mean()
         if mse > 7:
             if not encoding:
-                encoder.output = open("{}.h264".format(int(time.time())), 'wb')
+                encoder.output = FileOutput("{}.h264".format(int(time.time())))
                 picam2.start_encoder()
                 encoding = True
                 print("New Motion", mse)
