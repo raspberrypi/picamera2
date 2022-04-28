@@ -91,6 +91,7 @@ class QGlPicamera2(QWidget):
         self.buffers = {}
         self.surface = None
         self.current_request = None
+        self.release_current = False
         self.stop_count = 0
         self.egl = EglState()
         if picam2.verbose_console:
@@ -113,9 +114,9 @@ class QGlPicamera2(QWidget):
         eglDestroySurface(self.egl.display, self.surface)
         self.surface = None
         # We may be hanging on to a request, return it to the camera system.
-        if self.current_request is not None:
+        if self.current_request is not None and self.release_current:
             self.current_request.release()
-            self.current_request = None
+        self.current_request = None
 
     def signal_done(self, picamera2):
         self.done_signal.emit()
@@ -219,6 +220,8 @@ class QGlPicamera2(QWidget):
 
             cfg = stream.configuration
             fmt = cfg.pixelFormat
+            if fmt not in self.FMT_MAP:
+                raise RuntimeError(f"Format {fmt} not supported by QGlPicamera2 preview")
             fmt = str_to_fourcc(self.FMT_MAP[fmt])
             w, h = cfg.size
 
@@ -318,7 +321,7 @@ class QGlPicamera2(QWidget):
 
         eglSwapBuffers(self.egl.display, self.surface)
 
-        if self.current_request:
+        if self.current_request and self.release_current:
             self.current_request.release()
         self.current_request = completed_request
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
@@ -329,5 +332,11 @@ class QGlPicamera2(QWidget):
         if request:
             if self.picamera2.display_stream_name is not None:
                 self.repaint(request)
+                # The pipeline will stall if there's only one buffer and we always hold on to
+                # the last one. When we can, however, holding on to them is still preferred.
+                if self.picamera2.camera_config['buffer_count'] > 1:
+                    self.release_current = True
+                else:
+                    request.release()
             else:
                 request.release()
