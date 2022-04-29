@@ -1,4 +1,6 @@
 from v4l2 import *
+from .output import *
+import collections
 import io
 
 
@@ -65,8 +67,8 @@ class Encoder:
 
     @output.setter
     def output(self, value):
-        if not isinstance(value, io.BufferedIOBase):
-            raise RuntimeError("Must pass BufferedIOBase")
+        if not isinstance(value, Output):
+            raise RuntimeError("Must pass Output")
         self._output = value
 
     def encode(self, stream, request):
@@ -76,6 +78,9 @@ class Encoder:
         if self._running:
             raise RuntimeError("Encoder already running")
         self._running = True
+        if self.output:
+            self.output.start()
 
     def _stop(self):
         self._running = False
+        self.output.stop()
