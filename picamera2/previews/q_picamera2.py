@@ -14,6 +14,7 @@ class QPicamera2(QGraphicsView):
         self.overlay = None
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
+        self.resize(width, height)
 
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
