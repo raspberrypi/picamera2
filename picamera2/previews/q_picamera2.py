@@ -1,11 +1,12 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtSlot, QSocketNotifier, QRect, QSize
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
+from PyQt5.QtCore import Qt, pyqtSlot, QSocketNotifier, QSize, pyqtSignal
+from PyQt5.QtWidgets import QApplication, QGraphicsView, QGraphicsScene
 import numpy as np
 
 
 class QPicamera2(QGraphicsView):
+    update_overlay_signal = pyqtSignal()
+
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.picamera2 = picam2
@@ -16,6 +17,7 @@ class QPicamera2(QGraphicsView):
         self.setScene(self.scene)
         self.resize(width, height)
 
+        self.update_overlay_signal.connect(self.update_overlay)
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
@@ -30,18 +32,29 @@ class QPicamera2(QGraphicsView):
             if qim.size() != self.size:
                 # Resize the overlay
                 qim = qim.scaled(self.size)
-            pix = QtGui.QPixmap(qim)
-            if self.overlay is None:
-                # Need to add the overlay to the scene
-                self.overlay = self.scene.addPixmap(pix)
-                self.overlay.setZValue(100)
-            else:
-                # Just update it
-                self.overlay.setPixmap(pix)
+            self.new_pixmap = QtGui.QPixmap(qim)
         elif self.overlay is not None:
             # Remove overlay
-            self.scene.removeItem(self.overlay)
-            self.overlay = None
+            self.new_pixmap = None
+        # Update the overlay. Really I want to pass the new_pixmap to the signal but can't
+        # get that to work.
+        self.update_overlay_signal.emit()
+
+    @pyqtSlot()
+    def update_overlay(self):
+        pix = self.new_pixmap
+        if pix is None:
+            # Delete overlay if present
+            if self.overlay is not None:
+                self.scene.removeItem(self.overlay)
+                self.overlay = None
+        elif self.overlay is None:
+            # Need to add the overlay to the scene
+            self.overlay = self.scene.addPixmap(pix)
+            self.overlay.setZValue(100)
+        else:
+            # Just update it
+            self.overlay.setPixmap(pix)
 
     @pyqtSlot()
     def handle_requests(self):
