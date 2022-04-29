@@ -12,7 +12,7 @@ video_config = picam2.video_configuration(main={"size": (1280, 720), "format": "
 picam2.configure(video_config)
 picam2.start_preview()
 encoder = H264Encoder(1000000, repeat=True)
-encoder.output = CircularFileOutput()
+encoder.output = CircularOutput()
 picam2.encoder = encoder
 picam2.start()
 picam2.start_encoder()
@@ -32,7 +32,7 @@ while True:
         if mse > 7:
             if not encoding:
                 epoch = int(time.time())
-                encoder.output.dumpbuffer("{}-before.h264".format(epoch), "{}.h264".format(epoch))
+                encoder.output.fileoutput = "{}.h264".format(epoch)
                 encoder.output.start()
                 encoding = True
                 print("New Motion", mse)

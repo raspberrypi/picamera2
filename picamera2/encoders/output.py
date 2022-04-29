@@ -39,25 +39,13 @@ class FileOutput(Output):
             else:
                 self._fileoutput = file
 
-    def before(self, file, file2):
-        """Sets a 'before' file, which we write none-keyframes to
-        which would normally be discarded"""
-        self._before = open(file, "ab")
-        self.fileoutput = file2
-
     def outputframe(self, frame, keyframe=True):
         """Output frame to file"""
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
                 if not keyframe:
-                    if self._before is not None:
-                        self._before.write(frame)
-                        self._before.flush()
                     return
                 else:
-                    if self._before:
-                        self._before.close()
-                    self._before = None
                     self._firstframe = False
             self._fileoutput.write(frame)
             self._fileoutput.flush()
@@ -68,14 +56,10 @@ class FileOutput(Output):
         self._fileoutput.close()
 
 
-class CircularOutput(Output):
-    def __init__(self, filename=None, buffersize=30 * 5):
+class CircularOutput(FileOutput):
+    def __init__(self, file=None, buffersize=30 * 5):
         """Creates circular buffer for 5s worth of 30fps frames"""
-        super().__init__()
-        if filename is None:
-            self._circularoutput = None
-        else:
-            self._circularoutput = open(filename, "wb")
+        super().__init__(file)
         self.buffersize = buffersize
 
     @property
@@ -94,42 +78,34 @@ class CircularOutput(Output):
         else:
             self._circular = collections.deque(maxlen=value)
 
-    def dumpbuffer(self, filename=None):
-        """Dump buffer to specified file"""
-        if filename is None:
-            if self._filename is None:
-                raise RuntimeError("Need to set filename")
-            filename = self._filename
-        output = open(filename, "wb")
-        first = False
-        circ = list(self._circular)
-        for frame, keyframe in circ:
-            if keyframe:
-                first = True
-            if first:
-                output.write(frame)
-        output.close()
-
     def outputframe(self, frame, keyframe=True):
         """Write frame to circular buffer"""
         if self._circular is not None:
             self._circular += [(frame, keyframe)]
-
-
-class CircularFileOutput(FileOutput, CircularOutput):
-    def __init__(self):
-        FileOutput.__init__(self)
-        CircularOutput.__init__(self)
-
-    def outputframe(self, frame, keyframe=True):
-        """Write frame to both file and circular buffer"""
-        FileOutput.outputframe(self, frame, keyframe)
-        CircularOutput.outputframe(self, frame, keyframe)
-
-    def dumpbuffer(self, filename, filename2=None):
-        """Tag on none-keyframe frames to 'before' file if necessary"""
-        if filename2 is None:
-            CircularOutput.dumpbuffer(self, filename)
         else:
-            CircularOutput.dumpbuffer(self, filename)
-            FileOutput.before(self, filename, filename2)
+            return
+        """Output frame to file"""
+        if self._fileoutput is not None and self.recording:
+            if self._firstframe:
+                keyframe = False
+                for _ in range(len(self._circular)):
+                    frame, keyframe = self._circular.popleft()
+                    if keyframe:
+                        break
+                if keyframe:
+                    self._fileoutput.write(frame)
+                    self._fileoutput.flush()
+                    self._firstframe = False
+            else:
+                frame, keyframe = self._circular.popleft()
+                self._fileoutput.write(frame)
+                self._fileoutput.flush()
+
+    def stop(self):
+        """Close file handle and prevent recording"""
+        self.recording = False
+        if self._circular is not None:
+            for frame, keyframe in self._circular:
+                self._fileoutput.write(frame)
+                self._fileoutput.flush()
+        self._fileoutput.close()
