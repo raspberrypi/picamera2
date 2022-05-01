@@ -85,6 +85,22 @@ class Picamera2:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
 
+    def _setup_controls(self):
+        self.controls_lock = threading.Lock()
+        self.controls = Controls(self.camera.controls) #Pass default controls.
+
+    def set_controls(self, controls: dict):
+        with self.controls_lock:
+            for ctrl,val in controls.items():
+                if ctrl not in self.controls.__annotations__.keys():
+                    raise ValueError(f"{k} is not a valid camera control.")
+                elif val is None:
+                    msg = f"""{ctrl} cannot be NoneType. 
+                    You can exclude it instead."""
+                    raise ValueError(msg)
+                else:
+                    setattr(self.controls,ctrl,val)
+
     def _reset_flags(self):
         self.camera = None
         self.is_open = False
@@ -132,7 +148,6 @@ class Picamera2:
             self.camera = self.camera_manager.cameras[self.camera_idx]
         if self.camera is not None:
             self.__identify_camera()
-            self.camera_controls = self.camera.controls
             self.camera_properties = self.camera.properties
 
             # The next two lines could be placed elsewhere?
@@ -503,9 +518,6 @@ class Picamera2:
         """Return the stream configuration for the named stream."""
         return self.camera_config[name]
 
-    def list_controls(self):
-        """List the controls supported by the camera."""
-        return self.camera.controls
 
     def start_(self, controls={}):
         """Start the camera system running."""
@@ -551,11 +563,6 @@ class Picamera2:
         else:
             self.stop_()
 
-    def set_controls(self, controls):
-        """Set camera controls. These will be delivered with the next request that gets submitted."""
-        with self.controls_lock:
-            for key, value in controls.items():
-                self.controls[key] = value
 
     def get_completed_requests(self):
         # Return all the requests that libcamera has completed.
