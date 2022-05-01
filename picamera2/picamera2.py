@@ -253,7 +253,7 @@ class Picamera2:
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
-        controls = {"NoiseReductionMode": 3} | controls
+        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.Minimal} | controls
         config = {"use_case": "preview",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -273,7 +273,7 @@ class Picamera2:
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
-        controls = {"NoiseReductionMode": 2} | controls
+        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.HighQuality} | controls
         config = {"use_case": "still",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -303,7 +303,8 @@ class Picamera2:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
-        controls = {"NoiseReductionMode": 1, "FrameDurationLimits": (33333, 33333)} | controls
+        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.Fast,
+                    "FrameDurationLimits": (33333, 33333)} | controls
         config = {"use_case": "video",
                   "transform": transform,
                   "colour_space": colour_space,
