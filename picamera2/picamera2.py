@@ -117,7 +117,7 @@ class Picamera2:
         self.event = threading.Event()
         self.asynchronous = False
         self.async_operation_in_progress = False
-        self.asyc_result = None
+        self.async_result = None
         self.async_error = None
         self.controls_lock = threading.Lock()
         self.controls = {}
