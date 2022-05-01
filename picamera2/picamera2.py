@@ -77,6 +77,7 @@ class Picamera2:
         self._reset_flags()
         try:
             self.open_camera()
+            self._setup_controls()
             self.log.debug(f"{self.camera_manager}")
         except Exception:
             self.log.error("Camera __init__ sequence did not complete.")
@@ -119,8 +120,7 @@ class Picamera2:
         self.async_operation_in_progress = False
         self.async_result = None
         self.async_error = None
-        self.controls_lock = threading.Lock()
-        self.controls = {}
+
         self.options = {}
         self._encoder = None
         self.request_callback = None
