@@ -37,10 +37,11 @@ class Controls():
     MaxLatency: int = None
     TestPatternMode: (int,str) = None
 
-    def __init__(self,camera_controls):
-        self._camera_controls = camera_controls
+    def __init__(self,controls_from_libcamera):
+        self._camera_controls = controls_from_libcamera
         self._current = {}
         self._fps = None
+        self.anno = self.__annotations__
 
     @property
     def config(self) -> dict:
@@ -92,10 +93,7 @@ class Controls():
     def clear(self):
         """
         This function resets all controls to None.
-        There doesn't really seem to be a use for this property yet and it could
-        be removed before picamera2 1.0.
-        Each attribute is reset to None after it is passed to the
-        camera_manager anyway.
+        Its only use is to clear the controls at camera close.
         """
         for attr in self.__annotations__.keys():
             setattr(self,attr,None)
