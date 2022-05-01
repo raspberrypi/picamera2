@@ -685,7 +685,7 @@ class Picamera2:
     def switch_mode_(self, camera_config):
         self.stop_()
         self.configure_(camera_config)
-        self.start_()
+        self._start()
         self.async_result = self.camera_config
         return True
 
