@@ -8,8 +8,7 @@ class Controls():
     # This doesn't break anything and the NoneTypes aren't viewable to the
     # user. I suppose NoneType could be added to the types tuple, but that may
     # lead to confusion for the end user by implying that setting a control to
-    # None resets it to the original functionality.
-    # Sorry for any confusion future devs.
+    # None resets it to the original functionality, which is not the case.
 
     AeEnable: (int,bool) = None
     AeMeteringMode: (int,str) = None
@@ -122,26 +121,26 @@ class Controls():
     @property
     def ranges(self) -> dict:
         _ranges = {}
-        for ctrl,val in self._camera_controls.items():
-            _ranges[ctrl] = {'min': val[0],'max':val[1]}
+        for ctrl,val_tuple in self._camera_controls.items():
+            _ranges[ctrl] = {'min': val_tuple[0],'max':val_tuple[1]}
         return _ranges
 
     @property
     def defaults(self) -> dict:
         defaults = {}
-        for k,v in self._camera_controls.items():
-            if k == 'FrameDurationLimits':
-                if not isinstance(k,(list,tuple)):
-                    default_v = [v[-1]] * 2
-            elif k == 'ColourCorrectionMatrix':
-                if not isinstance (k,(list,tuple)):
-                    default_v = [v[-1]] * 9
-            elif k == 'ColourGains':
-                if not isinstance(k,(list,tuple)):
-                    default_v = [v[-1]] * 2
+        for ctrl,val_tuple in self._camera_controls.items():
+            if ctrl == 'FrameDurationLimits':
+                if not isinstance(ctrl,self.__annotations__[ctrl]):
+                    default_v = [val_tuple[-1]] * 2
+            elif ctrl == 'ColourCorrectionMatrix':
+                if not isinstance (ctrl,self.__annotations__[ctrl]):
+                    default_v = [val_tuple[-1]] * 9
+            elif ctrl == 'ColourGains':
+                if not isinstance(ctrl,self.__annotations__[ctrl]):
+                    default_v = [val_tuple[-1]] * 2
             else:
-                default_v = v[-1]
-            defaults[k] = default_v
+                default_v = val_tuple[-1]
+            defaults[ctrl] = default_v
         return defaults
 
     @property
