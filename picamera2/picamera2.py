@@ -959,9 +959,10 @@ class CompletedRequest:
                 if self.stop_count == self.picam2.stop_count:
                     self.request.reuse()
                     with self.picam2.controls_lock:
-                        for key, value in self.picam2.controls.items():
+                        for key, value in self.picam2.controls.config.items():
                             self.request.set_control(key, value)
-                            self.picam2.controls = {}
+                            self.picam2.controls._current[key] = value
+                            setattr(self.picam2.controls,key,None)
                         self.picam2.camera.queueRequest(self.request)
                 self.request = None
 
