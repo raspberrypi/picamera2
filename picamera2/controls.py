@@ -38,7 +38,7 @@ class Controls():
     TestPatternMode: (int,str) = None
 
     def __init__(self,controls_from_libcamera):
-        self._camera_controls = controls_from_libcamera
+        self._camera_controls = dict(sorted(controls_from_libcamera.items()))
         self._current = {}
         self._fps = None
         self.anno = self.__annotations__
@@ -79,6 +79,7 @@ class Controls():
                 val = getattr(getattr(libcamera,attr),val)
             controls[attr] = val
         user_defined = {k:v for k,v in controls.items() if v is not None}
+        user_defined = dict(sorted(user_defined.items()))
         return user_defined
 
     @property
@@ -87,6 +88,7 @@ class Controls():
         This function returns the current user-defined settings of the camera.
         It is only updated through the CompletedRequests module.
         """
+        current = dict(sorted(self._current.items()))
         return self._current
 
     @property
@@ -121,6 +123,7 @@ class Controls():
         _ranges = {}
         for ctrl,val_tuple in self._camera_controls.items():
             _ranges[ctrl] = {'min': val_tuple[0],'max':val_tuple[1]}
+        _ranges = dict(sorted(_ranges.items()))
         return _ranges
 
     @property
@@ -139,6 +142,7 @@ class Controls():
             else:
                 default_v = val_tuple[-1]
             defaults[ctrl] = default_v
+        defaults = dict(sorted(defaults.items())) #Sort it alphabetically.
         return defaults
 
     @property
