@@ -522,26 +522,24 @@ class Picamera2:
         """Return the stream configuration for the named stream."""
         return self.camera_config[name]
 
-    def start_(self, controls={}):
+    def start_(self):
+        start_state = self.camera.start(self.controls.config)
+        if start_state < 0:
+            self.log.error("Camera did not start properly.")
+            raise RuntimeError("Camera did not start properly.")
+        else:
+            for request in self.make_requests():
+                self.camera.queueRequest(request)
+            self.log.info("Camera started")
+            self.started = True
+
+    def start(self):
         """Start the camera system running."""
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
             raise RuntimeError("Camera already started")
-        if self.camera.start(self.camera_config["controls"] | controls) >= 0:
-            for request in self.make_requests():
-                self.camera.queueRequest(request)
-            self.log.info("Camera started")
-            self.started = True
-        else:
-            self.log.error("Camera did not start properly.")
-            raise RuntimeError("Camera did not start properly.")
-
-    def start(self, controls={}):
-        """Start the camera system running."""
-        if self.camera_config is None:
-            raise RuntimeError("Camera has not been configured")
-        self.start_(controls)
+        self.start_()
 
     def stop_(self, request=None):
         """Stop the camera. Only call this function directly from within the camera event
