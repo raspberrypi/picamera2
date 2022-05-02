@@ -77,6 +77,7 @@ class Picamera2:
         self._reset_flags()
         try:
             self.open_camera()
+            self._setup_controls()
             self.log.debug(f"{self.camera_manager}")
         except Exception:
             self.log.error("Camera __init__ sequence did not complete.")
@@ -85,10 +86,10 @@ class Picamera2:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
 
+
     def _reset_flags(self):
         self.camera = None
         self.is_open = False
-        self.camera_controls = None
         self._preview = None
         self.camera_config = None
         self.libcamera_config = None
@@ -103,8 +104,6 @@ class Picamera2:
         self.async_operation_in_progress = False
         self.asyc_result = None
         self.async_error = None
-        self.controls_lock = threading.Lock()
-        self.controls = {}
         self.options = {}
         self._encoder = None
         self.request_callback = None
@@ -122,6 +121,22 @@ class Picamera2:
         self.log.debug(f"Resources now free: {self}")
         self.close()
 
+    def _setup_controls(self) -> None:
+        self.controls_lock = threading.Lock()
+        self.controls = Controls(self.camera.controls)  # Pass default controls.
+
+    def set_controls(self, controls: dict) -> None:
+        with self.controls_lock:
+            for ctrl, val in controls.items():
+                if ctrl not in self.controls.__annotations__.keys():
+                    raise ValueError(f"{ctrl} is not a valid camera control.")
+                elif val is None:
+                    msg = f"""{ctrl} cannot be NoneType. 
+                    You can exclude it instead."""
+                    raise ValueError(msg)
+                else:
+                    setattr(self.controls, ctrl, val)
+
     def initialize_camera(self):
         if isinstance(self.camera_idx, str):
             try:
@@ -132,7 +147,6 @@ class Picamera2:
             self.camera = self.camera_manager.cameras[self.camera_idx]
         if self.camera is not None:
             self.__identify_camera()
-            self.camera_controls = self.camera.controls
             self.camera_properties = self.camera.properties
 
             # The next two lines could be placed elsewhere?
@@ -214,6 +228,7 @@ class Picamera2:
             self.libcamera_config = None
             self.streams = None
             self.stream_map = None
+            self.controls._blank
             self.log.info(f'Camera closed successfully.')
 
     def make_initial_stream_config(self, stream_config, updates):
@@ -506,10 +521,6 @@ class Picamera2:
         """Return the stream configuration for the named stream."""
         return self.camera_config[name]
 
-    def list_controls(self):
-        """List the controls supported by the camera."""
-        return self.camera.controls
-
     def start_(self, controls={}):
         """Start the camera system running."""
         if self.camera_config is None:
@@ -554,11 +565,6 @@ class Picamera2:
         else:
             self.stop_()
 
-    def set_controls(self, controls):
-        """Set camera controls. These will be delivered with the next request that gets submitted."""
-        with self.controls_lock:
-            for key, value in controls.items():
-                self.controls[key] = value
 
     def get_completed_requests(self):
         # Return all the requests that libcamera has completed.
