@@ -156,5 +156,5 @@ class Controls():
 
     @property
     def reset(self) -> None:
-        for ctrl, val in self.defaults().items():
+        for ctrl, val in self.defaults.items():
             setattr(self, ctrl, val)
