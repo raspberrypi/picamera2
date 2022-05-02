@@ -99,7 +99,6 @@ class Picamera2:
         self.frames = 0
         self.functions = []
         self.event = threading.Event()
-        self.asynchronous = False
         self.async_operation_in_progress = False
         self.asyc_result = None
         self.async_error = None
@@ -110,6 +109,11 @@ class Picamera2:
         self.request_callback = None
         self.completed_requests = []
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
+
+    @property
+    def asynchronous(self) -> bool:
+        """True if there is threaded operation."""
+        return self._preview is not None and getattr(self._preview, "thread", None) is not None and self._preview.thread.is_alive()
 
     def __enter__(self):
         return self

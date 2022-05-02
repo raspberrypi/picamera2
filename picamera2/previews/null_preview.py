@@ -6,7 +6,6 @@ class NullPreview:
     def thread_func(self, picam2):
         import selectors
 
-        picam2.asynchronous = True
         sel = selectors.DefaultSelector()
         sel.register(picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request)
         self.event.set()
@@ -17,7 +16,6 @@ class NullPreview:
                 callback = key.data
                 callback(picam2)
 
-        picam2.asynchronous = False
 
     def __init__(self, x=None, y=None, width=None, height=None):
         # Ignore width and height as they are meaningless. We only accept them so as to

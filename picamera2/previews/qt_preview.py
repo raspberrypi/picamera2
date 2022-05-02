@@ -15,7 +15,6 @@ class QtPreview:
             self.qpicamera2.move(self.x, self.y)
         self.qpicamera2.setWindowTitle("QtPreview")
         self.qpicamera2.show()
-        picam2.asynchronous = True
         # Can't get Qt to exit tidily without this. Possibly an artifact of running
         # it in another thread?
         atexit.register(self.stop)
@@ -24,7 +23,6 @@ class QtPreview:
         self.app.exec()
 
         atexit.unregister(self.stop)
-        self.qpicamera2.picamera2.asynchronous = False
         # Again, all necessary to keep Qt quiet.
         del self.qpicamera2.label
         del self.qpicamera2.camera_notifier
