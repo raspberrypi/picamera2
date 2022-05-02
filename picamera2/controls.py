@@ -71,9 +71,9 @@ class Controls():
         controls = {}
         for attr, types in self.__annotations__.items():
             val = getattr(self, attr)
-            if (not isinstance(val, types)  # If not one of the defined types...
-                    and val is not None  # or not defined as None...
-                    and attr not in str(val)):  # or not a libcamera type...
+            if (not isinstance(val, types) and
+                    val is not None and
+                    attr not in str(val)):
                 raise TypeError(f"{attr} must be of these type(s): {types}")
             if isinstance(val, str):  # Assume val is mode if a string.
                 val = getattr(getattr(libcamera, attr), val)
