@@ -25,6 +25,7 @@ RAW = libcamera.StreamRole.Raw
 VIDEO = libcamera.StreamRole.VideoRecording
 VIEWFINDER = libcamera.StreamRole.Viewfinder
 
+_USER = os.getlogin()
 
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
@@ -45,7 +46,7 @@ class Picamera2:
         if dir is not None:
             dirs = [dir]
         else:
-            dirs = ["/home/pi/libcamera/src/ipa/raspberrypi/data",
+            dirs = [f"/home/{_USER}/libcamera/src/ipa/raspberrypi/data",
                     "/usr/local/share/libcamera/ipa/raspberrypi",
                     "/usr/share/libcamera/ipa/raspberrypi"]
         for dir in dirs:
