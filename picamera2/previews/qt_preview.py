@@ -39,7 +39,7 @@ class QtPreview:
 
     def start(self, picam2):
         self.event = threading.Event()
-        self.thread = threading.Thread(target=self.thread_func, args=(picam2, ))
+        self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
         self.thread.start()
         self.event.wait()

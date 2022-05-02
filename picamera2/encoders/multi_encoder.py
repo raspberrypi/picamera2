@@ -13,6 +13,7 @@ class MultiEncoder(Encoder):
     num_threads - the number of parallel threads to use. Probably match this to the
                   number of cores available for best performance.
     """
+
     def __init__(self, num_threads=4):
         super().__init__()
         self.threads = ThreadPoolExecutor(num_threads)

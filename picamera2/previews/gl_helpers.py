@@ -28,7 +28,7 @@ glEGLImageTargetTexture2DOES = getglEGLImageTargetTexture2DOES()
 
 
 def str_to_fourcc(str):
-    assert(len(str) == 4)
+    assert (len(str) == 4)
     fourcc = 0
     for i, v in enumerate([ord(c) for c in str]):
         fourcc |= v << (i * 8)

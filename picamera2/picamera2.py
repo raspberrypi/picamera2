@@ -36,7 +36,6 @@ class Preview(Enum):
 
 
 class Picamera2:
-
     """Welcome to the PiCamera2 class."""
 
     @staticmethod
@@ -86,7 +85,6 @@ class Picamera2:
         finally:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
-
 
     def _reset_flags(self):
         self.camera = None
@@ -242,7 +240,8 @@ class Picamera2:
             stream_config["size"] = updates["size"]
         return stream_config
 
-    def preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=4, controls={}):
+    def preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(),
+                              colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=4, controls={}):
         "Make a configuration suitable for camera preview."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -261,7 +260,8 @@ class Picamera2:
                 "raw": raw,
                 "controls": controls}
 
-    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=2, controls={}):
+    def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(),
+                            colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=2, controls={}):
         "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -280,7 +280,8 @@ class Picamera2:
                 "raw": raw,
                 "controls": controls}
 
-    def video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}):
+    def video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None,
+                            buffer_count=6, controls={}):
         "Make a configuration suitable for video recording."
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -390,7 +391,8 @@ class Picamera2:
         self.update_libcamera_stream_config(libcamera_config.at(self.main_index), camera_config["main"], buffer_count)
         libcamera_config.at(self.main_index).colorSpace = camera_config["colour_space"]
         if self.lores_index >= 0:
-            self.update_libcamera_stream_config(libcamera_config.at(self.lores_index), camera_config["lores"], buffer_count)
+            self.update_libcamera_stream_config(libcamera_config.at(self.lores_index), camera_config["lores"],
+                                                buffer_count)
             libcamera_config.at(self.lores_index).colorSpace = camera_config["colour_space"]
         if self.raw_index >= 0:
             self.update_libcamera_stream_config(libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count)
@@ -564,7 +566,6 @@ class Picamera2:
         else:
             self.stop_()
 
-
     def get_completed_requests(self):
         # Return all the requests that libcamera has completed.
         data = os.read(self.camera_manager.efd, 8)
@@ -697,7 +698,8 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def switch_mode_and_capture_file(self, camera_config, filename, name="main", wait=True, signal_function=signal_event):
+    def switch_mode_and_capture_file(self, camera_config, filename, name="main", wait=True,
+                                     signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture an image to file, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
@@ -1047,4 +1049,4 @@ class CompletedRequest:
         img.save(filename, compress_level=png_compress_level, quality=jpeg_quality, exif=exif)
         end_time = time.monotonic()
         self.picam2.log.info(f"Saved {self} to file {filename}.")
-        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        self.picam2.log.info(f"Time taken for encode: {(end_time - start_time) * 1000} ms.")

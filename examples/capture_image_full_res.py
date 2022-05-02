@@ -17,7 +17,6 @@ time.sleep(2)
 image = picam2.switch_mode_and_capture_image(capture_config)
 image.show()
 
-
 time.sleep(5)
 
 picam2.close()

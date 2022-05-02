@@ -1,5 +1,6 @@
 from picamera2.picamera2 import *
 
+
 def main():
     print("With context...")
     time.sleep(1)
@@ -10,9 +11,9 @@ def main():
         picam2.start_preview()
         metadata = picam2.capture_file("context_test.jpg")
         print(metadata)
-    
+
     time.sleep(5)
-    
+
     print("Without context...")
     time.sleep(1)
     picam2 = Picamera2()

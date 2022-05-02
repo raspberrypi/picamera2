@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 import sys
 import threading
 import os
+
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 import OpenGL
