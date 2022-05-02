@@ -19,6 +19,7 @@ from picamera2.previews.qt_gl_preview import *
 from enum import Enum
 import piexif
 
+from picamera2.controls import Controls
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
