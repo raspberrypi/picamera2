@@ -128,13 +128,18 @@ class Picamera2:
         self.close()
 
     def initialize_camera(self):
-        if isinstance(self.camera_idx, str):
-            try:
-                self.camera = self.camera_manager.get(self.camera_idx)
-            except Exception:
-                self.camera = self.camera_manager.find(self.camera_idx)
-        elif isinstance(self.camera_idx, int):
-            self.camera = self.camera_manager.cameras[self.camera_idx]
+        if self.camera_manager.cameras:
+            if isinstance(self.camera_idx, str):
+                try:
+                    self.camera = self.camera_manager.get(self.camera_idx)
+                except Exception:
+                    self.camera = self.camera_manager.find(self.camera_idx)
+            elif isinstance(self.camera_idx, int):
+                self.camera = self.camera_manager.cameras[self.camera_idx]
+        else:
+            self.log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
+            raise RuntimeError("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
+
         if self.camera is not None:
             self.__identify_camera()
             self.camera_controls = self.camera.controls
