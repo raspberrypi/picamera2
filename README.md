@@ -64,14 +64,19 @@ git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
 
 ## Contributing
 
-We are happy to receive pull requests that will fix bugs, add features and generally improve the code. If possible, pull requests would ideally be:
+We are happy to receive pull requests that will fix bugs, add features and generally improve the code. Pull requests should be:
 
-- Restricted to one change or feature each.
-- The commit history should consist of a number of commits that are as easy to review as possible.
-- Where changes are likely to be more involved, we would invite authors to start a discussion with us first so that we can agree a good way forward.
-- All the tests and examples should be working after each commit in the pull request. The repository implements some automated testing and style checking to help ensure  this.
-- Please try to avoid adding merge commits as this will help keep the commit history a bit more readable.
-- Any documentation should be updated accordingly. Where appropriate, new examples and tests would be welcomed.
+- Restricted to one change or feature each. Please try to avoid "drive-by fixes" especially in a larger set of changes, as it can make them harder to review.
+- The commit history should consist of a number of commits that are as easy to review as possible. In particular this means:
+  - Where one commit is fixing errors in an earlier commit in the set, please simply merge them.
+  - Where a commit is reverting a commit from earlier in the set, please remove the commit entirely.
+  - Please avoid adding merge commits or any other unnecessary commits.
+  - The commit message should have a short single line at the top which is nonetheless as descriptive as possible. After that we encourage more lines explaining in a little more detail exactly what has been done.
+  - In general, we don't need to see all the trials, errors and bug-fixes that went into this change, we only want to understand how it works now!
+  - Try to ensure that the automated tests are working after all the commits in the set. This avoids other developers going back to an arbitrary earlier commit and finding that things don't work. There can be occasions when other problems cause test failures beyond our control, so we'll just have to remain alert to these and work around them as best we can.
+- Where changes are likely to be more involved, or may change public APIs, authors should start a discussion with us first so that we can agree a good way forward.
+- Before submitting a pull request, please ensure that all the automated tests are passing. They can be run using the `tools/run_tests` script. Please use `tools/run_tests --help` for more information.
+- Any documentation should be updated accordingly. New examples and tests should be included wherever possible.
 - The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
 - We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend putting
 ```
@@ -79,7 +84,7 @@ We are happy to receive pull requests that will fix bugs, add features and gener
 
 exec git diff --cached | ./tools/checkstyle.py --staged
 ```
-into your `.git/hooks/pre-commit` file.
+into your `.git/hooks/pre-commit` file. We note that there are some occasions when other formatting is actually better in which case please use that in spite of the style checker, but do note this in your pull request so that we understand.
 
 Thank you!
 
