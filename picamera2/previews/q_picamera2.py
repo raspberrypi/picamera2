@@ -21,6 +21,10 @@ class QPicamera2(QWidget):
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
+    def cleanup(self):
+        del self.label
+        del self.camera_notifier
+
     def signal_done(self, picamera2):
         self.done_signal.emit()
 
