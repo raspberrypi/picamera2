@@ -16,8 +16,7 @@ from picamera2.encoders.output import FileOutput
 from picamera2.utils.picamera2_logger import initialize_logger
 from picamera2.previews.null_preview import NullPreview
 from picamera2.previews.drm_preview import DrmPreview
-from picamera2.previews.qt_preview import QtPreview
-from picamera2.previews.qt_gl_preview import QtGlPreview
+from picamera2.previews.qt_previews import QtPreview, QtGlPreview
 from picamera2.request import CompletedRequest
 
 

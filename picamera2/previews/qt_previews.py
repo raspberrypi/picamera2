@@ -3,17 +3,27 @@ import threading
 import atexit
 
 
-class QtPreview:
+class QtPreviewBase:
+    def make_picamera2_widget(picam2, width=640, height=480):
+        pass
+
+    def get_title():
+        pass
+
     def thread_func(self, picam2):
         # Running Qt in a thread other than the main thread is a bit tricky...
+        from PyQt5 import QtCore, QtWidgets
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtWidgets import QApplication
+
         from picamera2.previews.q_picamera2 import QApplication, QPicamera2, Qt
 
         self.app = QApplication([])
         self.size = (self.width, self.height)
-        self.qpicamera2 = QPicamera2(picam2, width=self.width, height=self.height)
+        self.qpicamera2 = self.make_picamera2_widget(picam2, width=self.width, height=self.height)
         if self.x is not None and self.y is not None:
             self.qpicamera2.move(self.x, self.y)
-        self.qpicamera2.setWindowTitle("QtPreview")
+        self.qpicamera2.setWindowTitle(self.get_title())
         self.qpicamera2.show()
         # Can't get Qt to exit tidily without this. Possibly an artifact of running
         # it in another thread?
@@ -48,3 +58,21 @@ class QtPreview:
 
     def set_overlay(self, overlay):
         self.qpicamera2.set_overlay(overlay)
+
+
+class QtPreview(QtPreviewBase):
+    def make_picamera2_widget(self, picam2, width=640, height=480):
+        from picamera2.previews.q_picamera2 import QPicamera2
+        return QPicamera2(picam2, width=self.width, height=self.height)
+
+    def get_title(self):
+        return "QtPreview"
+
+
+class QtGlPreview(QtPreviewBase):
+    def make_picamera2_widget(self, picam2, width=640, height=480):
+        from picamera2.previews.q_gl_picamera2 import QGlPicamera2
+        return QGlPicamera2(picam2, width=self.width, height=self.height)
+
+    def get_title(self):
+        return "QtGlPreview"
