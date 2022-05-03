@@ -110,7 +110,7 @@ class QGlPicamera2(QWidget):
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
-    def __del__(self):
+    def cleanup(self):
         del self.camera_notifier
         eglDestroySurface(self.egl.display, self.surface)
         self.surface = None

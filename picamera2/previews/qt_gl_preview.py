@@ -24,6 +24,7 @@ class QtGlPreview:
 
         atexit.unregister(self.stop)
         # Again, all necessary to keep Qt quiet.
+        self.qpicamera2.cleanup()
         del self.qpicamera2
         del self.app
 
