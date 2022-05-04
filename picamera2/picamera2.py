@@ -681,7 +681,11 @@ class Picamera2:
 
     def capture_file_(self, filename, name):
         request = self.completed_requests.pop(0)
-        request.save(name, filename)
+        if name is "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
+            request.save_dng(filename)
+        else:
+            request.save(name, filename)
+
         self.async_result = request.get_metadata()
         request.release()
         return True
