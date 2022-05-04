@@ -5,6 +5,9 @@ from PIL import Image
 import numpy as np
 import piexif
 
+from pidng.core import PICAM2DNG
+from pidng.camdefs import Picamera2Camera
+
 
 class CompletedRequest:
     def __init__(self, request, picam2):
@@ -120,6 +123,25 @@ class CompletedRequest:
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
         img.save(filename, compress_level=png_compress_level, quality=jpeg_quality, exif=exif)
+        end_time = time.monotonic()
+        self.picam2.log.info(f"Saved {self} to file {filename}.")
+        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+
+    def save_dng(self, filename, name="raw"):
+        """Save a DNG RAW image of the raw stream's buffer."""
+        start_time = time.monotonic()
+        raw = self.make_array(name)
+
+        fmt = self.picam2.camera_config[name]
+        metadata = self.get_metadata()
+        camera = Picamera2Camera(fmt, metadata)
+        r = PICAM2DNG(camera)
+
+        dng_compress_level = self.picam2.options.get("compress_level", 0)
+
+        r.options(compress=dng_compress_level)
+        r.convert(raw, filename)
+
         end_time = time.monotonic()
         self.picam2.log.info(f"Saved {self} to file {filename}.")
         self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
