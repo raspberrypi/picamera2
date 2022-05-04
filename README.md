@@ -31,7 +31,7 @@ Finally fetch the *Picamera2* repository. There are some dependencies to downloa
 
 ```
 cd
-sudo pip3 install pyopengl piexif simplejpeg
+sudo pip3 install pyopengl piexif simplejpeg PiDNG
 sudo apt install -y python3-pyqt5 python3-numpy
 git clone https://github.com/raspberrypi/picamera2.git
 ```
@@ -298,6 +298,14 @@ picam2.configure(preview_configuration)
 picam2.start()
 ```
 
+#### DNG Support
+
+Picamera2 supports saving DNG files through the _PiDNG_ library. When capturing DNGs, you will need to specify that you want a raw stream. For example, if the camera is running a normal preview, the following snippet would switch to full resolution mode (with a raw stream) and capture a DNG file.
+```
+capture_config = picam2.still_configuration(raw={})
+picam2.switch_mode_and_capture_file(capture_config, "full-res.dng", name="raw")
+```
+
 ## The Tuning File
 
 Being Python-based, _Picamera2_ is a good environment for inspecting and altering the _tuning files_ that Raspberry Pi ships for all its supported cameras.
@@ -328,6 +336,11 @@ Finally, for more advanced use cases:
 - To find out how and why you might want to use a low resolution ("lores") stream, please look at [`opencv_face_detect_2.py`](#opencv_face_detect_2py).
 - To capture raw camera buffers, please see [`raw.py`](#rawpy).
 - For an example of how you might capture and stream h.264 video over the network, please check [`capture_stream.py`](#capture_streampy).
+- To capture a DNG and JPEG file concurrently (that is, the JPEG is made from the same raw data is the DNG), please look at [`capture_dng_and_jpeg.py`](#capture_dng_and_jpegpy).
+
+### [capture_dng_and_jpeg.py](example/capture_dng_and_jpeg.py)
+
+This example switches to full resolution capture mode after a short delay and captures a request. Note how we have to specify that we want a raw stream (`raw={}`), otherwise no raw image buffers would be available to us. All the images in the request are made from the same raw camera data, so we're now free to save both of them to disk.
 
 ### [app_capture.py](examples/app_capture.py)
 

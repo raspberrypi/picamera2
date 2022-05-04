@@ -1,3 +1,5 @@
+examples/capture_dng.py
+examples/capture_dng_and_jpeg.py
 examples/capture_full_res.py
 examples/capture_headless.py
 examples/capture_mjpeg.py
