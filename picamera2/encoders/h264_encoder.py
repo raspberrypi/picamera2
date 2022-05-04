@@ -8,11 +8,12 @@ from v4l2 import *
 
 
 class H264Encoder(Encoder):
-    def __init__(self, bitrate, repeat=False):
+    def __init__(self, bitrate, repeat=False, iperiod=None):
         super().__init__()
         self.bufs = {}
         self._bitrate = bitrate
         self._repeat = repeat
+        self._iperiod = iperiod
         self.vd = None
 
     def _start(self):
@@ -57,14 +58,22 @@ class H264Encoder(Encoder):
         fmt.fmt.pix_mp.plane_fmt[0].sizeimage = 512 << 10
         fcntl.ioctl(self.vd, VIDIOC_S_FMT, fmt)
 
+        controls = []
+        if self._iperiod is not None:
+            controls += [(V4L2_CID_MPEG_VIDEO_H264_I_PERIOD, self._iperiod)]
         if self._repeat:
+            controls += [(V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER, 1)]
+
+        if len(controls) > 0:
+            controlarr = (v4l2_ext_control * len(controls))()
             ext = v4l2_ext_controls()
-            extc = v4l2_ext_control()
-            extc.id = V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER
-            extc.value = 1
-            extc.size = 0
-            ext.controls = ctypes.pointer(extc)
-            ext.count = 1
+            for i, tup in enumerate(controls):
+                idv, value = tup
+                controlarr[i].id = idv
+                controlarr[i].value = value
+                controlarr[i].size = 0
+            ext.controls = controlarr
+            ext.count = len(controls)
             ext.ctrl_class = V4L2_CTRL_CLASS_MPEG
             fcntl.ioctl(self.vd, VIDIOC_S_EXT_CTRLS, ext)
 
