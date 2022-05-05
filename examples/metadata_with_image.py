@@ -3,7 +3,7 @@
 # Obtain an image from the camera along with the exact metadata that
 # that describes that image.
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

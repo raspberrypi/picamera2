@@ -50,6 +50,21 @@ def clean_directory():
         os.remove(os.path.join(cwd, f))
 
 
+def indent(text, num_spaces=4):
+    between = "\n" + " " * num_spaces
+    return between.join(text.splitlines()) + "\n"
+
+
+def print_subprocess_output(exc: subprocess.CalledProcessError):
+    if exc.stdout is not None:
+        print("=" * 20 + "    STDOUT    " + "=" * 20)
+        print(indent(exc.stdout.decode('utf-8')))
+
+    if exc.stderr is not None:
+        print("=" * 20 + "    STDERR    " + "=" * 20)
+        print(indent(exc.stderr.decode('utf-8')))
+
+
 def run_tests(tests):
     """Run all the given tests. Return the number that fail."""
     num_failed = 0
@@ -77,11 +92,13 @@ def run_tests(tests):
                     break
             if test_passed:
                 print("\tPASSED")
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
             print("\tFAILED")
+            print_subprocess_output(e)
             num_failed = num_failed + 1
         except subprocess.TimeoutExpired:
             print("\tTIMED OUT")
+            print_subprocess_output(e)
             num_failed = num_failed + 1
     return num_failed
 

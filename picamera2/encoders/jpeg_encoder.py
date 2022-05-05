@@ -1,5 +1,6 @@
-from picamera2.encoders.multi_encoder import *
 import simplejpeg
+
+from picamera2.encoders.multi_encoder import MultiEncoder
 
 
 class JpegEncoder(MultiEncoder):

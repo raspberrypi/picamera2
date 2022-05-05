@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 # Configure a raw stream and capture an image from it.
-
-from picamera2.picamera2 import *
 import time
+
+from picamera2.picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)

@@ -5,10 +5,10 @@
 # when the capture, that is running asynchronously, is finished.
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QApplication, QWidget
 
-from picamera2.previews.q_gl_picamera2 import *
-from picamera2.picamera2 import *
+from picamera2.previews.q_gl_picamera2 import QGlPicamera2
+from picamera2.picamera2 import Picamera2
 
 
 def request_callback(request):

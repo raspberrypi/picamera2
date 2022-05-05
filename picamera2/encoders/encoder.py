@@ -1,7 +1,5 @@
 from v4l2 import *
 from .output import *
-import collections
-import io
 
 
 class Encoder:

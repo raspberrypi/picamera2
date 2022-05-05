@@ -1,7 +1,8 @@
-from picamera2.encoders.encoder import *
-import threading
-import queue
 from concurrent.futures import ThreadPoolExecutor
+import queue
+import threading
+
+from picamera2.encoders.encoder import Encoder
 
 
 class MultiEncoder(Encoder):

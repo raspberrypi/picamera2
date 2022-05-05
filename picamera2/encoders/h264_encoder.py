@@ -1,18 +1,13 @@
-import picamera2
-import selectors
 import threading
 import queue
-import atexit
 import fcntl
 import mmap
 import select
-import time
-from picamera2.encoders.encoder import *
+from picamera2.encoders.encoder import Encoder
 from v4l2 import *
 
 
 class H264Encoder(Encoder):
-
     def __init__(self, bitrate, repeat=False):
         super().__init__()
         self.bufs = {}
