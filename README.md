@@ -97,7 +97,7 @@ Readers are recommended to refer to the supplied [examples](#examples) in conjun
 The camera system should be opened as shown.
 
 ```
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 
 picam2 = Picamera2()
 ```
@@ -185,7 +185,7 @@ To start the event loop, the `start_preview` method should be called. It can be 
 Example:
 
 ```
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
@@ -198,7 +198,7 @@ picam2.start()
 
 Note that
 ```
-from picamera2.previews.qt_gl_preview import *
+from picamera2.previews.qt_gl_preview import QtGlPreview
 picam2.start_preview(QtGlPreview())
 ```
 is equivalent to `picam2.start_preview(Preview.QTGL)`.
@@ -223,7 +223,7 @@ Once the preview has been started using the `start_preview` method, an overlay m
 
 Overlays will always be stetched to cover the complete camera image. For example:
 ```
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 import numpy as np
 
 picam2 = Picamera2()

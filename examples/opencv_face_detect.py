@@ -2,7 +2,7 @@
 
 import cv2
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 
 # Grab images as numpy arrays and leave everything else to OpenCV.
 

@@ -2,7 +2,7 @@
 
 # Switch from preview to full resolution mode (alternative method).
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

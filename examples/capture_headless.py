@@ -1,6 +1,6 @@
 #!//usr/bin/python3
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 
 picam2 = Picamera2()
 config = picam2.still_configuration()

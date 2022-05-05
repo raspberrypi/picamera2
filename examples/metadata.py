@@ -2,7 +2,7 @@
 
 # Obtain the current camera control values in the image metadata.
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

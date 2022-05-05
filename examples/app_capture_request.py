@@ -5,10 +5,10 @@
 # async_result field.
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QWidget, QHBoxLayout, QVBoxLayout
 
-from picamera2.previews.q_picamera2 import *
-from picamera2.picamera2 import *
+from picamera2.previews.q_picamera2 import QPicamera2
+from picamera2.picamera2 import Picamera2
 
 
 def request_callback(request):
