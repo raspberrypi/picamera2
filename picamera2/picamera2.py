@@ -940,15 +940,13 @@ class Picamera2:
         self.stop()
         self.stop_encoder()
 
-    def set_overlay(self, overlay):
-        """Display an overlay on the camera image. The overlay may be either None,
-        in which case any overlay is removed, or a 4-channel image, the last of the
-        channels being taken as the alpha channel."""
-        if overlay is None:
-            pass  # OK
-        else:
-            shape = overlay.shape
-            if len(shape) != 3 or shape[2] != 4:
+    def set_overlay(self, overlay: np.ndarray):
+        """Display an overlay on the camera image.
+
+        The overlay may be either None, in which case any overlay is removed,
+        or a 4-channel ``ndarray``, the last of thechannels being taken as the alpha channel."""
+        if overlay is not None:
+            if overlay.ndim != 3 or overlay.shape[2] != 4:
                 raise RuntimeError("Overlay must be a 4-channel image")
         self._preview.set_overlay(overlay)
 
