@@ -1,3 +1,5 @@
+import time
+
 from picamera2.picamera2 import *
 
 def main():

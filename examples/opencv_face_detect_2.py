@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import time
+
 import cv2
 
 from picamera2.picamera2 import *

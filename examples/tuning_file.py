@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import time
 
 from picamera2.picamera2 import *
 
