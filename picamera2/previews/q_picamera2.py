@@ -1,16 +1,18 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot, QSocketNotifier
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel
+from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QSocketNotifier, QSize
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
 import numpy as np
 
 
 class QPicamera2(QGraphicsView):
+    update_overlay_signal = pyqtSignal()
+
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.picamera2 = picam2
         self.size = QSize(width, height)
         self.pixmap = None
+        self.new_pixmap = None
         self.overlay = None
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
@@ -25,7 +27,7 @@ class QPicamera2(QGraphicsView):
 
     def cleanup(self):
         del self.scene
-        del self.pixmap
+        del self.new_pixmap
         del self.overlay
         del self.camera_notifier
 
