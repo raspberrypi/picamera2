@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import pyqtSlot, QSocketNotifier
 from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 import sys
 import threading
@@ -32,7 +32,9 @@ class EglState:
         self.create_display()
         self.choose_config()
         self.create_context()
-        check_gl_extensions(["GL_OES_EGL_image"])
+        # GLES version earlier than 3.0 (e.g. on a Pi 3) don't support this, but it's
+        # only a check so we can skip it.
+        # check_gl_extensions(["GL_OES_EGL_image"])
 
     def create_display(self):
         xdisplay = getEGLNativeDisplay()
@@ -42,10 +44,6 @@ class EglState:
         major, minor = EGLint(), EGLint()
 
         eglInitialize(self.display, major, minor)
-
-        print("EGL {} {}".format(
-            eglQueryString(self.display, EGL_VENDOR).decode(),
-            eglQueryString(self.display, EGL_VERSION).decode()))
 
         check_egl_extensions(self.display, ["EGL_EXT_image_dma_buf_import"])
 
@@ -78,6 +76,8 @@ class EglState:
 
 
 class QGlPicamera2(QWidget):
+    done_signal = pyqtSignal()
+
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.resize(width, height)
@@ -91,22 +91,36 @@ class QGlPicamera2(QWidget):
         self.buffers = {}
         self.surface = None
         self.current_request = None
+        self.release_current = False
         self.stop_count = 0
         self.egl = EglState()
+        if picam2.verbose_console:
+            print("EGL {} {}".format(
+                eglQueryString(self.egl.display, EGL_VENDOR).decode(),
+                eglQueryString(self.egl.display, EGL_VERSION).decode()))
         self.init_gl()
+
         # set_overlay could be called before the first frame arrives, hence:
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
         self.picamera2 = picam2
+        picam2.have_event_loop = True
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
-    def __del__(self):
+    def cleanup(self):
         del self.camera_notifier
         eglDestroySurface(self.egl.display, self.surface)
         self.surface = None
+        # We may be hanging on to a request, return it to the camera system.
+        if self.current_request is not None and self.release_current:
+            self.current_request.release()
+        self.current_request = None
+
+    def signal_done(self, picamera2):
+        self.done_signal.emit()
 
     def paintEngine(self):
         return None
@@ -207,6 +221,8 @@ class QGlPicamera2(QWidget):
 
             cfg = stream.configuration
             fmt = cfg.pixelFormat
+            if fmt not in self.FMT_MAP:
+                raise RuntimeError(f"Format {fmt} not supported by QGlPicamera2 preview")
             fmt = str_to_fourcc(self.FMT_MAP[fmt])
             w, h = cfg.size
 
@@ -285,7 +301,7 @@ class QGlPicamera2(QWidget):
                 if self.picamera2.verbose_console:
                     print("Garbage collect", len(self.buffers), "textures")
                 for (req, buffer) in self.buffers.items():
-                    glDeleteTextures(buffer.texture, 1)
+                    glDeleteTextures(1, [buffer.texture])
                 self.buffers = {}
                 self.stop_count = self.picamera2.stop_count
 
@@ -306,7 +322,7 @@ class QGlPicamera2(QWidget):
 
         eglSwapBuffers(self.egl.display, self.surface)
 
-        if self.current_request:
+        if self.current_request and self.release_current:
             self.current_request.release()
         self.current_request = completed_request
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
@@ -317,5 +333,11 @@ class QGlPicamera2(QWidget):
         if request:
             if self.picamera2.display_stream_name is not None:
                 self.repaint(request)
+                # The pipeline will stall if there's only one buffer and we always hold on to
+                # the last one. When we can, however, holding on to them is still preferred.
+                if self.picamera2.camera_config['buffer_count'] > 1:
+                    self.release_current = True
+                else:
+                    request.release()
             else:
                 request.release()

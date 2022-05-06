@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 
-from picamera2.picamera2 import *
-import numpy as np
 import time
+
+import numpy as np
+
+from picamera2.picamera2 import Picamera2
 
 picam2 = Picamera2()
 picam2.configure(picam2.preview_configuration())
-picam2.start_preview()
 picam2.start()
 time.sleep(1)
 

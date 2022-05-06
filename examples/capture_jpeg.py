@@ -3,7 +3,7 @@
 # Capture a JPEG while still running in the preview mode. When you
 # capture to a file, the return value is the metadata for that image.
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

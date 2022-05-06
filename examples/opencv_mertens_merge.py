@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 
-import cv2
 import time
 
-from picamera2.picamera2 import *
+import cv2
+import numpy as np
+
+from picamera2.picamera2 import Picamera2
+
 
 # Simple Mertens merge with 3 exposures. No image alignment or anything fancy.
 RATIO = 3.0
 
 picam2 = Picamera2()
-picam2.start_preview()
 picam2.configure(picam2.preview_configuration())
 picam2.start()
 

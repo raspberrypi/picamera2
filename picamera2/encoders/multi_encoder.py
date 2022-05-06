@@ -1,7 +1,8 @@
-from picamera2.encoders.encoder import *
-import threading
-import queue
 from concurrent.futures import ThreadPoolExecutor
+import queue
+import threading
+
+from picamera2.encoders.encoder import Encoder
 
 
 class MultiEncoder(Encoder):
@@ -35,8 +36,8 @@ class MultiEncoder(Encoder):
                 return
 
             buffer = task.result()
-            if self._output is not None:
-                self._output.write(buffer)
+            if self.output:
+                self.output.outputframe(buffer)
 
     def do_encode(self, request):
         buffer = self.encode_func(request, request.picam2.encode_stream_name)

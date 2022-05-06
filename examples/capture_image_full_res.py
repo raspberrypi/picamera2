@@ -2,7 +2,7 @@
 
 # Capture a full resolution image to memory rather than to a file.
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()
