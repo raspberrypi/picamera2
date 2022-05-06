@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtSlot, QSocketNotifier, QRect, QSize
+from PyQt5.QtCore import pyqtSlot, QSocketNotifier, Qt, pyqtSignal, QRect, QSize
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
 import numpy as np
@@ -14,11 +14,21 @@ class QPicamera2(QGraphicsView):
         self.overlay = None
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
+        self.enabled = True
 
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
+
+    def cleanup(self):
+        del self.scene
+        del self.pixmap
+        del self.overlay
+        del self.camera_notifier
+
+    def signal_done(self, picamera2):
+        self.done_signal.emit()
 
     def set_overlay(self, overlay):
         if overlay is not None:
@@ -42,13 +52,17 @@ class QPicamera2(QGraphicsView):
             self.scene.removeItem(self.overlay)
             self.overlay = None
 
+    @pyqtSlot(bool)
+    def set_enabled(self, enabled):
+        self.enabled = enabled
+
     @pyqtSlot()
     def handle_requests(self):
         request = self.picamera2.process_requests()
         if not request:
             return
 
-        if self.picamera2.display_stream_name is not None:
+        if self.enabled and self.picamera2.display_stream_name is not None:
             img = request.make_array(self.picamera2.display_stream_name)
             img = np.ascontiguousarray(img[..., :3])
             shape = img.shape
