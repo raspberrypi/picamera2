@@ -534,22 +534,7 @@ class Picamera2:
         """List the controls supported by the camera."""
         return self.camera.controls
 
-    def start_(self, controls={}) -> None:
-        """Start the camera system running."""
-        if self.camera_config is None:
-            raise RuntimeError("Camera has not been configured")
-        if self.started:
-            raise RuntimeError("Camera already started")
-        if self.camera.start(self.camera_config["controls"] | controls) >= 0:
-            for request in self.make_requests():
-                self.camera.queueRequest(request)
-            self.log.info("Camera started")
-            self.started = True
-        else:
-            self.log.error("Camera did not start properly.")
-            raise RuntimeError("Camera did not start properly.")
-
-    def start(self, controls={}, event_loop=True) -> None:
+    def start_(self, event_loop=True) -> None:
         """Start the camera system running. Camera controls may be sent to the
         camera before it starts running.
 
@@ -562,11 +547,33 @@ class Picamera2:
         An application could elect not to start an event loop at all,
         in which in which case they would have to supply their own."""
         if self.camera_config is None:
-            raise RuntimeError("Camera has not been configured")
-        # By default we will create an event loop is there isn't one running already.
-        if event_loop and not self.have_event_loop:
-            self.start_preview(Preview.NULL)
-        self.start_(controls)
+            error_msg = f"Camera {self.camera_idx} has not been configured"
+            raise RuntimeError(error_msg)
+        if self.started:
+            error_msg = f"Camera {self.camera_idx} has already started."
+            raise RuntimeError(error_msg)
+        if self.camera.start(self.camera_config["controls"]) >= 0:
+            for request in self.make_requests():
+                self.camera.queueRequest(request)
+            self.log.info(f"Camera {self.camera_idx} started.")
+            self.started = True
+            if event_loop and not self.have_event_loop:
+                self.start_preview(Preview.NULL)
+        else:
+            error_msg = f"Camera {self.camera_idx} did not start properly."
+            raise RuntimeError(error_msg)
+
+    def start(self) -> None:
+        """
+        start
+        Action: Starts the camera that was previously defined.
+        Description: This command enables the camera to begin to send and
+            receive data under previously set configuration and
+            control parameters.
+        Requirements: The camera must be initialized, acquired, and configured
+            before it can be started.
+        """
+        self.start_()
 
     def stop_(self, request=None) -> None:
         """Stop the camera. Only call this function directly from within the camera event
