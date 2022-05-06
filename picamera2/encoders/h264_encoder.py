@@ -1,22 +1,20 @@
-import picamera2
-import selectors
 import threading
 import queue
-import atexit
 import fcntl
 import mmap
 import select
-import time
-from picamera2.encoders.encoder import *
+from picamera2.encoders.encoder import Encoder
 from v4l2 import *
 
 
 class H264Encoder(Encoder):
-
-    def __init__(self, bitrate):
+    def __init__(self, bitrate, repeat=False, iperiod=None):
         super().__init__()
         self.bufs = {}
         self._bitrate = bitrate
+        self._repeat = repeat
+        self._iperiod = iperiod
+        self.vd = None
 
     def _start(self):
         super()._start()
@@ -59,6 +57,25 @@ class H264Encoder(Encoder):
         fmt.fmt.pix_mp.plane_fmt[0].bytesperline = 0
         fmt.fmt.pix_mp.plane_fmt[0].sizeimage = 512 << 10
         fcntl.ioctl(self.vd, VIDIOC_S_FMT, fmt)
+
+        controls = []
+        if self._iperiod is not None:
+            controls += [(V4L2_CID_MPEG_VIDEO_H264_I_PERIOD, self._iperiod)]
+        if self._repeat:
+            controls += [(V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER, 1)]
+
+        if len(controls) > 0:
+            controlarr = (v4l2_ext_control * len(controls))()
+            ext = v4l2_ext_controls()
+            for i, tup in enumerate(controls):
+                idv, value = tup
+                controlarr[i].id = idv
+                controlarr[i].value = value
+                controlarr[i].size = 0
+            ext.controls = controlarr
+            ext.count = len(controls)
+            ext.ctrl_class = V4L2_CTRL_CLASS_MPEG
+            fcntl.ioctl(self.vd, VIDIOC_S_EXT_CTRLS, ext)
 
         NUM_OUTPUT_BUFFERS = 6
         NUM_CAPTURE_BUFFERS = 12
@@ -149,6 +166,7 @@ class H264Encoder(Encoder):
                     ctypes.memset(planes, 0, ctypes.sizeof(v4l2_plane) * VIDEO_MAX_PLANES)
                     buf.m.planes = planes
                     ret = fcntl.ioctl(self.vd, VIDIOC_DQBUF, buf)
+                    keyframe = (buf.flags & V4L2_BUF_FLAG_KEYFRAME) != 0
 
                     if ret == 0:
                         bufindex = buf.index
@@ -157,9 +175,7 @@ class H264Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        if self._output is not None:
-                            self._output.write(b)
-                            self._output.flush()
+                        self.output.outputframe(b, keyframe)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
@@ -183,7 +199,7 @@ class H264Encoder(Encoder):
         # as the header seems only to be sent with the first frame
         if self._output is None:
             return
-        if self.vd.closed:
+        if self.vd is None or self.vd.closed:
             return
         cfg = stream.configuration
         fb = request.request.buffers[stream]

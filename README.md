@@ -12,68 +12,71 @@ For the time being, the documentation here is mostly based on a number of suppli
 
 These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck.
 
-First install and build *libcamera* according to the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
-
-1. Clone the picamera2 branch from the libcamera repo `https://github.com/raspberrypi/libcamera.git` (not from the usual location). You can use the command
-```
-git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
-```
-WARNING: DO NOT USE THIS REPOSITORY FOR ANY PURPOSE OTHER THAN TRYING OUT *PICAMERA2* - IT WILL NOT BE KEPT UP TO DATE WITH MAINLINE *LIBCAMERA* DEVELOPMENT AND WILL BE DELETED IN DUE COURSE.
-
-2. When configuring `meson`, add the option `-Dpycamera=enabled`.
-
-Next we need some DRM/KMS bindings:
+A version of libcamera with appropriate Python bindings, and a package with the necessary DRM/KMS bindings, are all now available from the Raspberry Pi apt repositories. Therefore, please execute:
 
 ```
-cd
-git clone https://github.com/tomba/kmsxx.git
-cd kmsxx
-git submodule update --init
-sudo apt install -y libfmt-dev libdrm-dev
-meson build
-ninja -C build
+sudo apt update
+sudo apt install -y python3-libcamera python3-kms++
 ```
+
+Normally this will be sufficient, but if you do need to rebuild libcamera from source, please follow [these instructions](#building-libcamera-from-source).
 
 You will also need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
 
 ```
-cd
-git clone https://github.com/RaspberryPiFoundation/python-v4l2.git
+pip3 install v4l2-python3
 ```
 
-Finally fetch the *Picamera2* repository. There are a couple of dependencies to download first.
+Finally fetch the *Picamera2* repository. There are some dependencies to download first.
 
 ```
 cd
-sudo pip3 install pyopengl piexif
-sudo apt install -y python3-pyqt5
+sudo pip3 install pyopengl piexif simplejpeg PiDNG
+sudo apt install -y python3-pyqt5 python3-numpy
 git clone https://github.com/raspberrypi/picamera2.git
 ```
 
 To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
 ```
-export PYTHONPATH=/home/pi/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2
+export PYTHONPATH=/home/pi/picamera2
 ```
 
-**OpenCV**
+#### OpenCV
 
-OpenCV can be installed from `apt` as follows. Normally this should avoid the very long build times that can sometimes be required by other methods.
+OpenCV is not a requirement for *Picamera2*, though a number of the supplied examples use it. It can be installed from `apt` as follows. Normally this should avoid the very long build times that can sometimes be required by other methods.
 
 ```
 sudo apt install -y python3-opencv
 sudo apt install -y opencv-data
 ```
 
+#### Building libcamera from source
+
+If you do need to build libcamera from source, please follow the [standard instructions](https://www.raspberrypi.com/documentation/accessories/camera.html#building-libcamera) but with the following *two* differences:
+
+1. Clone the picamera2 branch from the libcamera repo `https://github.com/raspberrypi/libcamera.git` (not from the usual location). You can use the command
+```
+git clone --branch picamera2 https://github.com/raspberrypi/libcamera.git
+```
+
+2. When configuring `meson`, add the option `-Dpycamera=enabled`.
+
+
 ## Contributing
 
-We are happy to receive pull requests that will fix bugs, add features and generally improve the code. If possible, pull requests would ideally be:
+We are happy to receive pull requests that will fix bugs, add features and generally improve the code. Pull requests should be:
 
-- Restricted to one change or feature each.
-- The commit history should consist of a number of commits that are as easy to review as possible.
-- Where changes are likely to be more involved, we would invite authors to start a discussion with us first so that we can agree a good way forward.
-- All the tests and examples should be working after each commit in the pull request. The repository implements some automated testing and style checking to help ensure  this.
-- Please try to avoid adding merge commits as this will help keep the commit history a bit more readable.
-- Any documentation should be updated accordingly. Where appropriate, new examples and tests would be welcomed.
+- Restricted to one change or feature each. Please try to avoid "drive-by fixes" especially in a larger set of changes, as it can make them harder to review.
+- The commit history should consist of a number of commits that are as easy to review as possible. In particular this means:
+  - Where one commit is fixing errors in an earlier commit in the set, please simply merge them.
+  - Where a commit is reverting a commit from earlier in the set, please remove the commit entirely.
+  - Please avoid adding merge commits or any other unnecessary commits.
+  - The commit message should have a short single line at the top which is nonetheless as descriptive as possible. After that we encourage more lines explaining in a little more detail exactly what has been done.
+  - In general, we don't need to see all the trials, errors and bug-fixes that went into this change, we only want to understand how it works now!
+  - Try to ensure that the automated tests are working after all the commits in the set. This avoids other developers going back to an arbitrary earlier commit and finding that things don't work. There can be occasions when other problems cause test failures beyond our control, so we'll just have to remain alert to these and work around them as best we can.
+- Where changes are likely to be more involved, or may change public APIs, authors should start a discussion with us first so that we can agree a good way forward.
+- Before submitting a pull request, please ensure that all the automated tests are passing. They can be run using the `tools/run_tests` script. Please use `tools/run_tests --help` for more information.
+- Any documentation should be updated accordingly. New examples and tests should be included wherever possible.
 - The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
 - We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend putting
 ```
@@ -81,7 +84,7 @@ We are happy to receive pull requests that will fix bugs, add features and gener
 
 exec git diff --cached | ./tools/checkstyle.py --staged
 ```
-into your `.git/hooks/pre-commit` file.
+into your `.git/hooks/pre-commit` file. We note that there are some occasions when other formatting is actually better in which case please use that in spite of the style checker, but do note this in your pull request so that we understand.
 
 Thank you!
 
@@ -94,7 +97,7 @@ Readers are recommended to refer to the supplied [examples](#examples) in conjun
 The camera system should be opened as shown.
 
 ```
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 
 picam2 = Picamera2()
 ```
@@ -177,12 +180,14 @@ The *Picamera2* class implements most of the camera functionality, however, it d
 - Use the `NullPreview` class. This class actually generates no preview window at all and merely supplies an event loop that drives the camera.
 - In a Qt application, the `QPicamer2` or `QGlPicamera2` widgets are provided and automatically use the Qt event loop to drive the camera.
 
-To start the event loop, the `start_preview` method should be called. It can be passed an actual preview object, or for convenience can be passed one of the Preview enum values (see below). If given no arguments at all, a `NullPreview` is created. When running under a Qt even loop, `start_preview` should _not_ be called at all.
+In the final case (running inside a Qt application), `start_preview` should not be called at all as the Qt `exec()` function supplies the event loop.
+
+In all other cases, the user should call `start_preview` before starting *Picamera2* with the `Picamera2.start` method. The call to `start_preview` may be omitted in which case *Picamera2* will automatically start the "null" preview (with no preview window) when `Picamera2.start` is called.
 
 Example:
 
 ```
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
@@ -195,7 +200,7 @@ picam2.start()
 
 Note that
 ```
-from picamera2.previews.qt_gl_preview import *
+from picamera2.previews.qt_gl_preview import QtGlPreview
 picam2.start_preview(QtGlPreview())
 ```
 is equivalent to `picam2.start_preview(Preview.QTGL)`.
@@ -204,7 +209,9 @@ To use the DRM preview window, use `picam2.start_preview(Preview.DRM)` instead.
 
 To use the Qt (non-GL) preview window, use `picam2.start_preview(Preview.QT)` instead.
 
-For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`.
+For no preview window at all, use `picam2.start_preview()` or `picam2.start_preview(Preview.NULL)`. Alternatively the call to `start_preview` may be omitted entirely.
+
+Preview windows can be be assigned a particular location on the screen (`picam2.start_preview(Preview.QTGL, x=100, y=200)`).
 
 Please refer to the supplied examples for more information.
 
@@ -218,7 +225,7 @@ Once the preview has been started using the `start_preview` method, an overlay m
 
 Overlays will always be stetched to cover the complete camera image. For example:
 ```
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2
 import numpy as np
 
 picam2 = Picamera2()
@@ -293,6 +300,14 @@ picam2.configure(preview_configuration)
 picam2.start()
 ```
 
+#### DNG Support
+
+Picamera2 supports saving DNG files through the _PiDNG_ library. When capturing DNGs, you will need to specify that you want a raw stream. For example, if the camera is running a normal preview, the following snippet would switch to full resolution mode (with a raw stream) and capture a DNG file.
+```
+capture_config = picam2.still_configuration(raw={})
+picam2.switch_mode_and_capture_file(capture_config, "full-res.dng", name="raw")
+```
+
 ## The Tuning File
 
 Being Python-based, _Picamera2_ is a good environment for inspecting and altering the _tuning files_ that Raspberry Pi ships for all its supported cameras.
@@ -323,12 +338,19 @@ Finally, for more advanced use cases:
 - To find out how and why you might want to use a low resolution ("lores") stream, please look at [`opencv_face_detect_2.py`](#opencv_face_detect_2py).
 - To capture raw camera buffers, please see [`raw.py`](#rawpy).
 - For an example of how you might capture and stream h.264 video over the network, please check [`capture_stream.py`](#capture_streampy).
+- To capture a DNG and JPEG file concurrently (that is, the JPEG is made from the same raw data is the DNG), please look at [`capture_dng_and_jpeg.py`](#capture_dng_and_jpegpy).
+
+### [capture_dng_and_jpeg.py](example/capture_dng_and_jpeg.py)
+
+This example switches to full resolution capture mode after a short delay and captures a request. Note how we have to specify that we want a raw stream (`raw={}`), otherwise no raw image buffers would be available to us. All the images in the request are made from the same raw camera data, so we're now free to save both of them to disk.
 
 ### [app_capture.py](examples/app_capture.py)
 
 This is a very simple *PyQt* application. It creates a camera preview widget that uses OpenGL hardware acceleration (the `QGlPicamera2` widget). This widget drives the camera processing. A button is hooked up to do a full resolution JPEG capture - the implementation of this is all hidden within the `Picamera2` object which has processing requests forwarded to it by the `QGlPicamera2` widget.
 
 We also use the `Picamera2` object's *request callback*, which is called whenever an image is about to be displayed in the preview pane. Here we just fetch the camera's current parameters (the *metadata*) and write all of the information to a text pane.
+
+There is a second version of this [app_capture2.py](examples/app_capture2.py) that is very similar but uses the Qt signal/slot mechanism to regain control when the capture operation is complete. Camera operations may not block the main Qt thread because that is the same thread that actually handles camera activity, so this would result in a deadlock.
 
 ### [capture_full_res.py](examples/capture_full_res.py)
 

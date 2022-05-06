@@ -1,7 +1,12 @@
 #!/usr/bin/python3
 
+# Start a Qt application, and use an asynchronous thread to "click" on the GUI.
+
+import time
+import threading
+
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QLabel, QHBoxLayout, QPushButton, QVBoxLayout, QApplication, QWidget
+from PyQt5.QtWidgets import QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QApplication
 
 from picamera2.previews.q_gl_picamera2 import QGlPicamera2
 from picamera2.picamera2 import Picamera2
@@ -19,19 +24,21 @@ app = QApplication([])
 
 
 def on_button_clicked():
-    if not picam2.async_operation_in_progress:
-        cfg = picam2.still_configuration()
-        picam2.switch_mode_and_capture_file(cfg, "test.jpg", wait=False, signal_function=None)
-    else:
-        print("Busy!")
+    button.setEnabled(False)
+    cfg = picam2.still_configuration()
+    picam2.switch_mode_and_capture_file(cfg, "test.jpg", wait=False, signal_function=qpicamera2.signal_done)
+
+
+def capture_done():
+    button.setEnabled(True)
 
 
 qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
 button = QPushButton("Click to capture JPEG")
-button.clicked.connect(on_button_clicked)
 label = QLabel()
 window = QWidget()
-window.setWindowTitle("Qt Picamera2 App")
+qpicamera2.done_signal.connect(capture_done)
+button.clicked.connect(on_button_clicked)
 
 label.setFixedWidth(400)
 label.setAlignment(QtCore.Qt.AlignTop)
@@ -41,9 +48,25 @@ layout_v.addWidget(label)
 layout_v.addWidget(button)
 layout_h.addWidget(qpicamera2, 80)
 layout_h.addLayout(layout_v, 20)
+window.setWindowTitle("Qt Picamera2 App")
 window.resize(1200, 600)
 window.setLayout(layout_h)
 
 picam2.start()
 window.show()
+
+
+def test_func():
+    # This function can run in another thread and "click" on the GUI.
+    time.sleep(5)
+    button.clicked.emit()
+    time.sleep(5)
+    button.clicked.emit()
+    time.sleep(5)
+    app.quit()
+
+
+thread = threading.Thread(target=test_func, daemon=True)
+thread.start()
+
 app.exec()
