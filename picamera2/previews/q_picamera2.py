@@ -65,6 +65,10 @@ class QPicamera2(QGraphicsView):
             # Just update it
             self.overlay.setPixmap(pix)
 
+    @pyqtSlot(bool)
+    def set_enabled(self, enabled):
+        self.enabled = enabled
+
     @pyqtSlot()
     def handle_requests(self):
         request = self.picamera2.process_requests()
