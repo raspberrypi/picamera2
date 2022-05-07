@@ -17,6 +17,8 @@ class QPicamera2(QGraphicsView):
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
         self.resize(width, height)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.enabled = True
 
         self.update_overlay_signal.connect(self.update_overlay)
@@ -71,6 +73,23 @@ class QPicamera2(QGraphicsView):
     def set_enabled(self, enabled):
         self.enabled = enabled
 
+    def fitInView(self):
+        # Reimplemented fitInView to remove fixed border
+        if self.pixmap is not None:
+            rect = QtCore.QRectF(self.pixmap.pixmap().rect())
+            self.setSceneRect(rect)
+            unity = self.transform().mapRect(QtCore.QRectF(0, 0, 1, 1))
+            self.scale(1 / unity.width(), 1 / unity.height())
+            viewrect = self.viewport().rect()
+            scenerect = self.transform().mapRect(rect)
+            factor = min(viewrect.width() / scenerect.width(),
+                            viewrect.height() / scenerect.height())
+            self.scale(factor, factor)
+
+    def resizeEvent(self, event):
+        self.fitInView()
+        QGraphicsView.resizeEvent(self, event)
+
     @pyqtSlot()
     def handle_requests(self):
         request = self.picamera2.process_requests()
@@ -92,8 +111,8 @@ class QPicamera2(QGraphicsView):
             if self.pixmap is None:
                 # Add the pixmap to the scene
                 self.pixmap = self.scene.addPixmap(pix)
+                self.fitInView()
             else:
                 # Update pixmap
                 self.pixmap.setPixmap(pix)
-            self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
         request.release()
