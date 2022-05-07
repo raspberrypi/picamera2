@@ -5,14 +5,13 @@ import numpy as np
 
 
 class QPicamera2(QGraphicsView):
-    update_overlay_signal = pyqtSignal()
+    update_overlay_signal = pyqtSignal(object)
 
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.picamera2 = picam2
         self.size = QSize(width, height)
         self.pixmap = None
-        self.new_pixmap = None
         self.overlay = None
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
@@ -29,7 +28,6 @@ class QPicamera2(QGraphicsView):
 
     def cleanup(self):
         del self.scene
-        del self.new_pixmap
         del self.overlay
         del self.camera_notifier
 
@@ -45,17 +43,14 @@ class QPicamera2(QGraphicsView):
             if qim.size() != self.size:
                 # Resize the overlay
                 qim = qim.scaled(self.size)
-            self.new_pixmap = QtGui.QPixmap(qim)
+            new_pixmap = QtGui.QPixmap(qim)
         elif self.overlay is not None:
             # Remove overlay
-            self.new_pixmap = None
-        # Update the overlay. Really I want to pass the new_pixmap to the signal but can't
-        # get that to work.
-        self.update_overlay_signal.emit()
+            new_pixmap = None
+        self.update_overlay_signal.emit(new_pixmap)
 
-    @pyqtSlot()
-    def update_overlay(self):
-        pix = self.new_pixmap
+    @pyqtSlot(object)
+    def update_overlay(self, pix):
         if pix is None:
             # Delete overlay if present
             if self.overlay is not None:
@@ -83,7 +78,7 @@ class QPicamera2(QGraphicsView):
             viewrect = self.viewport().rect()
             scenerect = self.transform().mapRect(rect)
             factor = min(viewrect.width() / scenerect.width(),
-                            viewrect.height() / scenerect.height())
+                         viewrect.height() / scenerect.height())
             self.scale(factor, factor)
 
     def resizeEvent(self, event):
