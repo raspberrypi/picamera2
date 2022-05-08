@@ -35,6 +35,7 @@ class QPicamera2(QGraphicsView):
         self.done_signal.emit()
 
     def set_overlay(self, overlay):
+        new_pixmap = None
         if overlay is not None:
             overlay = np.ascontiguousarray(overlay)
             shape = overlay.shape
@@ -44,9 +45,6 @@ class QPicamera2(QGraphicsView):
                 # Resize the overlay
                 qim = qim.scaled(self.size)
             new_pixmap = QtGui.QPixmap(qim)
-        elif self.overlay is not None:
-            # Remove overlay
-            new_pixmap = None
         self.update_overlay_signal.emit(new_pixmap)
 
     @pyqtSlot(object)
