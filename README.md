@@ -32,7 +32,7 @@ Finally fetch the *Picamera2* repository. There are some dependencies to downloa
 ```
 cd
 sudo pip3 install pyopengl piexif simplejpeg PiDNG
-sudo apt install -y python3-pyqt5 python3-numpy
+sudo apt install -y python3-pyqt5 python3-numpy python3-prctl ffmpeg
 git clone https://github.com/raspberrypi/picamera2.git
 ```
 
@@ -40,6 +40,12 @@ To make everything run, you will also have to set your `PYTHONPATH` environment 
 ```
 export PYTHONPATH=/home/pi/picamera2
 ```
+
+#### FFmpeg
+
+We have suggested installing _FFmpeg_ in order to use _Picamera2_. It is, however, only required to support certain complex file types, such as writing output to _mp4_ files. If you do not require this functionality then _FFmpeg_ is not required, and you should avoid trying to use the `FfmpegOutput` class.
+
+We note that it is installed by default in Raspberry Pi OS, but not in Raspberry Pi OS Lite.
 
 #### OpenCV
 
@@ -334,6 +340,7 @@ Finally, for more advanced use cases:
 - To capture raw camera buffers, please see [`raw.py`](#rawpy).
 - For an example of how you might capture and stream h.264 video over the network, please check [`capture_stream.py`](#capture_streampy).
 - To capture a DNG and JPEG file concurrently (that is, the JPEG is made from the same raw data is the DNG), please look at [`capture_dng_and_jpeg.py`](#capture_dng_and_jpegpy).
+- Users wishing to capture mp4 files (rather than raw h.264 streams) should check out [`mp4_capture.py`](#mp4_capturepy). There's also an example showing how to record an audio stream.
 
 ### [capture_dng_and_jpeg.py](example/capture_dng_and_jpeg.py)
 
@@ -406,6 +413,12 @@ This is a simple MJPEG web server, derived from one of the old [*Picamera exampl
 At some point in the future *Picamera2* may include built-in support for JPEG encoding, so this example is certainly liable to change.
 
 To try it, just start the server on your Pi and then, on a different computer open a web browser and visit `http://<your-Pi's-IP-address>:8000`.
+
+### [mp4_capture.py](examples/mp4_capture.py)
+
+We can use _FFmpeg_ to save videos to mp4 format files, rather than as raw h.264 bitstreams, as shown in this example. _FFmpeg_ also allows us to record an audio stream with the video, as shown [here](examples/audio_video_capture.py).
+
+Using _FFmpeg_ like this leaves the audio/video sync somewhat in the hands of the video encoder and _FFmpeg_ itself, so you may in general find you need to tweak it slightly depending on your precise use case and configuration. The `FfmpegOutput` class has an `audio_sync` parameter that allows you to do this.
 
 ### [opencv_face_detect.py](examples/opencv_face_detect.py)
 
