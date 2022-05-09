@@ -3,7 +3,8 @@ import time
 
 import numpy as np
 
-from picamera2.encoders.h264_encoder import H264Encoder, CircularOutput
+from picamera2.encoders.h264_encoder import H264Encoder
+from picamera2.encoders.output import CircularOutput
 from picamera2.picamera2 import Picamera2
 
 lsize = (320, 240)
