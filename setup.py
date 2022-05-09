@@ -10,8 +10,9 @@ from os import getenv
 with open("README.md") as readme:
     long_description = readme.read()
 
-setup(name='picamera2',
-      version='0.1.0',
+setup(
+    name='picamera2',
+    version='0.1.1',
     description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
       long_description=long_description,
       long_description_content_type='text/markdown',
