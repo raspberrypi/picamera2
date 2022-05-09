@@ -2,7 +2,7 @@
 
 # Capture a PNG while still running in the preview mode.
 
-from picamera2.picamera2 import *
+from picamera2.picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

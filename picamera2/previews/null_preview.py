@@ -6,7 +6,6 @@ class NullPreview:
     def thread_func(self, picam2):
         import selectors
 
-        picam2.asynchronous = True
         sel = selectors.DefaultSelector()
         sel.register(picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request)
         self.event.set()
@@ -17,9 +16,8 @@ class NullPreview:
                 callback = key.data
                 callback(picam2)
 
-        picam2.asynchronous = False
 
-    def __init__(self, width=None, height=None):
+    def __init__(self, x=None, y=None, width=None, height=None):
         # Ignore width and height as they are meaningless. We only accept them so as to
         # be a drop-in replacement for the Qt/DRM previews.
         self.size = (width, height)
@@ -31,6 +29,10 @@ class NullPreview:
         self.running = True
         self.thread.start()
         self.event.wait()
+
+    def set_overlay(self, overlay):
+        # This only exists so as to have the same interface as other preview windows.
+        pass
 
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()
