@@ -31,7 +31,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
     ],
-    packages=['picamera2', 'picamera2.encoders', 'picamera2.previews', 'picamera2.utils'],
+    packages=['picamera2', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews', 'picamera2.utils'],
     python_requires='>=3.7',
     licence='BSD 2-Clause License',
     install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'pyopengl', 'PyQt5', 'simplejpeg', 'v4l2-python3'])
