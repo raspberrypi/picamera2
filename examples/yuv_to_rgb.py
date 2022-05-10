@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from picamera2 import Picamera2, YUV420_to_RGB
+from picamera2 import Picamera2
 import cv2
 
 cv2.startWindowThread()
@@ -11,6 +11,6 @@ picam2.configure(config)
 picam2.start()
 
 while True:
-    buffer = picam2.capture_buffer("lores")
-    rgb = YUV420_to_RGB(buffer, (640, 480))
+    yuv420 = picam2.capture_array("lores")
+    rgb = cv2.cvtColor(yuv420, cv2.COLOR_YUV420p2RGB)
     cv2.imshow("Camera", rgb)
