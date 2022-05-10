@@ -11,7 +11,8 @@ import libcamera
 import numpy as np
 from PIL import Image
 
-from picamera2.encoders import Encoder, FileOutput
+from picamera2.encoders import Encoder
+from picamera2.outputs import FileOutput
 from picamera2.utils import initialize_logger
 from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
 from .request import CompletedRequest

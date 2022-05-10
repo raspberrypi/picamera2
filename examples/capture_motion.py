@@ -5,7 +5,8 @@ from signal import pause
 
 import numpy as np
 
-from picamera2.encoders import H264Encoder, FileOutput
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import FileOutput
 from picamera2 import Picamera2
 
 lsize = (320, 240)
