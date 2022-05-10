@@ -4,9 +4,8 @@
 # Run this script, then point a web browser at http:<this-ip-address>:8000
 # Note: needs simplejpeg to be installed (pip3 install simplejpeg).
 
-from picamera2.picamera2 import Picamera2
-from picamera2.encoders.jpeg_encoder import JpegEncoder
-from picamera2.encoders.output import FileOutput
+from picamera2 import Picamera2
+from picamera2.encoders import JpegEncoder, FileOutput
 import io
 import logging
 import socketserver

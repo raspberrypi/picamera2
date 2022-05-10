@@ -4,7 +4,7 @@
 
 import time
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 
 preview_type = Preview.QTGL
 

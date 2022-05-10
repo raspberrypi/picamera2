@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-from picamera2.encoders.h264_encoder import H264Encoder
-from picamera2.picamera2 import Picamera2
+from picamera2.encoders import H264Encoder
+from picamera2 import Picamera2
 import time
 import os
 
