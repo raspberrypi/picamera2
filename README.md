@@ -261,18 +261,13 @@ np_array = picam2.capture_array()
 # Also a copy.
 ```
 
-If the *lores* stream is configured for YUV420 images, these can't be represented directly as a single 2d *numpy* array. For this reason we can only capture it as a "buffer", meaning a single long 1d array, where the user could access the 3 colour channels by *slicing*. Thus:
+If the *lores* stream is configured for YUV420 images, these can also be returned as 2-d arrays. In this case the height of the array is 50% greater so as to accommodate the U and V planes. For *OpenCV* users, there is an efficient function to convert this into RGB format:
 ```
-lores_buffer = picam2.capture_buffer("lores")
-config = picam2.stream_configuration("lores")
-(w, h) = config["size"]
-stride = config["stride"]
-num_pixels_Y = stride * h
-num_pixels_UV = num_pixels_Y // 4
-Y = lores_buffer[:num_pixels_Y].reshape(h, stride)
-U = lores_buffer[num_pixels_Y:num_pixels_UV].reshape(h//2, stride//2)
-V = lores_buffer[num_pixels_Y+num_pixels_UV:num_pixels_UV].reshape(h//2, stride//2)
+yuv420 = picam2.capture_array("lores")
+rgb = cv2.cvtColor(yuv420, cv2.COLOR_YUV420p2RGB)
+
 ```
+Normally, any end-of-row padding is removed from the result returned by `make_array`, though in the case of YUV420 images it is left _in situ_. Conversion to RGB (for example, for feeding to other *OpenCV* functions or to *TensorFlow*) is quite a common use case, and padding may be more conveniently removed once in RGB format.
 
 For the raw image:
 ```
@@ -482,7 +477,7 @@ When the `Picamera2` instance is created, it can optionally be passed either the
 
 A limitation of the second "lores" output stream is that it has to be in a YUV format. Sometimes it might be convenient to have a reasonably sized preview window, but a much smaller RGB version (for example for passing to a neural network). This example shows how to convert a YUV420 image to the interleaved RGB form that *OpenCV* and *TensorFlow Lite* normally prefer.
 
-The `YUV420_to_RGB` function takes a YUV420 image and creates an interleaved RGB output of half resolution, matching the resolution of the input U and V planes (but not of the Y). The image size that you pass in (which is the *input* image size) must include any *padding*. Padding on the end of image rows is quite common so that we can match the optimal alignments that the underlying image processing hardware requires. `YUV420_to_RGB` lets you remove any such padding at the end by passing the unpadded width as the `final_width` parameter.
+You could use the `YUV420_to_RGB` function supplied with _Picamera2_ which converts the low resolution image into a half-size RGB image (that is, matching the resolution of the U and V planes). However, if you have *OpenCV* there are some more efficient alternatives, providing you are happy with its treatment of colour primaries and YCbCr encoding matrices. In this example, we call `cv2.cvtColor` with the `cv2.COLOR_YUV420p2RGB` parameter. When using *OpenCV* in this way, there may be padding on the end of the rows of the YUV420 image which you would have to trim off after the conversion.
 
 ### [zoom.py](examples/zoom.py)
 
