@@ -5,7 +5,8 @@
 # Note: needs simplejpeg to be installed (pip3 install simplejpeg).
 
 from picamera2 import Picamera2
-from picamera2.encoders import JpegEncoder, FileOutput
+from picamera2.encoders import JpegEncoder
+from picamera2.outputs import FileOutput
 import io
 import logging
 import socketserver
