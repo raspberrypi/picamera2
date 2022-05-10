@@ -5,7 +5,7 @@ import time
 import cv2
 import numpy as np
 
-from picamera2.picamera2 import Picamera2
+from picamera2 import Picamera2
 
 
 # Simple Mertens merge with 3 exposures. No image alignment or anything fancy.

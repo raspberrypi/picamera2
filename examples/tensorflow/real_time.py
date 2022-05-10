@@ -32,7 +32,7 @@ import numpy as np
 from PIL import Image
 from PIL import ImageFont, ImageDraw
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 
 normalSize = (640, 480)
 lowresSize = (320, 240)

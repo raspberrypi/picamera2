@@ -2,7 +2,7 @@
 
 # Create a preview window at a particular location on the display.
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

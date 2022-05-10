@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 import numpy as np
 import time
 

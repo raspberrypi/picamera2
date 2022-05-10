@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
-from picamera2.picamera2 import Picamera2
-from picamera2.converters import YUV420_to_RGB
+from picamera2 import Picamera2, YUV420_to_RGB
 import cv2
 
 cv2.startWindowThread()
