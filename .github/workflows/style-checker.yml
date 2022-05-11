@@ -16,4 +16,4 @@ jobs:
     - name: Check style
       run: |
         pip3 install black
-        black --check picamera2
+        black --check --diff picamera2
