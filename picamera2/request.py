@@ -2,6 +2,7 @@ import time
 import threading
 
 from PIL import Image
+import libcamera
 import numpy as np
 import piexif
 
@@ -42,15 +43,15 @@ class CompletedRequest:
                         for key, value in self.picam2.controls.items():
                             self.request.set_control(key, value)
                             self.picam2.controls = {}
-                        self.picam2.camera.queueRequest(self.request)
+                        self.picam2.camera.queue_request(self.request)
                 self.request = None
 
     def make_buffer(self, name):
         """Make a 1d numpy array from the named stream's buffer."""
         stream = self.picam2.stream_map[name]
         fb = self.request.buffers[stream]
-        with fb.mmap(0) as b:
-            return np.array(b, dtype=np.uint8)
+        with libcamera.MappedFrameBuffer(fb) as b:
+            return np.array(b.planes[0], dtype=np.uint8)
 
     def get_metadata(self):
         """Fetch the metadata corresponding to this completed request."""

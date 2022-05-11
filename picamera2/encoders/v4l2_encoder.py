@@ -216,7 +216,7 @@ class V4L2Encoder(Encoder):
         buf.timestamp.tv_usec = timestamp_us % 1000000
         buf.m.planes = planes
         buf.m.planes[0].m.fd = fd
-        buf.m.planes[0].bytesused = cfg.frameSize
-        buf.m.planes[0].length = cfg.frameSize
+        buf.m.planes[0].bytesused = cfg.frame_size
+        buf.m.planes[0].length = cfg.frame_size
         ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
         self.buf_frame.put(request)

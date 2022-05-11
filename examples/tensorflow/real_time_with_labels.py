@@ -28,6 +28,7 @@ import os
 import argparse
 
 import cv2
+import libcamera
 import numpy as np
 from PIL import Image
 from PIL import ImageFont, ImageDraw
@@ -53,8 +54,8 @@ def ReadLabelFile(file_path):
 def DrawRectangles(request):
     stream = request.picam2.stream_map["main"]
     fb = request.request.buffers[stream]
-    with fb.mmap(0) as b:
-        im = np.array(b, copy=False, dtype=np.uint8).reshape((normalSize[1], normalSize[0], 4))
+    with libcamera.MappedFrameBuffer(fb) as b:
+        im = np.array(b.planes[0], copy=False, dtype=np.uint8).reshape((normalSize[1], normalSize[0], 4))
 
         for rect in rectangles:
             print(rect)

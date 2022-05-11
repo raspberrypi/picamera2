@@ -220,13 +220,13 @@ class QGlPicamera2(QWidget):
             fb = completed_request.request.buffers[stream]
 
             cfg = stream.configuration
-            fmt = cfg.pixelFormat
+            fmt = cfg.pixel_format
             if fmt not in self.FMT_MAP:
                 raise RuntimeError(f"Format {fmt} not supported by QGlPicamera2 preview")
             fmt = str_to_fourcc(self.FMT_MAP[fmt])
             w, h = cfg.size
 
-            if cfg.pixelFormat in ("YUV420", "YVU420"):
+            if cfg.pixel_format in ("YUV420", "YVU420"):
                 h2 = h // 2
                 stride2 = cfg.stride // 2
                 attribs = [
