@@ -8,7 +8,7 @@ import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QApplication
 
-from picamera2.previews import QGlPicamera2
+from picamera2.previews.qt import QGlPicamera2
 from picamera2 import Picamera2
 
 
