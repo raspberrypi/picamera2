@@ -78,6 +78,12 @@ class CompletedRequest:
                 array = array.reshape((h, stride))
                 array = np.asarray(array[:, :w * 4], order='C')
             image = array.reshape((h, w, 4))
+        elif fmt in ("YUV420", "YVU420"):
+            # Returning YUV420 as an image of 50% greater height (the extra bit continaing
+            # the U/V data) is useful because OpenCV can convert it to RGB for us quite
+            # efficiently. We leave any packing in there, however, as it would be easier
+            # to remove that after conversion to RGB (if that's what the caller does).
+            image = array.reshape((h * 3 // 2, stride))
         elif fmt[0] == 'S':  # raw formats
             image = array.reshape((h, stride))
         else:
