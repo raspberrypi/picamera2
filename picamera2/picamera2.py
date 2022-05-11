@@ -698,7 +698,7 @@ class Picamera2:
 
     def capture_file_(self, filename, name):
         request = self.completed_requests.pop(0)
-        if name is "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
+        if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
             request.save_dng(filename)
         else:
             request.save(name, filename)
