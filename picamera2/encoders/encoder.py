@@ -1,8 +1,8 @@
 from v4l2 import *
 from ..outputs import Output
 
-class Encoder:
 
+class Encoder:
     def __init__(self):
         self._width = 0
         self._height = 0

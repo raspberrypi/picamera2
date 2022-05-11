@@ -1,11 +1,26 @@
-from OpenGL.EGL.VERSION.EGL_1_0 import EGLNativeDisplayType, eglGetProcAddress, eglQueryString, EGL_EXTENSIONS
+from OpenGL.EGL.VERSION.EGL_1_0 import (
+    EGLNativeDisplayType,
+    eglGetProcAddress,
+    eglQueryString,
+    EGL_EXTENSIONS,
+)
 
 from OpenGL.raw.GLES2 import _types as _cs
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 from OpenGL import GL as gl
 
-from ctypes import c_int, c_char_p, c_void_p, cdll, POINTER, util, pointer, CFUNCTYPE, c_bool
+from ctypes import (
+    c_int,
+    c_char_p,
+    c_void_p,
+    cdll,
+    POINTER,
+    util,
+    pointer,
+    CFUNCTYPE,
+    c_bool,
+)
 
 
 def getEGLNativeDisplay():
@@ -28,7 +43,7 @@ glEGLImageTargetTexture2DOES = getglEGLImageTargetTexture2DOES()
 
 
 def str_to_fourcc(str):
-    assert(len(str) == 4)
+    assert len(str) == 4
     fourcc = 0
     for i, v in enumerate([ord(c) for c in str]):
         fourcc |= v << (i * 8)

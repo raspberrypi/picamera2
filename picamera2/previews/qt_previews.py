@@ -20,7 +20,9 @@ class QtPreviewBase:
 
         self.app = QApplication([])
         self.size = (self.width, self.height)
-        self.qpicamera2 = self.make_picamera2_widget(picam2, width=self.width, height=self.height)
+        self.qpicamera2 = self.make_picamera2_widget(
+            picam2, width=self.width, height=self.height
+        )
         if self.x is not None and self.y is not None:
             self.qpicamera2.move(self.x, self.y)
         self.qpicamera2.setWindowTitle(self.get_title())
@@ -46,7 +48,7 @@ class QtPreviewBase:
 
     def start(self, picam2):
         self.event = threading.Event()
-        self.thread = threading.Thread(target=self.thread_func, args=(picam2, ))
+        self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
         self.thread.start()
         self.event.wait()
@@ -63,6 +65,7 @@ class QtPreviewBase:
 class QtPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480):
         from picamera2.previews.q_picamera2 import QPicamera2
+
         return QPicamera2(picam2, width=self.width, height=self.height)
 
     def get_title(self):
@@ -72,6 +75,7 @@ class QtPreview(QtPreviewBase):
 class QtGlPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480):
         from picamera2.previews.q_gl_picamera2 import QGlPicamera2
+
         return QGlPicamera2(picam2, width=self.width, height=self.height)
 
     def get_title(self):

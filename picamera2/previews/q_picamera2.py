@@ -17,9 +17,9 @@ class QPicamera2(QWidget):
         self.label.resize(width, height)
         self.overlay = None
         self.painter = QtGui.QPainter()
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
-                                               QtCore.QSocketNotifier.Read,
-                                               self)
+        self.camera_notifier = QSocketNotifier(
+            self.picamera2.camera_manager.efd, QtCore.QSocketNotifier.Read, self
+        )
         self.camera_notifier.activated.connect(self.handle_requests)
 
     def cleanup(self):
@@ -36,10 +36,16 @@ class QPicamera2(QWidget):
             overlay = np.ascontiguousarray(overlay)
             shape = overlay.shape
             size = self.label.size()
-            if orig is overlay and shape[1] == size.width() and shape[0] == size.height():
+            if (
+                orig is overlay
+                and shape[1] == size.width()
+                and shape[0] == size.height()
+            ):
                 # We must be sure to copy the data even when no one else does!
                 overlay = overlay.copy()
-            overlay = QtGui.QImage(overlay.data, shape[1], shape[0], QtGui.QImage.Format_RGBA8888)
+            overlay = QtGui.QImage(
+                overlay.data, shape[1], shape[0], QtGui.QImage.Format_RGBA8888
+            )
             if overlay.size() != self.label.size():
                 overlay = overlay.scaled(self.label.size())
 
@@ -54,7 +60,9 @@ class QPicamera2(QWidget):
         if self.picamera2.display_stream_name is not None:
             # This all seems horribly expensive. Pull request welcome if you know a better way!
             size = self.label.size()
-            img = request.make_image(self.picamera2.display_stream_name, size.width(), size.height())
+            img = request.make_image(
+                self.picamera2.display_stream_name, size.width(), size.height()
+            )
             qim = ImageQt(img)
             self.painter.begin(qim)
             overlay = self.overlay

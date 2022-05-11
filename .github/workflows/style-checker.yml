@@ -5,8 +5,7 @@ on:
 
 jobs:
   style-check:
-
-    runs-on: [ self-hosted ]
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -15,4 +14,6 @@ jobs:
         clean: true
 
     - name: Check style
-      run: ${{github.workspace}}/tools/checkstyle.py $(git log --format=%P -1 | awk '{print $1 ".." $2}')
+      run: |
+        pip3 install black
+        black --check picamera2

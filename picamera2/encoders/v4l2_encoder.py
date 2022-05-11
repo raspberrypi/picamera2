@@ -19,12 +19,14 @@ class V4L2Encoder(Encoder):
 
     def _start(self):
         super()._start()
-        self.vd = open('/dev/video11', 'rb+', buffering=0)
+        self.vd = open("/dev/video11", "rb+", buffering=0)
 
         self.buf_available = queue.Queue()
         self.buf_frame = queue.Queue()
 
-        self.thread = threading.Thread(target=self.thread_poll, args=(self.buf_available,))
+        self.thread = threading.Thread(
+            target=self.thread_poll, args=(self.buf_available,)
+        )
         self.thread.setDaemon(True)
         self.thread.start()
 
@@ -101,8 +103,16 @@ class V4L2Encoder(Encoder):
             buffer.length = 1
             buffer.m.planes = planes
             ret = fcntl.ioctl(self.vd, VIDIOC_QUERYBUF, buffer)
-            self.bufs[i] = (mmap.mmap(self.vd.fileno(), buffer.m.planes[0].length, mmap.PROT_READ | mmap.PROT_WRITE, mmap.MAP_SHARED,
-                                      offset=buffer.m.planes[0].m.mem_offset), buffer.m.planes[0].length)
+            self.bufs[i] = (
+                mmap.mmap(
+                    self.vd.fileno(),
+                    buffer.m.planes[0].length,
+                    mmap.PROT_READ | mmap.PROT_WRITE,
+                    mmap.MAP_SHARED,
+                    offset=buffer.m.planes[0].m.mem_offset,
+                ),
+                buffer.m.planes[0].length,
+            )
             ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buffer)
 
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
@@ -158,7 +168,9 @@ class V4L2Encoder(Encoder):
                     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
                     buf.memory = V4L2_MEMORY_MMAP
                     buf.length = 1
-                    ctypes.memset(planes, 0, ctypes.sizeof(v4l2_plane) * VIDEO_MAX_PLANES)
+                    ctypes.memset(
+                        planes, 0, ctypes.sizeof(v4l2_plane) * VIDEO_MAX_PLANES
+                    )
                     buf.m.planes = planes
                     ret = fcntl.ioctl(self.vd, VIDIOC_DQBUF, buf)
                     keyframe = (buf.flags & V4L2_BUF_FLAG_KEYFRAME) != 0

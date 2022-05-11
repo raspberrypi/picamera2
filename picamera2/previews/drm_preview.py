@@ -6,6 +6,7 @@ from picamera2.previews.null_preview import *
 
 dd = None
 
+
 class DrmPreview(NullPreview):
     FMT_MAP = {
         "RGB888": pykms.PixelFormat.RGB888,
@@ -30,7 +31,7 @@ class DrmPreview(NullPreview):
                 self.render_drm(picam2, completed_request)
                 # The pipeline will stall if there's only one buffer and we always hold on to
                 # the last one. When we can, however, holding on to them is still preferred.
-                if picam2.camera_config['buffer_count'] > 1:
+                if picam2.camera_config["buffer_count"] > 1:
                     self.release_current = True
                 else:
                     completed_request.release()
@@ -59,7 +60,9 @@ class DrmPreview(NullPreview):
             h, w, channels = overlay.shape
             # Should I be recycling these instead of making new ones all the time?
             new_fb = pykms.DumbFramebuffer(self.card, w, h, "AB24")
-            with mmap.mmap(new_fb.fd(0), w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
+            with mmap.mmap(
+                new_fb.fd(0), w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE
+            ) as mm:
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
 
@@ -75,19 +78,25 @@ class DrmPreview(NullPreview):
             if self.stop_count != picam2.stop_count:
                 if picam2.verbose_console:
                     print("Garbage collecting", len(self.drmfbs), "dmabufs")
-                old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
+                old_drmfbs = (
+                    self.drmfbs
+                )  # hang on to these until after a new one is sent
                 self.drmfbs = {}
                 self.stop_count = picam2.stop_count
 
             if cfg.pixelFormat not in self.FMT_MAP:
-                raise RuntimeError(f"Format {cfg.pixelFormat} not supported by DRM preview")
+                raise RuntimeError(
+                    f"Format {cfg.pixelFormat} not supported by DRM preview"
+                )
             fmt = self.FMT_MAP[cfg.pixelFormat]
             if self.plane is None:
                 self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
                 if self.plane is None:
                     raise RuntimeError("Failed to reserve DRM plane")
                 # The second plane we ask for will go on top of the first.
-                self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, pykms.PixelFormat.ABGR8888)
+                self.overlay_plane = self.resman.reserve_overlay_plane(
+                    self.crtc, pykms.PixelFormat.ABGR8888
+                )
                 if self.overlay_plane is None:
                     raise RuntimeError("Failed to reserve DRM overlay plane")
                 # Want "coverage" mode, not pre-multiplied alpha.
@@ -98,12 +107,19 @@ class DrmPreview(NullPreview):
                 h2 = height // 2
                 stride2 = stride // 2
                 size = height * stride
-                drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt,
-                                                [fd, fd, fd],
-                                                [stride, stride2, stride2],
-                                                [0, size, size + h2 * stride2])
+                drmfb = pykms.DmabufFramebuffer(
+                    self.card,
+                    width,
+                    height,
+                    fmt,
+                    [fd, fd, fd],
+                    [stride, stride2, stride2],
+                    [0, size, size + h2 * stride2],
+                )
             else:
-                drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
+                drmfb = pykms.DmabufFramebuffer(
+                    self.card, width, height, fmt, [fd], [stride], [0]
+                )
             self.drmfbs[fb] = drmfb
             if picam2.verbose_console:
                 print("Made drm fb", drmfb, "for request", completed_request.request)
@@ -120,12 +136,18 @@ class DrmPreview(NullPreview):
 
         overlay_new_fb = self.overlay_new_fb
         if overlay_new_fb != self.overlay_fb:
-            overlay_old_fb = self.overlay_fb  # Must hang on to this momentarily to avoid a "wink"
+            overlay_old_fb = (
+                self.overlay_fb
+            )  # Must hang on to this momentarily to avoid a "wink"
             self.overlay_fb = overlay_new_fb
         if self.overlay_fb is not None:
             width, height = self.overlay_fb.width, self.overlay_fb.height
-            self.crtc.set_plane(self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height)
-        overlay_old_fb = None  # The new one has been sent so it's safe to let this go now
+            self.crtc.set_plane(
+                self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height
+            )
+        overlay_old_fb = (
+            None  # The new one has been sent so it's safe to let this go now
+        )
         old_drmfbs = None  # Can chuck these away now too
 
         if self.current and self.release_current:

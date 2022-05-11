@@ -11,7 +11,7 @@ Console Level Options
 
 
 def initialize_logger(console_level):
-    logger = logging.getLogger('picamera2')
+    logger = logging.getLogger("picamera2")
     logger.setLevel(logging.DEBUG)
     if not logger.handlers:
         console = logging.StreamHandler()
@@ -23,8 +23,8 @@ def initialize_logger(console_level):
             console.setLevel(logging.DEBUG)
         else:
             raise ValueError("Console level must be an int between 0-2.")
-        dtfmt = '%Y-%m-%dT%H:%M:%S'
-        strfmt = '%(asctime)s.%(msecs)03dZ | %(levelname)-8s | %(message)s'
+        dtfmt = "%Y-%m-%dT%H:%M:%S"
+        strfmt = "%(asctime)s.%(msecs)03dZ | %(levelname)-8s | %(message)s"
         console_fmt = logging.Formatter(strfmt, datefmt=dtfmt)
         console_fmt.converter = time.gmtime
         console.setFormatter(console_fmt)

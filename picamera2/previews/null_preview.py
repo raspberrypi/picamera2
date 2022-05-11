@@ -7,7 +7,9 @@ class NullPreview:
         import selectors
 
         sel = selectors.DefaultSelector()
-        sel.register(picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request)
+        sel.register(
+            picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request
+        )
         self.event.set()
 
         while self.running:
@@ -15,7 +17,6 @@ class NullPreview:
             for key, mask in events:
                 callback = key.data
                 callback(picam2)
-
 
     def __init__(self, x=None, y=None, width=None, height=None):
         # Ignore width and height as they are meaningless. We only accept them so as to
