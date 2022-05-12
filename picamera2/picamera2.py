@@ -514,6 +514,9 @@ class Picamera2:
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
+        # Set the controls directly so as to overwrite whatever is there. No need for the lock
+        # here as the camera is not running.
+        self.controls = self.camera_config['controls']
         self.configure_count += 1
 
     def configure(self, camera_config=None) -> None:
@@ -532,13 +535,13 @@ class Picamera2:
         """List the controls supported by the camera."""
         return self.camera.controls
 
-    def start_(self, controls={}) -> None:
+    def start_(self) -> None:
         """Start the camera system running."""
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
             raise RuntimeError("Camera already started")
-        if self.camera.start(self.camera_config["controls"] | controls) >= 0:
+        if self.camera.start(self.controls) >= 0:
             for request in self.make_requests():
                 self.camera.queue_request(request)
             self.log.info("Camera started")
@@ -547,7 +550,7 @@ class Picamera2:
             self.log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
 
-    def start(self, controls={}, event_loop=True) -> None:
+    def start(self, event_loop=True) -> None:
         """Start the camera system running. Camera controls may be sent to the
         camera before it starts running.
 
@@ -564,7 +567,7 @@ class Picamera2:
         # By default we will create an event loop is there isn't one running already.
         if event_loop and not self.have_event_loop:
             self.start_preview(Preview.NULL)
-        self.start_(controls)
+        self.start_()
 
     def stop_(self, request=None) -> None:
         """Stop the camera. Only call this function directly from within the camera event
