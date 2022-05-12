@@ -28,12 +28,11 @@ import os
 import argparse
 
 import cv2
-import libcamera
 import numpy as np
 from PIL import Image
 from PIL import ImageFont, ImageDraw
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview, MappedArray
 
 normalSize = (640, 480)
 lowresSize = (320, 240)
@@ -52,21 +51,16 @@ def ReadLabelFile(file_path):
 
 
 def DrawRectangles(request):
-    stream = request.picam2.stream_map["main"]
-    fb = request.request.buffers[stream]
-    with libcamera.MappedFrameBuffer(fb) as b:
-        im = np.array(b.planes[0], copy=False, dtype=np.uint8).reshape((normalSize[1], normalSize[0], 4))
-
+    with MappedArray(request, "main") as m:
         for rect in rectangles:
             print(rect)
             rect_start = (int(rect[0] * 2) - 5, int(rect[1] * 2) - 5)
             rect_end = (int(rect[2] * 2) + 5, int(rect[3] * 2) + 5)
-            cv2.rectangle(im, rect_start, rect_end, (0, 255, 0, 0))
+            cv2.rectangle(m.array, rect_start, rect_end, (0, 255, 0, 0))
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(im, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        del im
+                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def InferenceTensorFlow(image, model, output, label=None):
