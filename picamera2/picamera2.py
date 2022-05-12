@@ -914,7 +914,9 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def start_encoder(self) -> None:
+    def start_encoder(self, encoder=None) -> None:
+        if encoder is not None:
+            self.encoder = encoder
         streams = self.camera_configuration()
         if self.encoder is None:
             raise RuntimeError("No encoder specified")
