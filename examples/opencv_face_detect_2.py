@@ -4,10 +4,8 @@ import time
 import time
 
 import cv2
-import libcamera
-import numpy as np
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview, MappedArray
 
 # This version creates a lores YUV stream, extracts the Y channel and runs the face
 # detector directly on that. We use the supplied OpenGL accelerated preview window
@@ -18,14 +16,10 @@ face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcasca
 
 
 def draw_faces(request):
-    stream = request.picam2.stream_map["main"]
-    fb = request.request.buffers[stream]
-    with libcamera.MappedFrameBuffer(fb) as b:
-        im = np.array(b.planes[0], copy=False, dtype=np.uint8).reshape((h0, w0, 4))
+    with MappedArray(request, "main") as m:
         for f in faces:
             (x, y, w, h) = [c * n // d for c, n, d in zip(f, (w0, h0) * 2, (w1, h1) * 2)]
-            cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0, 0))
-        del im
+            cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0))
 
 
 picam2 = Picamera2()
