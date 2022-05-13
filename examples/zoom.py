@@ -2,7 +2,7 @@
 
 # How to do digital zoom using the "ScalerCrop" control.
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

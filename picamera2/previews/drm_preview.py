@@ -79,9 +79,9 @@ class DrmPreview(NullPreview):
                 self.drmfbs = {}
                 self.stop_count = picam2.stop_count
 
-            if cfg.pixelFormat not in self.FMT_MAP:
-                raise RuntimeError(f"Format {cfg.pixelFormat} not supported by DRM preview")
-            fmt = self.FMT_MAP[cfg.pixelFormat]
+            if cfg.pixel_format not in self.FMT_MAP:
+                raise RuntimeError(f"Format {cfg.pixel_format} not supported by DRM preview")
+            fmt = self.FMT_MAP[cfg.pixel_format]
             if self.plane is None:
                 self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
                 if self.plane is None:
@@ -94,7 +94,7 @@ class DrmPreview(NullPreview):
                 self.overlay_plane.set_prop("pixel blend mode", 1)
             fd = fb.fd(0)
             stride = cfg.stride
-            if cfg.pixelFormat in ("YUV420", "YVU420"):
+            if cfg.pixel_format in ("YUV420", "YVU420"):
                 h2 = height // 2
                 stride2 = stride // 2
                 size = height * stride

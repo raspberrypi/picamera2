@@ -9,6 +9,7 @@ examples/controls.py
 examples/controls_2.py
 examples/exposure_fixed.py
 examples/metadata.py
+examples/mp4_capture.py
 examples/opencv_face_detect_2.py
 examples/opencv_mertens_merge.py
 examples/overlay_gl.py

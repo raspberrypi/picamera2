@@ -1,6 +1,5 @@
 from v4l2 import *
-from .output import *
-
+from ..outputs import Output
 
 class Encoder:
 

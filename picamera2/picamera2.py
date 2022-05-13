@@ -11,13 +11,11 @@ import libcamera
 import numpy as np
 from PIL import Image
 
-from picamera2.encoders.encoder import Encoder
-from picamera2.encoders.output import FileOutput
-from picamera2.utils.picamera2_logger import initialize_logger
-from picamera2.previews.null_preview import NullPreview
-from picamera2.previews.drm_preview import DrmPreview
-from picamera2.previews.qt_previews import QtPreview, QtGlPreview
-from picamera2.request import CompletedRequest
+from picamera2.encoders import Encoder
+from picamera2.outputs import FileOutput
+from picamera2.utils import initialize_logger
+from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
+from .request import CompletedRequest
 
 
 STILL = libcamera.StreamRole.StillCapture
@@ -148,7 +146,7 @@ class Picamera2:
 
             # The next two lines could be placed elsewhere?
             self.sensor_resolution = self.camera.properties["PixelArraySize"]
-            self.sensor_format = self.camera.generateConfiguration([RAW]).at(0).pixelFormat
+            self.sensor_format = self.camera.generate_configuration([RAW]).at(0).pixel_format
 
             self.log.info('Initialization successful.')
             return True
@@ -363,8 +361,8 @@ class Picamera2:
     def update_libcamera_stream_config(self, libcamera_stream_config, stream_config, buffer_count) -> None:
         # Update the libcamera stream config with ours.
         libcamera_stream_config.size = stream_config["size"]
-        libcamera_stream_config.pixelFormat = stream_config["format"]
-        libcamera_stream_config.bufferCount = buffer_count
+        libcamera_stream_config.pixel_format = stream_config["format"]
+        libcamera_stream_config.buffer_count = buffer_count
 
     def make_libcamera_config(self, camera_config):
         # Make a libcamera configuration object from our Python configuration.
@@ -387,17 +385,17 @@ class Picamera2:
 
         # Make the libcamera configuration, and then we'll write all our parameters over
         # the ones it gave us.
-        libcamera_config = self.camera.generateConfiguration(roles)
+        libcamera_config = self.camera.generate_configuration(roles)
         libcamera_config.transform = camera_config["transform"]
         buffer_count = camera_config["buffer_count"]
         self.update_libcamera_stream_config(libcamera_config.at(self.main_index), camera_config["main"], buffer_count)
-        libcamera_config.at(self.main_index).colorSpace = camera_config["colour_space"]
+        libcamera_config.at(self.main_index).color_space = camera_config["colour_space"]
         if self.lores_index >= 0:
             self.update_libcamera_stream_config(libcamera_config.at(self.lores_index), camera_config["lores"], buffer_count)
-            libcamera_config.at(self.lores_index).colorSpace = camera_config["colour_space"]
+            libcamera_config.at(self.lores_index).color_space = camera_config["colour_space"]
         if self.raw_index >= 0:
             self.update_libcamera_stream_config(libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count)
-            libcamera_config.at(self.raw_index).colorSpace = libcamera.ColorSpace.Raw()
+            libcamera_config.at(self.raw_index).color_space = libcamera.ColorSpace.Raw()
 
         return libcamera_config
 
@@ -430,12 +428,12 @@ class Picamera2:
         num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
         requests = []
         for i in range(num_requests):
-            request = self.camera.createRequest()
+            request = self.camera.create_request()
             if request is None:
                 raise RuntimeError("Could not create request")
 
             for stream in self.streams:
-                if request.addBuffer(stream, self.allocator.buffers(stream)[i]) < 0:
+                if request.add_buffer(stream, self.allocator.buffers(stream)[i]) < 0:
                     raise RuntimeError("Failed to set request buffer")
 
             requests.append(request)
@@ -444,15 +442,15 @@ class Picamera2:
 
     def update_stream_config(self, stream_config, libcamera_stream_config) -> None:
         # Update our stream config from libcamera's.
-        stream_config["format"] = libcamera_stream_config.pixelFormat
+        stream_config["format"] = libcamera_stream_config.pixel_format
         stream_config["size"] = libcamera_stream_config.size
         stream_config["stride"] = libcamera_stream_config.stride
-        stream_config["framesize"] = libcamera_stream_config.frameSize
+        stream_config["framesize"] = libcamera_stream_config.frame_size
 
     def update_camera_config(self, camera_config, libcamera_config) -> None:
         # Update our camera config from libcamera's.
         camera_config["transform"] = libcamera_config.transform
-        camera_config["colour_space"] = libcamera_config.at(0).colorSpace
+        camera_config["colour_space"] = libcamera_config.at(0).color_space
         self.update_stream_config(camera_config["main"], libcamera_config.at(0))
         if self.lores_index >= 0:
             self.update_stream_config(camera_config["lores"], libcamera_config.at(self.lores_index))
@@ -478,9 +476,9 @@ class Picamera2:
         status = libcamera_config.validate()
         self.update_camera_config(camera_config, libcamera_config)
         self.log.debug(f"Requesting configuration: {camera_config}")
-        if status == libcamera.ConfigurationStatus.Invalid:
+        if status == libcamera.CameraConfiguration.Status.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
-        elif status == libcamera.ConfigurationStatus.Adjusted:
+        elif status == libcamera.CameraConfiguration.Status.Adjusted:
             self.log.info("Camera configuration has been adjusted!")
 
         # Configure libcamera.
@@ -516,6 +514,9 @@ class Picamera2:
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
+        # Set the controls directly so as to overwrite whatever is there. No need for the lock
+        # here as the camera is not running.
+        self.controls = self.camera_config['controls']
         self.configure_count += 1
 
     def configure(self, camera_config=None) -> None:
@@ -534,22 +535,22 @@ class Picamera2:
         """List the controls supported by the camera."""
         return self.camera.controls
 
-    def start_(self, controls={}) -> None:
+    def start_(self) -> None:
         """Start the camera system running."""
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
             raise RuntimeError("Camera already started")
-        if self.camera.start(self.camera_config["controls"] | controls) >= 0:
+        if self.camera.start(self.controls) >= 0:
             for request in self.make_requests():
-                self.camera.queueRequest(request)
+                self.camera.queue_request(request)
             self.log.info("Camera started")
             self.started = True
         else:
             self.log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
 
-    def start(self, controls={}, event_loop=True) -> None:
+    def start(self, event_loop=True) -> None:
         """Start the camera system running. Camera controls may be sent to the
         camera before it starts running.
 
@@ -566,7 +567,7 @@ class Picamera2:
         # By default we will create an event loop is there isn't one running already.
         if event_loop and not self.have_event_loop:
             self.start_preview(Preview.NULL)
-        self.start_(controls)
+        self.start_()
 
     def stop_(self, request=None) -> None:
         """Stop the camera. Only call this function directly from within the camera event
@@ -574,7 +575,7 @@ class Picamera2:
         if self.started:
             self.stop_count += 1
             self.camera.stop()
-            self.camera_manager.getReadyRequests()  # Could anything here need flushing?
+            self.camera_manager.get_ready_requests()  # Could anything here need flushing?
             self.started = False
             self.completed_requests = []
             self.log.info("Camera stopped")
@@ -600,8 +601,8 @@ class Picamera2:
     def get_completed_requests(self) -> List[CompletedRequest]:
         # Return all the requests that libcamera has completed.
         data = os.read(self.camera_manager.efd, 8)
-        requests = [CompletedRequest(req, self) for req in self.camera_manager.getReadyRequests()
-                    if req.status == libcamera.RequestStatus.Complete]
+        requests = [CompletedRequest(req, self) for req in self.camera_manager.get_ready_requests()
+                    if req.status == libcamera.Request.Status.Complete]
         self.frames += len(requests)
         return requests
 
@@ -700,7 +701,7 @@ class Picamera2:
 
     def capture_file_(self, filename, name):
         request = self.completed_requests.pop(0)
-        if name is "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
+        if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
             request.save_dng(filename)
         else:
             request.save(name, filename)
@@ -916,7 +917,9 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def start_encoder(self) -> None:
+    def start_encoder(self, encoder=None) -> None:
+        if encoder is not None:
+            self.encoder = encoder
         streams = self.camera_configuration()
         if self.encoder is None:
             raise RuntimeError("No encoder specified")

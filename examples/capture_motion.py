@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
-from picamera2.encoders.h264_encoder import H264Encoder
-from picamera2.picamera2 import Picamera2
-from signal import pause
-import numpy as np
 import time
+from signal import pause
+
+import numpy as np
+
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import FileOutput
+from picamera2 import Picamera2
 
 lsize = (320, 240)
 picam2 = Picamera2()

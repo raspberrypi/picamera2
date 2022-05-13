@@ -32,7 +32,7 @@ Finally fetch the *Picamera2* repository. There are some dependencies to downloa
 ```
 cd
 sudo pip3 install pyopengl piexif simplejpeg PiDNG
-sudo apt install -y python3-pyqt5 python3-numpy
+sudo apt install -y python3-pyqt5 python3-numpy python3-prctl ffmpeg
 git clone https://github.com/raspberrypi/picamera2.git
 ```
 
@@ -40,6 +40,12 @@ To make everything run, you will also have to set your `PYTHONPATH` environment 
 ```
 export PYTHONPATH=/home/pi/picamera2
 ```
+
+#### FFmpeg
+
+We have suggested installing _FFmpeg_ in order to use _Picamera2_. It is, however, only required to support certain complex file types, such as writing output to _mp4_ files. If you do not require this functionality then _FFmpeg_ is not required, and you should avoid trying to use the `FfmpegOutput` class.
+
+We note that it is installed by default in Raspberry Pi OS, but not in Raspberry Pi OS Lite.
 
 #### OpenCV
 
@@ -97,7 +103,7 @@ Readers are recommended to refer to the supplied [examples](#examples) in conjun
 The camera system should be opened as shown.
 
 ```
-from picamera2.picamera2 import Picamera2
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 ```
@@ -187,7 +193,7 @@ In all other cases, the user should call `start_preview` before starting *Picame
 Example:
 
 ```
-from picamera2.picamera2 import Picamera2
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
@@ -200,7 +206,7 @@ picam2.start()
 
 Note that
 ```
-from picamera2.previews.qt_gl_preview import QtGlPreview
+from picamera2.previews import QtGlPreview
 picam2.start_preview(QtGlPreview())
 ```
 is equivalent to `picam2.start_preview(Preview.QTGL)`.
@@ -225,7 +231,7 @@ Once the preview has been started using the `start_preview` method, an overlay m
 
 Overlays will always be stetched to cover the complete camera image. For example:
 ```
-from picamera2.picamera2 import Picamera2
+from picamera2 import Picamera2
 import numpy as np
 
 picam2 = Picamera2()
@@ -261,18 +267,13 @@ np_array = picam2.capture_array()
 # Also a copy.
 ```
 
-If the *lores* stream is configured for YUV420 images, these can't be represented directly as a single 2d *numpy* array. For this reason we can only capture it as a "buffer", meaning a single long 1d array, where the user could access the 3 colour channels by *slicing*. Thus:
+If the *lores* stream is configured for YUV420 images, these can also be returned as 2-d arrays. In this case the height of the array is 50% greater so as to accommodate the U and V planes. For *OpenCV* users, there is an efficient function to convert this into RGB format:
 ```
-lores_buffer = picam2.capture_buffer("lores")
-config = picam2.stream_configuration("lores")
-(w, h) = config["size"]
-stride = config["stride"]
-num_pixels_Y = stride * h
-num_pixels_UV = num_pixels_Y // 4
-Y = lores_buffer[:num_pixels_Y].reshape(h, stride)
-U = lores_buffer[num_pixels_Y:num_pixels_UV].reshape(h//2, stride//2)
-V = lores_buffer[num_pixels_Y+num_pixels_UV:num_pixels_UV].reshape(h//2, stride//2)
+yuv420 = picam2.capture_array("lores")
+rgb = cv2.cvtColor(yuv420, cv2.COLOR_YUV420p2RGB)
+
 ```
+Normally, any end-of-row padding is removed from the result returned by `make_array`, though in the case of YUV420 images it is left _in situ_. Conversion to RGB (for example, for feeding to other *OpenCV* functions or to *TensorFlow*) is quite a common use case, and padding may be more conveniently removed once in RGB format.
 
 For the raw image:
 ```
@@ -339,6 +340,7 @@ Finally, for more advanced use cases:
 - To capture raw camera buffers, please see [`raw.py`](#rawpy).
 - For an example of how you might capture and stream h.264 video over the network, please check [`capture_stream.py`](#capture_streampy).
 - To capture a DNG and JPEG file concurrently (that is, the JPEG is made from the same raw data is the DNG), please look at [`capture_dng_and_jpeg.py`](#capture_dng_and_jpegpy).
+- Users wishing to capture mp4 files (rather than raw h.264 streams) should check out [`mp4_capture.py`](#mp4_capturepy). There's also an example showing how to record an audio stream.
 
 ### [capture_dng_and_jpeg.py](example/capture_dng_and_jpeg.py)
 
@@ -412,6 +414,12 @@ At some point in the future *Picamera2* may include built-in support for JPEG en
 
 To try it, just start the server on your Pi and then, on a different computer open a web browser and visit `http://<your-Pi's-IP-address>:8000`.
 
+### [mp4_capture.py](examples/mp4_capture.py)
+
+We can use _FFmpeg_ to save videos to mp4 format files, rather than as raw h.264 bitstreams, as shown in this example. _FFmpeg_ also allows us to record an audio stream with the video, as shown [here](examples/audio_video_capture.py).
+
+Using _FFmpeg_ like this leaves the audio/video sync somewhat in the hands of the video encoder and _FFmpeg_ itself, so you may in general find you need to tweak it slightly depending on your precise use case and configuration. The `FfmpegOutput` class has an `audio_sync` parameter that allows you to do this.
+
 ### [opencv_face_detect.py](examples/opencv_face_detect.py)
 
 Face detection is very easy using *OpenCV* (the Python `cv2` module). Note how, in this example, we use the `NullPreview`. This drives the camera system but without displaying a preview window, because we're going to use *OpenCV* to display the images too.
@@ -482,7 +490,7 @@ When the `Picamera2` instance is created, it can optionally be passed either the
 
 A limitation of the second "lores" output stream is that it has to be in a YUV format. Sometimes it might be convenient to have a reasonably sized preview window, but a much smaller RGB version (for example for passing to a neural network). This example shows how to convert a YUV420 image to the interleaved RGB form that *OpenCV* and *TensorFlow Lite* normally prefer.
 
-The `YUV420_to_RGB` function takes a YUV420 image and creates an interleaved RGB output of half resolution, matching the resolution of the input U and V planes (but not of the Y). The image size that you pass in (which is the *input* image size) must include any *padding*. Padding on the end of image rows is quite common so that we can match the optimal alignments that the underlying image processing hardware requires. `YUV420_to_RGB` lets you remove any such padding at the end by passing the unpadded width as the `final_width` parameter.
+You could use the `YUV420_to_RGB` function supplied with _Picamera2_ which converts the low resolution image into a half-size RGB image (that is, matching the resolution of the U and V planes). However, if you have *OpenCV* there are some more efficient alternatives, providing you are happy with its treatment of colour primaries and YCbCr encoding matrices. In this example, we call `cv2.cvtColor` with the `cv2.COLOR_YUV420p2RGB` parameter. When using *OpenCV* in this way, there may be padding on the end of the rows of the YUV420 image which you would have to trim off after the conversion.
 
 ### [zoom.py](examples/zoom.py)
 

@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-
 import socket
 import time
 
-from picamera2.encoders.h264_encoder import H264Encoder, FileOutput
-from picamera2.picamera2 import Picamera2
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import FileOutput
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 video_config = picam2.video_configuration({"size": (1280, 720)})

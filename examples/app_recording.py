@@ -4,6 +4,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QLabel, QHBoxLayout, QPushButton, QVBoxLayout, QApplication, QWidget
 
 from picamera2.previews.qt import QGlPicamera2
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import FileOutput
 from picamera2 import Picamera2
 
 
@@ -13,25 +15,32 @@ def request_callback(request):
 
 picam2 = Picamera2()
 picam2.request_callback = request_callback
-picam2.configure(picam2.preview_configuration(main={"size": (800, 600)}))
+picam2.configure(picam2.video_configuration(main={"size": (1280, 720)}))
 
 app = QApplication([])
 
 
 def on_button_clicked():
-    if not picam2.async_operation_in_progress:
-        cfg = picam2.still_configuration()
-        picam2.switch_mode_and_capture_file(cfg, "test.jpg", wait=False, signal_function=None)
+    global recording
+    if not recording:
+        encoder = H264Encoder(10000000)
+        encoder.output = FileOutput("test.h264")
+        picam2.start_encoder(encoder)
+        button.setText("Stop recording")
+        recording = True
     else:
-        print("Busy!")
+        picam2.stop_encoder()
+        button.setText("Start recording")
+        recording = False
 
 
-qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
-button = QPushButton("Click to capture JPEG")
+qpicamera2 = QGlPicamera2(picam2, width=800, height=480)
+button = QPushButton("Start recording")
 button.clicked.connect(on_button_clicked)
 label = QLabel()
 window = QWidget()
 window.setWindowTitle("Qt Picamera2 App")
+recording = False
 
 label.setFixedWidth(400)
 label.setAlignment(QtCore.Qt.AlignTop)
@@ -41,7 +50,7 @@ layout_v.addWidget(label)
 layout_v.addWidget(button)
 layout_h.addWidget(qpicamera2, 80)
 layout_h.addLayout(layout_v, 20)
-window.resize(1200, 600)
+window.resize(1200, 480)
 window.setLayout(layout_h)
 
 picam2.start()

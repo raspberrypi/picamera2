@@ -2,7 +2,7 @@
 
 # Capture a DNG and a JPEG made from the same raw data.
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 import time
 
 picam2 = Picamera2()

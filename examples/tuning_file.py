@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import time
 
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview
 
 # Here we load up the tuning for the HQ cam and alter the default exposure profile.
 # For more information on what can be changed, see chapter 5 in

@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 
-from picamera2.picamera2 import Picamera2
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 picam2.configure(picam2.preview_configuration())

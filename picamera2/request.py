@@ -9,6 +9,84 @@ from pidng.core import PICAM2DNG
 from pidng.camdefs import Picamera2Camera
 
 
+class _MappedBuffer:
+    def __init__(self, request, stream):
+        stream = request.picam2.stream_map[stream]
+        self.__fb = request.request.buffers[stream]
+
+    def __enter__(self):
+        import mmap
+
+        # Check if the buffer is contiguous and find the total length.
+        fd = self.__fb.fd(0)
+        buflen = 0
+        for i in range(self.__fb.num_planes):
+            buflen = buflen + self.__fb.length(i)
+            if fd != self.__fb.fd(i):
+                raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
+
+        self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+        return self.__mm
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.__mm is not None:
+            self.__mm.close()
+
+
+class MappedArray:
+    def __init__(self, request, stream, reshape=True):
+        self.__request = request
+        self.__stream = stream
+        self.__buffer = _MappedBuffer(request, stream)
+        self.__array = None
+        self.__reshape = reshape
+
+    def __enter__(self):
+        b = self.__buffer.__enter__()
+        array = np.array(b, copy=False, dtype=np.uint8)
+
+        if self.__reshape:
+            config = self.__request.picam2.camera_config[self.__stream]
+            fmt = config["format"]
+            w, h = config["size"]
+            stride = config["stride"]
+
+            # Turning the 1d array into a 2d image-like array only works if the
+            # image stride (which is in bytes) is a whole number of pixels. Even
+            # then, if they don't match exactly you will get "padding" down the RHS.
+            # Working around this requires another expensive copy of all the data.
+            if fmt in ("BGR888", "RGB888"):
+                if stride != w * 3:
+                    raise RuntimeError(f'MappedArray: Cannot reshape buffer {w}x{h}x3 (stride {stride})')
+                array = array.reshape((h, w, 3))
+            elif fmt in ("XBGR8888", "XRGB8888"):
+                if stride != w * 4:
+                    raise RuntimeError(f'MappedArray: Cannot reshape buffer {w}x{h}x4 (stride {stride})')
+                array = array.reshape((h, w, 4))
+            elif fmt in ("YUV420", "YVU420"):
+                # Returning YUV420 as an image of 50% greater height (the extra bit continaing
+                # the U/V data) is useful because OpenCV can convert it to RGB for us quite
+                # efficiently. We leave any packing in there, however, as it would be easier
+                # to remove that after conversion to RGB (if that's what the caller does).
+                array = array.reshape((h * 3 // 2, stride))
+            elif fmt[0] == 'S':  # raw formats
+                array = array.reshape((h, stride))
+            else:
+                raise RuntimeError("Format " + fmt + " not supported")
+
+        self.__array = array
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.__array is not None:
+            del self.__array
+        self.__buffer.__exit__(exc_type, exc_value, exc_traceback)
+
+    @property
+    def array(self):
+        return self.__array
+
+
 class CompletedRequest:
     def __init__(self, request, picam2):
         self.request = request
@@ -40,16 +118,15 @@ class CompletedRequest:
                     self.request.reuse()
                     with self.picam2.controls_lock:
                         for key, value in self.picam2.controls.items():
-                            self.request.set_control(key, value)
+                            id = self.picam2.camera.find_control(key)
+                            self.request.set_control(id, value)
                             self.picam2.controls = {}
-                        self.picam2.camera.queueRequest(self.request)
+                        self.picam2.camera.queue_request(self.request)
                 self.request = None
 
     def make_buffer(self, name):
         """Make a 1d numpy array from the named stream's buffer."""
-        stream = self.picam2.stream_map[name]
-        fb = self.request.buffers[stream]
-        with fb.mmap(0) as b:
+        with _MappedBuffer(self, name) as b:
             return np.array(b, dtype=np.uint8)
 
     def get_metadata(self):
@@ -78,6 +155,12 @@ class CompletedRequest:
                 array = array.reshape((h, stride))
                 array = np.asarray(array[:, :w * 4], order='C')
             image = array.reshape((h, w, 4))
+        elif fmt in ("YUV420", "YVU420"):
+            # Returning YUV420 as an image of 50% greater height (the extra bit continaing
+            # the U/V data) is useful because OpenCV can convert it to RGB for us quite
+            # efficiently. We leave any packing in there, however, as it would be easier
+            # to remove that after conversion to RGB (if that's what the caller does).
+            image = array.reshape((h * 3 // 2, stride))
         elif fmt[0] == 'S':  # raw formats
             image = array.reshape((h, stride))
         else:
