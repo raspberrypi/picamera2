@@ -170,7 +170,7 @@ class V4L2Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        self.output.outputframe(b, keyframe)
+                        self.outputframe(b, keyframe)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()

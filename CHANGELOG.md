@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Support for multiple outputs for the encoder
+
 ## 0.2.1 Alpha Release
 
 ### Added
