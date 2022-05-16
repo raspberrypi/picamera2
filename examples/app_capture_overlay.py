@@ -6,17 +6,20 @@ from PyQt5.QtWidgets import *
 from picamera2.previews.q_picamera2 import *
 from picamera2.picamera2 import *
 
+import atexit
 
 def request_callback(request):
     label.setText(''.join("{}: {}\n".format(k, v)
                           for k, v in request.get_metadata().items()))
 
+def cleanup():
+    picam2.request_callback = None
 
 picam2 = Picamera2()
 picam2.request_callback = request_callback
+atexit.register(cleanup)
 picam2.configure(picam2.preview_configuration(main={"size": (800, 600)}))
 app = QApplication([])
-
 
 def on_button_clicked():
     if not picam2.async_operation_in_progress:
@@ -26,19 +29,16 @@ def on_button_clicked():
     else:
         print("Busy!")
 
-
 overlay = np.zeros((300, 400, 4), dtype=np.uint8)
 overlay[:150, 200:] = (255, 0, 0, 64)
 overlay[150:, :200] = (0, 255, 0, 64)
 overlay[150:, 200:] = (0, 0, 255, 64)
-
 
 def on_checkbox_toggled(checked):
     if checked:
         qpicamera2.set_overlay(overlay)
     else:
         qpicamera2.set_overlay(None)
-
 
 qpicamera2 = QPicamera2(picam2, width=800, height=600)
 button = QPushButton("Click to capture JPEG")
