@@ -8,7 +8,7 @@ class Encoder:
         self._height = 0
         self._stride = 0
         self._format = None
-        self._output = None
+        self._output = []
         self._running = False
 
     @property
@@ -60,11 +60,20 @@ class Encoder:
 
     @property
     def output(self):
-        return self._output
+        if len(self._output) == 1:
+            return self._output[0]
+        else:
+            return self._output
 
     @output.setter
     def output(self, value):
-        if not isinstance(value, Output):
+        if isinstance(value, list):
+            for out in value:
+                if not isinstance(out, Output):
+                    raise RuntimeError("Must pass Output")
+        elif isinstance(value, Output):
+            value = [value]
+        else:
             raise RuntimeError("Must pass Output")
         self._output = value
 
@@ -75,9 +84,14 @@ class Encoder:
         if self._running:
             raise RuntimeError("Encoder already running")
         self._running = True
-        if self.output:
-            self.output.start()
+        for out in self._output:
+            out.start()
 
     def _stop(self):
         self._running = False
-        self.output.stop()
+        for out in self._output:
+            out.stop()
+
+    def outputframe(self, frame, keyframe=True):
+        for out in self._output:
+            out.outputframe(frame, keyframe)
