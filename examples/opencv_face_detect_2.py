@@ -32,7 +32,7 @@ picam2.configure(config)
 (w1, h1) = picam2.stream_configuration("lores")["size"]
 s1 = picam2.stream_configuration("lores")["stride"]
 faces = []
-picam2.request_callback = draw_faces
+picam2.post_callback = draw_faces
 
 picam2.start()
 

@@ -9,12 +9,12 @@ from picamera2.outputs import FileOutput
 from picamera2 import Picamera2
 
 
-def request_callback(request):
+def post_callback(request):
     label.setText(''.join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items()))
 
 
 picam2 = Picamera2()
-picam2.request_callback = request_callback
+picam2.post_callback = post_callback
 picam2.configure(picam2.video_configuration(main={"size": (1280, 720)}))
 
 app = QApplication([])
