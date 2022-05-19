@@ -184,7 +184,7 @@ In all other cases, the user should call `start_preview` before starting *Picame
 Example:
 
 ```
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
@@ -222,7 +222,7 @@ Once the preview has been started using the `start_preview` method, an overlay m
 
 Overlays will always be stetched to cover the complete camera image. For example:
 ```
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 import numpy as np
 
 picam2 = Picamera2()
