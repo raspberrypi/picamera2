@@ -4,8 +4,7 @@
 #
 # SPDX-License-Identifier: BSD-2-Clause
 
-from setuptools import setup, Extension
-from os import getenv
+from setuptools import setup
 
 with open("README.md") as readme:
     long_description = readme.read()
@@ -34,4 +33,5 @@ setup(
     packages=['picamera2', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews', 'picamera2.utils'],
     python_requires='>=3.9',
     licence='BSD 2-Clause License',
-    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'pyopengl', 'PyQt5', 'simplejpeg', 'v4l2-python3', 'python-prctl'])
+    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3', 'python-prctl'],
+    extras_require={"GUI": ['pyopengl', 'PyQt5']})
