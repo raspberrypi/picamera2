@@ -126,6 +126,10 @@ class Picamera2:
         """True if there is threaded operation."""
         return self._preview is not None and getattr(self._preview, "thread", None) is not None and self._preview.thread.is_alive()
 
+    @property
+    def camera_properties(self) -> dict:
+        return {} if self.camera is None else self.camera.properties
+
     def __enter__(self):
         return self
 
@@ -153,7 +157,6 @@ class Picamera2:
         if self.camera is not None:
             self.__identify_camera()
             self.camera_controls = self.camera.controls
-            self.camera_properties = self.camera.properties
 
             # The next two lines could be placed elsewhere?
             self.sensor_resolution = self.camera.properties["PixelArraySize"]
