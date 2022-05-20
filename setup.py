@@ -11,16 +11,16 @@ with open("README.md") as readme:
     long_description = readme.read()
 
 setup(
-    name='picamera2',
-    version='0.2.1',
-    description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
+    name='picamera2-lite',
+    version='0.2.2',
+    description='picamera2 without the gui stuff',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Raspberry Pi & Raspberry Pi Foundation',
     author_email='picamera2@raspberrypi.com',
-    url='https://github.com/RaspberryPi/picamera2',
+    url='https://autosbc/picamera2-lite',
     project_urls={
-        'Bug Tracker': 'https://github.com/RaspberryPi/picamera2/issues',
+        'Bug Tracker': 'https://github.com/autosbc/picamera2-lite/issues',
     },
     license='BSD 2-Clause',
     classifiers=[
@@ -31,7 +31,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
     ],
-    packages=['picamera2', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews', 'picamera2.utils'],
+    packages=['picamera2-lite', 'picamera2-lite.encoders', 'picamera2-lite.outputs', 'picamera2-lite.previews', 'picamera2-lite.utils'],
     python_requires='>=3.9',
     licence='BSD 2-Clause License',
-    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'pyopengl', 'PyQt5', 'simplejpeg', 'v4l2-python3', 'python-prctl'])
+    install_requires=['simplejpeg', 'v4l2-python3'])
