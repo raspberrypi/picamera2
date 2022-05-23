@@ -240,10 +240,12 @@ class Picamera2:
         # Take an initial stream_config and add any user updates.
         if updates is None:
             return None
-        if "format" in updates:
-            stream_config["format"] = updates["format"]
-        if "size" in updates:
-            stream_config["size"] = updates["size"]
+        valid = ("format", "size")
+        for key, value in updates.items():
+            if key in valid:
+                stream_config[key] = value
+            else:
+                raise ValueError(f"Bad key '{key}': valid stream configuration keys are {valid}")
         return stream_config
 
     def add_display_and_encode(self, config, display, encode) -> None:
