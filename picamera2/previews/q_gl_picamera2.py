@@ -78,13 +78,15 @@ class EglState:
 class QGlPicamera2(QWidget):
     done_signal = pyqtSignal()
 
-    def __init__(self, picam2, parent=None, width=640, height=480):
+    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True):
         super().__init__(parent=parent)
         self.resize(width, height)
 
         self.setAttribute(Qt.WA_PaintOnScreen)
         self.setAttribute(Qt.WA_NativeWindow)
 
+        self.bg_colour = [colour / 255.0 for colour in bg_colour] + [1.0]
+        self.keep_ar = keep_ar
         self.lock = threading.Lock()
         self.count = 0
         self.overlay_present = False
@@ -93,6 +95,7 @@ class QGlPicamera2(QWidget):
         self.current_request = None
         self.release_current = False
         self.stop_count = 0
+        self.image_size = None
         self.egl = EglState()
         if picam2.verbose_console:
             print("EGL {} {}".format(
@@ -118,6 +121,7 @@ class QGlPicamera2(QWidget):
         if self.current_request is not None and self.release_current:
             self.current_request.release()
         self.current_request = None
+        self.image_size = None
 
     def signal_done(self, picamera2):
         self.done_signal.emit()
@@ -309,8 +313,15 @@ class QGlPicamera2(QWidget):
                 print("Make buffer for request", completed_request.request)
             self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request)
 
+            picam2 = completed_request.picam2
+            self.image_size = picam2.stream_map[picam2.display_stream_name].configuration.size
+            x_off, y_off, w, h = self.recalculate_viewport()
+            glViewport(x_off, y_off, w, h)
+
         buffer = self.buffers[completed_request.request]
 
+        glClearColor(*self.bg_colour)
+        glClear(GL_COLOR_BUFFER_BIT)
         glUseProgram(self.program_image)
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture)
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
@@ -341,3 +352,26 @@ class QGlPicamera2(QWidget):
                     request.release()
             else:
                 request.release()
+
+    def recalculate_viewport(self):
+        window_w = self.width()
+        window_h = self.height()
+        if not self.keep_ar:
+            return 0, 0, window_w, window_h
+        image_w, image_h = self.image_size
+        if image_w * window_h > window_w * image_h:
+            w = window_w
+            h = w * image_h // image_w
+        else:
+            h = window_h
+            w = h * image_w // image_h
+        x_off = (window_w - w) // 2
+        y_off = (window_h - h) // 2
+        return x_off, y_off, w, h
+
+    def resizeEvent(self, event):
+        if self.image_size is not None:
+            eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+            x_off, y_off, w, h = self.recalculate_viewport()
+            glViewport(x_off, y_off, w, h)
+            eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
