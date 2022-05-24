@@ -2,6 +2,7 @@ import picamera2.picamera2
 import pykms
 import mmap
 import numpy as np
+import threading
 from picamera2.previews.null_preview import *
 
 dd = None
@@ -27,12 +28,17 @@ class DrmPreview(NullPreview):
         completed_request = picam2.process_requests()
         if completed_request:
             if picam2.display_stream_name is not None:
-                self.render_drm(picam2, completed_request)
+                with self.lock:
+                    self.render_drm(picam2, completed_request)
+                    if self.current and self.own_current:
+                        self.current.release()
+                    self.current = completed_request
                 # The pipeline will stall if there's only one buffer and we always hold on to
                 # the last one. When we can, however, holding on to them is still preferred.
                 if picam2.camera_config['buffer_count'] > 1:
-                    self.release_current = True
+                    self.own_current = True
                 else:
+                    self.own_current = False
                     completed_request.release()
             else:
                 completed_request.release()
@@ -46,11 +52,12 @@ class DrmPreview(NullPreview):
         self.plane = None
         self.drmfbs = {}
         self.current = None
-        self.release_current = False
+        self.own_current = False
         self.window = (x, y, width, height)
         self.overlay_plane = None
         self.overlay_fb = None
         self.overlay_new_fb = None
+        self.lock = threading.Lock()
 
     def set_overlay(self, overlay):
         if overlay is None:
@@ -62,6 +69,10 @@ class DrmPreview(NullPreview):
             with mmap.mmap(new_fb.fd(0), w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
+
+        with self.lock:
+            if self.current:
+                self.render_drm(self.current.picam2, self.current)
 
     def render_drm(self, picam2, completed_request):
         if picam2.display_stream_name is None:
@@ -137,14 +148,10 @@ class DrmPreview(NullPreview):
         overlay_old_fb = None  # The new one has been sent so it's safe to let this go now
         old_drmfbs = None  # Can chuck these away now too
 
-        if self.current and self.release_current:
-            self.current.release()
-        self.current = completed_request
-
     def stop(self):
         super().stop()
         # We may be hanging on to a request, return it to the camera system.
-        if self.current is not None and self.release_current:
+        if self.current is not None and self.own_current:
             self.current.release()
         self.current = None
         # Seem to need some of this in order to be able to create another DrmPreview.
