@@ -60,6 +60,7 @@ class FfmpegOutput(Output):
                            '-f', 'pulse',
                            '-sample_rate', str(self.audio_bitrate),
                            '-thread_queue_size', '512',  # necessary to prevent warnings
+                           '-use_wallclock_as_timestamps', '1',
                            '-i', self.audio_device]
             audio_codec = ['-b:a', str(self.audio_bitrate),
                            '-c:a', self.audio_codec]
