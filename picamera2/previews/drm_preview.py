@@ -35,7 +35,8 @@ class DrmPreview(NullPreview):
                     self.current = completed_request
                 # The pipeline will stall if there's only one buffer and we always hold on to
                 # the last one. When we can, however, holding on to them is still preferred.
-                if picam2.camera_config['buffer_count'] > 1:
+                config = self.picamera2.camera_config
+                if config is not None and config['buffer_count'] > 1:
                     self.own_current = True
                 else:
                     self.own_current = False
@@ -60,6 +61,9 @@ class DrmPreview(NullPreview):
         self.lock = threading.Lock()
 
     def set_overlay(self, overlay):
+        if self.picam2 is None:
+            raise RuntimeError("Preview must be started before settings an overlay")
+
         if overlay is None:
             self.overlay_new_fb = None
         else:
@@ -71,8 +75,7 @@ class DrmPreview(NullPreview):
             self.overlay_new_fb = new_fb
 
         with self.lock:
-            if self.current:
-                self.render_drm(self.current.picam2, self.current)
+            self.render_drm(self.picam2, self.current)
 
     def render_drm(self, picam2, completed_request):
         if picam2.display_stream_name is None:
@@ -80,46 +83,7 @@ class DrmPreview(NullPreview):
         stream = picam2.stream_map[picam2.display_stream_name]
         cfg = stream.configuration
         width, height = cfg.size
-        fb = completed_request.request.buffers[stream]
 
-        if fb not in self.drmfbs:
-            if self.stop_count != picam2.stop_count:
-                if picam2.verbose_console:
-                    print("Garbage collecting", len(self.drmfbs), "dmabufs")
-                old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
-                self.drmfbs = {}
-                self.stop_count = picam2.stop_count
-
-            if cfg.pixel_format not in self.FMT_MAP:
-                raise RuntimeError(f"Format {cfg.pixel_format} not supported by DRM preview")
-            fmt = self.FMT_MAP[cfg.pixel_format]
-            if self.plane is None:
-                self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
-                if self.plane is None:
-                    raise RuntimeError("Failed to reserve DRM plane")
-                # The second plane we ask for will go on top of the first.
-                self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, pykms.PixelFormat.ABGR8888)
-                if self.overlay_plane is None:
-                    raise RuntimeError("Failed to reserve DRM overlay plane")
-                # Want "coverage" mode, not pre-multiplied alpha.
-                self.overlay_plane.set_prop("pixel blend mode", 1)
-            fd = fb.fd(0)
-            stride = cfg.stride
-            if cfg.pixel_format in ("YUV420", "YVU420"):
-                h2 = height // 2
-                stride2 = stride // 2
-                size = height * stride
-                drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt,
-                                                [fd, fd, fd],
-                                                [stride, stride2, stride2],
-                                                [0, size, size + h2 * stride2])
-            else:
-                drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
-            self.drmfbs[fb] = drmfb
-            if picam2.verbose_console:
-                print("Made drm fb", drmfb, "for request", completed_request.request)
-
-        drmfb = self.drmfbs[fb]
         x, y, w, h = self.window
         # Letter/pillar-box to preserve the image's aspect ratio.
         if width * h > w * height:
@@ -130,13 +94,57 @@ class DrmPreview(NullPreview):
             new_w = h * width // height
             x += (w - new_w) // 2
             w = new_w
-        self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
-        # An "atomic commit" would probably be better, but I can't get this to work...
-        # ctx = pykms.AtomicReq(self.card)
-        # ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
-        #                      "SRC_W": width << 16, "SRC_H": height << 16,
-        #                      "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
-        # ctx.commit()
+
+        if self.plane is None:
+            if cfg.pixel_format not in self.FMT_MAP:
+                raise RuntimeError(f"Format {cfg.pixel_format} not supported by DRM preview")
+            fmt = self.FMT_MAP[cfg.pixel_format]
+
+            self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
+            if self.plane is None:
+                raise RuntimeError("Failed to reserve DRM plane")
+            # The second plane we ask for will go on top of the first.
+            self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, pykms.PixelFormat.ABGR8888)
+            if self.overlay_plane is None:
+                raise RuntimeError("Failed to reserve DRM overlay plane")
+            # Want "coverage" mode, not pre-multiplied alpha.
+            self.overlay_plane.set_prop("pixel blend mode", 1)
+
+        if completed_request is not None:
+            fb = completed_request.request.buffers[stream]
+            if fb not in self.drmfbs:
+                if self.stop_count != picam2.stop_count:
+                    if picam2.verbose_console:
+                        print("Garbage collecting", len(self.drmfbs), "dmabufs")
+                    old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
+                    self.drmfbs = {}
+                    self.stop_count = picam2.stop_count
+
+                fmt = self.FMT_MAP[cfg.pixel_format]
+                fd = fb.fd(0)
+                stride = cfg.stride
+                if cfg.pixel_format in ("YUV420", "YVU420"):
+                    h2 = height // 2
+                    stride2 = stride // 2
+                    size = height * stride
+                    drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt,
+                                                    [fd, fd, fd],
+                                                    [stride, stride2, stride2],
+                                                    [0, size, size + h2 * stride2])
+                else:
+                    drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
+                self.drmfbs[fb] = drmfb
+                if picam2.verbose_console:
+                    print("Made drm fb", drmfb, "for request", completed_request.request)
+
+            drmfb = self.drmfbs[fb]
+            self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
+            # An "atomic commit" would probably be better, but I can't get this to work...
+            # ctx = pykms.AtomicReq(self.card)
+            # ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
+            #                      "SRC_W": width << 16, "SRC_H": height << 16,
+            #                      "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
+            # ctx.commit()
 
         overlay_new_fb = self.overlay_new_fb
         if overlay_new_fb != self.overlay_fb:
