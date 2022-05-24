@@ -34,7 +34,7 @@ def on_button_clicked():
         recording = False
 
 
-qpicamera2 = QGlPicamera2(picam2, width=800, height=480)
+qpicamera2 = QGlPicamera2(picam2, width=800, height=480, keep_ar=False)
 button = QPushButton("Start recording")
 button.clicked.connect(on_button_clicked)
 label = QLabel()
