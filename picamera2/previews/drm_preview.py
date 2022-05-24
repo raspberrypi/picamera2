@@ -110,6 +110,15 @@ class DrmPreview(NullPreview):
 
         drmfb = self.drmfbs[fb]
         x, y, w, h = self.window
+        # Letter/pillar-box to preserve the image's aspect ratio.
+        if width * h > w * height:
+            new_h = w * height // width
+            y += (h - new_h) // 2
+            h = new_h
+        else:
+            new_w = h * width // height
+            x += (w - new_w) // 2
+            w = new_w
         self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
         # An "atomic commit" would probably be better, but I can't get this to work...
         # ctx = pykms.AtomicReq(self.card)
