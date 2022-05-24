@@ -16,7 +16,13 @@ def main():
     options.lores.role = VIEWFINDER
     options.lores.buffer_count = 3
     options.lores.pixel_format = 'YUV420'
+
+    options.controls.NoiseReductionMode = libcamera.NoiseReductionMode.Fast
+
     print(options.config)
+
+
+
 
     cfg = build_libcamera_config(options)
     valid = validate_libcamera_config(cfg)
