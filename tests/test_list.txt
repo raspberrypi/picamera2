@@ -4,6 +4,7 @@ examples/capture_full_res.py
 examples/capture_headless.py
 examples/capture_mjpeg.py
 examples/capture_png.py
+examples/capture_to_buffer.py
 examples/capture_video.py
 examples/controls.py
 examples/controls_2.py
