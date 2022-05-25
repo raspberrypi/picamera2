@@ -11,6 +11,8 @@
 
 ### Changed
 
+* The preview window implementations are changed to preserve image aspect ratios which they did not previously. The Qt variants also respect resize events.
+
 ## 0.2.1 Alpha Release
 
 ### Added
