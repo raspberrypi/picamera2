@@ -183,16 +183,23 @@ class CompletedRequest:
             pil_img = pil_img.resize((width, height))
         return pil_img
 
-    def save(self, name, filename):
+    def save(self, name, file_output, format=None):
         """Save a JPEG or PNG image of the named stream's buffer."""
         # This is probably a hideously expensive way to do a capture.
         start_time = time.monotonic()
         img = self.make_image(name)
         exif = b''
-        if filename.split('.')[-1].lower() in ('jpg', 'jpeg') and img.mode == "RGBA":
-            # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
-            # doesn't like RGBA to we have to bodge that to RGBX.
-            img.mode = "RGBX"
+        if isinstance(format, str):
+            format_str = format.lower()
+        elif isinstance(file_output, str):
+            format_str = file_output.split('.')[-1].lower()
+        else:
+            raise RuntimeError("Cannot detemine format to save")
+        if format_str in ('jpg', 'jpeg'):
+            if img.mode == "RGBA":
+                # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
+                # doesn't like RGBA to we have to bodge that to RGBX.
+                img.mode = "RGBX"
             # Make up some extra EXIF data.
             metadata = self.get_metadata()
             zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
@@ -205,9 +212,9 @@ class CompletedRequest:
         # compress_level=1 saves pngs much faster, and still gets most of the compression.
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
-        img.save(filename, compress_level=png_compress_level, quality=jpeg_quality, exif=exif)
+        img.save(file_output, compress_level=png_compress_level, quality=jpeg_quality, exif=exif, format=format)
         end_time = time.monotonic()
-        self.picam2.log.info(f"Saved {self} to file {filename}.")
+        self.picam2.log.info(f"Saved {self} to file {file_output}.")
         self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
     def save_dng(self, filename, name="raw"):

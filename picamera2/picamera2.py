@@ -720,27 +720,27 @@ class Picamera2:
         self.functions = functions
         self.async_operation_in_progress = True
 
-    def capture_file_(self, filename, name):
+    def capture_file_(self, file_output, name, format=None):
         request = self.completed_requests.pop(0)
         if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
-            request.save_dng(filename)
+            request.save_dng(file_output)
         else:
-            request.save(name, filename)
+            request.save(name, file_output, format=format)
 
         self.async_result = request.get_metadata()
         request.release()
         return True
 
-    def capture_file(self, filename, name="main", wait=True, signal_function=signal_event):
+    def capture_file(self, file_output, name="main", format=None, wait=True, signal_function=signal_event):
         """Capture an image to a file in the current camera mode."""
         with self.lock:
             if self.completed_requests:
-                self.capture_file_(filename, name)
+                self.capture_file_(file_output, name, format=format)
                 if signal_function is not None:
                     signal_function(self)
                 return self.async_result
             else:
-                self.dispatch_functions([(lambda: self.capture_file_(filename, name))], signal_function)
+                self.dispatch_functions([(lambda: self.capture_file_(file_output, name, format=format))], signal_function)
         if wait:
             return self.wait()
 
@@ -758,18 +758,18 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def switch_mode_and_capture_file(self, camera_config, filename, name="main", wait=True, signal_function=signal_event):
+    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture an image to file, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
 
-        def capture_and_switch_back_(self, filename, preview_config):
-            self.capture_file_(filename, name)
+        def capture_and_switch_back_(self, file_output, preview_config, format):
+            self.capture_file_(file_output, name, format=format)
             self.switch_mode_(preview_config)
             return True
 
         functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_and_switch_back_(self, filename, preview_config))]
+                     (lambda: capture_and_switch_back_(self, file_output, preview_config, format))]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
