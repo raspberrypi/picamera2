@@ -16,5 +16,5 @@ picam2.start()
 time.sleep(2)
 
 r = picam2.switch_mode_capture_request_and_stop(capture_config)
-r.save(name="main", filename="full.jpg")
-r.save_dng(filename="full.dng")
+r.save("main", "full.jpg")
+r.save_dng("full.dng")
