@@ -4,12 +4,16 @@ from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
 import numpy as np
 
 
+
 class QPicamera2(QGraphicsView):
+    done_signal = pyqtSignal()
     update_overlay_signal = pyqtSignal(object)
 
     def __init__(self, picam2, parent=None, width=640, height=480):
         super().__init__(parent=parent)
         self.picamera2 = picam2
+        picam2.have_event_loop = True
+
         self.size = QSize(width, height)
         self.pixmap = None
         self.overlay = None
