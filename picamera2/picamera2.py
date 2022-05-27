@@ -105,15 +105,30 @@ class Picamera2:
         self.controls = {}
         self.options = {}
         self._encoder = None
-        self.request_callback = None
+        self.pre_callback = None
+        self.post_callback = None
         self.completed_requests = []
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
         self.have_event_loop = False
 
     @property
+    def request_callback(self):
+        self.log.error("request_callback is deprecated, returning post_callback instead")
+        return self.post_callback
+
+    @request_callback.setter
+    def request_callback(self, value):
+        self.log.error("request_callback is deprecated, setting post_callback instead")
+        self.post_callback = value
+
+    @property
     def asynchronous(self) -> bool:
         """True if there is threaded operation."""
         return self._preview is not None and getattr(self._preview, "thread", None) is not None and self._preview.thread.is_alive()
+
+    @property
+    def camera_properties(self) -> dict:
+        return {} if self.camera is None else self.camera.properties
 
     def __enter__(self):
         return self
@@ -142,7 +157,6 @@ class Picamera2:
         if self.camera is not None:
             self.__identify_camera()
             self.camera_controls = self.camera.controls
-            self.camera_properties = self.camera.properties
 
             # The next two lines could be placed elsewhere?
             self.sensor_resolution = self.camera.properties["PixelArraySize"]
@@ -229,10 +243,12 @@ class Picamera2:
         # Take an initial stream_config and add any user updates.
         if updates is None:
             return None
-        if "format" in updates:
-            stream_config["format"] = updates["format"]
-        if "size" in updates:
-            stream_config["size"] = updates["size"]
+        valid = ("format", "size")
+        for key, value in updates.items():
+            if key in valid:
+                stream_config[key] = value
+            else:
+                raise ValueError(f"Bad key '{key}': valid stream configuration keys are {valid}")
         return stream_config
 
     def add_display_and_encode(self, config, display, encode) -> None:
@@ -632,9 +648,10 @@ class Picamera2:
             display_request = self.completed_requests[-1]
             display_request.acquire()
 
-            if self._encoder is not None:
-                stream = self.stream_map[self.encode_stream_name]
-                self._encoder.encode(stream, display_request)
+            # Some applications may (for example) want us to draw something onto these images before
+            # encoding or copying them for an application.
+            if display_request and self.pre_callback:
+                self.pre_callback(display_request)
 
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
@@ -652,6 +669,15 @@ class Picamera2:
                     if self.async_signal_function is not None:
                         self.async_signal_function(self)
 
+            # Some applications may want to do something to the image after they've had a change
+            # to copy it, but before it goes to the video encoder.
+            if display_request and self.post_callback:
+                self.post_callback(display_request)
+
+            if self._encoder is not None:
+                stream = self.stream_map[self.encode_stream_name]
+                self._encoder.encode(stream, display_request)
+
             # We can only hang on to a limited number of requests here, most should be recycled
             # immediately back to libcamera. You could consider customising this number.
             # When there's only one buffer in total, don't hang on to anything as it would stall
@@ -665,11 +691,6 @@ class Picamera2:
         if display_request.configure_count != self.configure_count:
             display_request.release()
             display_request = None
-
-        # Some applications may (for example) want us to draw something onto these images before
-        # showing them.
-        if display_request and self.request_callback:
-            self.request_callback(display_request)
 
         return display_request
 

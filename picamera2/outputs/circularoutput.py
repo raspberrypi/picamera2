@@ -39,19 +39,16 @@ class CircularOutput(FileOutput):
                     if keyframe:
                         break
                 if keyframe:
-                    self._fileoutput.write(frame)
-                    self._fileoutput.flush()
+                    self._write(frame)
                     self._firstframe = False
             else:
                 frame, keyframe = self._circular.popleft()
-                self._fileoutput.write(frame)
-                self._fileoutput.flush()
+                self._write(frame)
 
     def stop(self):
         """Close file handle and prevent recording"""
         self.recording = False
         if self._circular is not None:
             for frame, keyframe in self._circular:
-                self._fileoutput.write(frame)
-                self._fileoutput.flush()
+                self._write(frame)
         self._fileoutput.close()

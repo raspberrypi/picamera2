@@ -143,7 +143,7 @@ def main():
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
-    picam2.request_callback = DrawRectangles
+    picam2.post_callback = DrawRectangles
 
     picam2.start()
 

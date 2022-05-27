@@ -4,6 +4,7 @@ from .output import Output
 class FileOutput(Output):
     def __init__(self, file=None):
         super().__init__()
+        self.dead = False
         self.fileoutput = file
         self._firstframe = True
         self._before = None
@@ -33,10 +34,16 @@ class FileOutput(Output):
                     return
                 else:
                     self._firstframe = False
-            self._fileoutput.write(frame)
-            self._fileoutput.flush()
+            self._write(frame)
 
     def stop(self):
         """Close file handle and prevent recording"""
         super().stop()
         self._fileoutput.close()
+
+    def _write(self, frame):
+        try:
+            self._fileoutput.write(frame)
+            self._fileoutput.flush()
+        except (ConnectionResetError, BrokenPipeError):
+            self.dead = True
