@@ -34,6 +34,12 @@ Should you want to rebuild libcamera from source, please follow [these instructi
 
 This README file and a set of numerous small examples can be found in the [GitHub repository](https://github.com/raspberrypi/picamera2). Moreover you can run the GitHub version of _Picamera2_ by cloning it and adding `/home/pi/picamera2` to your PYTHONPATH variable (assuming you cloned it to `/home/pi`).
 
+#### Picamera2 on Pi 3 and ealier devices
+
+On Pi 3 and earlier devices it will be necessary to enable _Glamor_ if you want to use the preview window implementations that run under X-Windows. To enable Glamor, run `sudo raspi-config`, choose _Advanced Options_ and enable _Glamor_ graphic accleration.
+
+You do not need to enable _Glamor_ if you want to use Picamera2 without a preview window, or if you use the DRM/KMS preview implementation (which runs without X-Windows). In general, on lower powered Pi devices (especially 512MB devices), running without X-Windows will be beneficial to performance.
+
 #### FFmpeg
 
 We have suggested installing _FFmpeg_ in order to use _Picamera2_. It is, however, only required to support certain complex file types, such as writing output to _mp4_ files. If you do not require this functionality then _FFmpeg_ is not required, and you should avoid trying to use the `FfmpegOutput` class.
