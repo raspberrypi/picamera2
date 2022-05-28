@@ -242,7 +242,7 @@ class CameraOptions():
         if isinstance(value, (int, float)):
             uS = int(1e6 / value)
             self.controls.FrameDurationLimits = (uS, uS)
-        elif isinstance(vale, (list, tuple)):
+        elif isinstance(value, (list, tuple)):
             uS_min, uS_max = int(1e6 / value[0]), int(1e6 / value[1])
             self.controls.FrameDurationLimits = (uS_min, uS_max)
 
