@@ -34,14 +34,14 @@ def server():
         sock.bind(("0.0.0.0", 10001))
         sock.listen()
         while tup := sock.accept():
+            event = threading.Event()
             conn, addr = tup
             stream = conn.makefile("wb")
             filestream = FileOutput(stream)
             filestream.start()
             picam2.encoder.output = [circ, filestream]
-            while not filestream.dead:
-                time.sleep(1)
-
+            filestream.connectiondead = lambda: event.set()
+            event.wait()
 
 t = threading.Thread(target=server)
 t.setDaemon(True)
