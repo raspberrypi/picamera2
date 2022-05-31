@@ -1,4 +1,5 @@
 from .output import Output
+import types
 
 
 class FileOutput(Output):
@@ -8,6 +9,7 @@ class FileOutput(Output):
         self.fileoutput = file
         self._firstframe = True
         self._before = None
+        self._connectiondead = None
 
     @property
     def fileoutput(self):
@@ -25,6 +27,18 @@ class FileOutput(Output):
                 self._fileoutput = open(file, "wb")
             else:
                 self._fileoutput = file
+
+    @property
+    def connectiondead(self):
+        """Return callback"""
+        return self._connectiondead
+
+    @connectiondead.setter
+    def connectiondead(self, callback):
+        if isinstance(callback, types.FunctionType) or callback is None:
+            self._connectiondead = callback
+        else:
+            raise RuntimeError("Must pass callback function or None")
 
     def outputframe(self, frame, keyframe=True):
         """Output frame to file"""
@@ -47,3 +61,5 @@ class FileOutput(Output):
             self._fileoutput.flush()
         except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError):
             self.dead = True
+            if self._connectiondead is not None:
+                self._connectiondead()
