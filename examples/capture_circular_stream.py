@@ -40,7 +40,7 @@ def server():
             filestream = FileOutput(stream)
             filestream.start()
             picam2.encoder.output = [circ, filestream]
-            filestream.connectiondead = lambda: event.set()
+            filestream.connectiondead = lambda ex: event.set()
             event.wait()
 
 t = threading.Thread(target=server)
