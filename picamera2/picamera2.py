@@ -531,8 +531,9 @@ class Picamera2:
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
         # Set the controls directly so as to overwrite whatever is there. No need for the lock
-        # here as the camera is not running.
-        self.controls = self.camera_config['controls']
+        # here as the camera is not running. Copy it so that subsequent calls to set_controls
+        # don't become part of the camera_config.
+        self.controls = self.camera_config['controls'].copy()
         self.configure_count += 1
 
     def configure(self, camera_config=None) -> None:
