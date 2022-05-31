@@ -45,5 +45,5 @@ class FileOutput(Output):
         try:
             self._fileoutput.write(frame)
             self._fileoutput.flush()
-        except (ConnectionResetError, BrokenPipeError):
+        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError):
             self.dead = True
