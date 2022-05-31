@@ -14,12 +14,7 @@ encoder = H264Encoder(1000000)
 
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     sock.connect(("REMOTEIP", 10001))
-    picam2.encoder = encoder
     stream = sock.makefile("wb")
-    picam2.encoder.output = FileOutput(stream)
-    picam2.start_encoder()
-    picam2.start()
+    picam2.start_recording(encoder, FileOutput(stream))
     time.sleep(20)
-    picam2.stop()
-    picam2.stop_encoder()
-    conn.close()
+    picam2.stop_recording()
