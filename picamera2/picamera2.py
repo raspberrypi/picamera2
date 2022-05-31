@@ -267,7 +267,9 @@ class Picamera2:
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
-        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.Minimal} | controls
+        # Let the framerate vary from 12fps to as fast as possible.
+        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.Minimal,
+                    "FrameDurationLimits": (self.camera_controls["FrameDurationLimits"][0], 83333)} | controls
         config = {"use_case": "preview",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -287,7 +289,9 @@ class Picamera2:
         self.align_stream(main)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
-        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.HighQuality} | controls
+        # Let the framerate span the entire possible range of the sensor.
+        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.HighQuality,
+                    "FrameDurationLimits": self.camera_controls["FrameDurationLimits"][0:1]} | controls
         config = {"use_case": "still",
                   "transform": transform,
                   "colour_space": colour_space,
