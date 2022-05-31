@@ -34,9 +34,9 @@ class FileOutput(Output):
         return self._connectiondead
 
     @connectiondead.setter
-    def connectiondead(self, callback):
-        if isinstance(callback, types.FunctionType) or callback is None:
-            self._connectiondead = callback
+    def connectiondead(self, _callback):
+        if isinstance(_callback, types.FunctionType) or _callback is None:
+            self._connectiondead = _callback
         else:
             raise RuntimeError("Must pass callback function or None")
 
@@ -59,7 +59,7 @@ class FileOutput(Output):
         try:
             self._fileoutput.write(frame)
             self._fileoutput.flush()
-        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError):
+        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
             self.dead = True
             if self._connectiondead is not None:
-                self._connectiondead()
+                self._connectiondead(e)
