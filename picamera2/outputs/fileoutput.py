@@ -53,7 +53,15 @@ class FileOutput(Output):
     def stop(self):
         """Close file handle and prevent recording"""
         super().stop()
-        self._fileoutput.close()
+        self.close()
+
+    def close(self):
+        try:
+            self._fileoutput.close()
+        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
+            self.dead = True
+            if self._connectiondead is not None:
+                self._connectiondead(e)
 
     def _write(self, frame):
         try:

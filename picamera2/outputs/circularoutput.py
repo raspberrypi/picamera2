@@ -55,4 +55,4 @@ class CircularOutput(FileOutput):
             while self._circular:
                 frame, keyframe = self._circular.popleft()
                 self._write(frame)
-        self._fileoutput.close()
+        self.close()
