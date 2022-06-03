@@ -35,7 +35,7 @@ class DrmPreview(NullPreview):
                     self.current = completed_request
                 # The pipeline will stall if there's only one buffer and we always hold on to
                 # the last one. When we can, however, holding on to them is still preferred.
-                config = self.picamera2.camera_config
+                config = picam2.camera_config
                 if config is not None and config['buffer_count'] > 1:
                     self.own_current = True
                 else:
