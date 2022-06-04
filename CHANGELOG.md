@@ -11,6 +11,7 @@
 
 ### Changed
 
+* The still_configuration defaults now specify the default display and encode streams as none. The resolutions are often so large that the images can be problematic and there are often better alternatives (e.g. specifying a lores stream and displaying that instead).
 * The preview window implementations are changed to preserve image aspect ratios which they did not previously. The Qt variants also respect resize events.
 
 ## 0.2.1 Alpha Release
