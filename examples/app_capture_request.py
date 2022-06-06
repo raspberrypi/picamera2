@@ -7,7 +7,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QWidget, QHBoxLayout, QVBoxLayout
 
-from picamera2.previews import QPicamera2
+from picamera2.previews.qt import QPicamera2
 from picamera2 import Picamera2
 
 
