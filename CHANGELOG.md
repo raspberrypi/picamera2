@@ -4,6 +4,7 @@
 
 ### Added
 
+* The QPicamera2 widget will now display YUV420 images if the cv2 (OpenCV) module is installed.
 * Methods that allow still captures to be saved to files have been updated to accept file-like objects, such as BytesIO.
 * NOGUI=1 environmental variable to install without GUI dependencies
 * The Picamera2's request_callback has been changed to post_callback. A new pre_callback has been added which runs before images copied for applications.
