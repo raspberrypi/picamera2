@@ -120,7 +120,7 @@ class CompletedRequest:
                         for key, value in self.picam2.controls.items():
                             id = self.picam2.camera.find_control(key)
                             self.request.set_control(id, value)
-                            self.picam2.controls = {}
+                        self.picam2.controls = {}
                         self.picam2.camera.queue_request(self.request)
                 self.request = None
 
