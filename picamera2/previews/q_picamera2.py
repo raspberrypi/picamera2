@@ -1,9 +1,9 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QSocketNotifier, QSize, QRect, QRectF
-from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
-from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
 import numpy as np
-
+from PyQt5 import QtCore
+from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
+                          pyqtSignal, pyqtSlot)
+from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
+from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView
 
 try:
     import cv2

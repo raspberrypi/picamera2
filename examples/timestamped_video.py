@@ -1,9 +1,11 @@
 #!/usr/bin/python3
-from picamera2 import Picamera2, MappedArray
+import time
+
+import cv2
+
+from picamera2 import MappedArray, Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FileOutput
-import cv2
-import time
 
 picam2 = Picamera2()
 picam2.configure(picam2.video_configuration())

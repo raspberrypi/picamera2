@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 import time
+
 import cv2
 
-from picamera2 import Picamera2, Preview, MappedArray
+from picamera2 import MappedArray, Picamera2, Preview
 from picamera2.encoders import H264Encoder
 
 # This is like opencv_face_detect_2.py, only we draw the face boxes on a

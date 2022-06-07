@@ -4,6 +4,7 @@ import threading
 import time
 
 import numpy as np
+
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput, FileOutput
@@ -42,6 +43,7 @@ def server():
             picam2.encoder.output = [circ, filestream]
             filestream.connectiondead = lambda ex: event.set()
             event.wait()
+
 
 t = threading.Thread(target=server)
 t.setDaemon(True)

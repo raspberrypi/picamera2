@@ -1,14 +1,16 @@
-import prctl
 import signal
 import subprocess
+
+import prctl
 
 from .output import Output
 
 
 class FfmpegOutput(Output):
     """
-    The FfmpegOutput class allows an encoded video stream to be passed to FFmpeg for output,
-    meaning we can take advantange of FFmpeg's wide support for different output formats.
+    The FfmpegOutput class allows an encoded video stream to be passed to FFmpeg for output.
+
+    This means we can take advantange of FFmpeg's wide support for different output formats.
     Optionally audio recording may be included, where this is handled entirely by FFmpeg.
 
     Because we are prepared to accept whatever parameters and values that FFmpeg supports,
@@ -29,8 +31,8 @@ class FfmpegOutput(Output):
         audio earlier. In general this may need tweaking depending on the hardware
         and configuration being used.
     audio_samplerate, audio_codec, audio_bitrate - the usual audio parameters.
-
     """
+
     def __init__(self, output_filename, audio=False, audio_device="default", audio_sync=-0.3,
                  audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000):
         super().__init__()

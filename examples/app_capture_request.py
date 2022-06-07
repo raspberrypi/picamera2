@@ -4,11 +4,12 @@
 # capture a request. The request is returned to us in the picamera2's
 # async_result field.
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QWidget, QHBoxLayout, QVBoxLayout
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
+                             QVBoxLayout, QWidget)
 
-from picamera2.previews.qt import QPicamera2
 from picamera2 import Picamera2
+from picamera2.previews.qt import QPicamera2
 
 
 def post_callback(request):

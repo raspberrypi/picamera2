@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-from picamera2 import Picamera2
 import cv2
+
+from picamera2 import Picamera2
 
 cv2.startWindowThread()
 

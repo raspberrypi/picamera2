@@ -1,0 +1,82 @@
+name: flake8
+on:
+  pull_request:
+    branches: [ main, next ]
+jobs:
+  compile:
+    name: compile libcamera
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9.13'
+    - name: Update
+      run: sudo apt update
+    - name: Install apt dependencies
+      run: sudo apt install -y build-essential libcap-dev libfmt-dev libdrm-dev git python3-sphinx libyaml-dev python3-yaml python3-ply python3-jinja2 libgnutls28-dev openssl libboost-dev
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+    - name: Install dependencies for testing
+      run: |
+        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: Set libcamera hash
+      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git master | cut -c1-40)" >> $GITHUB_ENV
+    - name: Cache libcamera
+      id: cache-libcamera
+      uses: actions/cache@v3
+      with:
+        path: /home/runner/work/libcamera
+        key: ${{ runner.os }}-libcamera-${{env.LIBCAMERA-HASH}}
+    - name: Generate libcamera
+      if: steps.cache-libcamera.outputs.cache-hit != 'true'
+      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
+  lint:
+    name: lint code
+    needs: compile
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9.13'
+    - name: Display python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Update
+      run: sudo apt update
+    - name: Install apt dependencies
+      run: sudo apt install -y build-essential libcap-dev libfmt-dev libdrm-dev git python3-sphinx libyaml-dev python3-yaml python3-ply python3-jinja2 libgnutls28-dev openssl libboost-dev
+    - name: Display python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+    - name: Install dependencies for testing
+      run: |
+        if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: Set libcamera hash
+      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git master | cut -c1-40)" >> $GITHUB_ENV
+    - name: Cache libcamera
+      id: cache-libcamera
+      uses: actions/cache@v3
+      with:
+        path: /home/runner/work/libcamera
+        key: ${{ runner.os }}-libcamera-${{env.LIBCAMERA-HASH}}
+    - name: Generate libcamera
+      if: steps.cache-libcamera.outputs.cache-hit != 'true'
+      run: exit 1
+    - name: kmsxx
+      run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
+    - name: set pythonpath
+      run: |
+        echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/py/:/home/runner/work/libcamera/build/src/py/" >> $GITHUB_ENV
+    - name: test cv2
+      run: python -c 'import cv2; print(cv2.__version__)'
+    - name: test pykms
+      run: python -c 'import pykms'
+    - name: Lint with flake8
+      run: |
+        flake8 . --exit-zero --count --show-source --statistics

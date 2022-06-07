@@ -1,6 +1,6 @@
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import time
+from logging.handlers import TimedRotatingFileHandler
 
 """
 Console Level Options

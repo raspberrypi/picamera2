@@ -1,3 +1,5 @@
+"""Circular buffer"""
+
 import collections
 from multiprocessing import Lock
 
@@ -5,8 +7,16 @@ from .fileoutput import FileOutput
 
 
 class CircularOutput(FileOutput):
+    """Circular buffer implementation for file output"""
+
     def __init__(self, file=None, buffersize=30 * 5):
-        """Creates circular buffer for 5s worth of 30fps frames"""
+        """Creates circular buffer for 5s worth of 30fps frames
+
+        :param file: File output, defaults to None
+        :type file: FileOutput, optional
+        :param buffersize: Number of frames, defaults to 30*5
+        :type buffersize: int, optional
+        """
         super().__init__(file)
         self._lock = Lock()
         self.buffersize = buffersize
@@ -26,7 +36,13 @@ class CircularOutput(FileOutput):
             self._circular = collections.deque(maxlen=value)
 
     def outputframe(self, frame, keyframe=True):
-        """Write frame to circular buffer"""
+        """Write frame to circular buffer
+
+        :param frame: Frame
+        :type frame: bytes
+        :param keyframe: Whether frame is a keyframe, defaults to True
+        :type keyframe: bool, optional
+        """
         with self._lock:
             if self._buffersize == 0:
                 return

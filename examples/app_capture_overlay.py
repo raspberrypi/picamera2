@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QLabel, QHBoxLayout, QPushButton, QVBoxLayout, QApplication, QWidget, QCheckBox
 import numpy as np
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
+                             QPushButton, QVBoxLayout, QWidget)
 
-from picamera2.previews.qt import QPicamera2, QGlPicamera2
 from picamera2 import Picamera2
+from picamera2.previews.qt import QGlPicamera2, QPicamera2
 
 
 def request_callback(request):
