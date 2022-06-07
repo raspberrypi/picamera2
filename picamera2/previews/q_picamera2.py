@@ -5,6 +5,13 @@ from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
 import numpy as np
 
 
+try:
+    import cv2
+    cv2_available = True
+except ImportError:
+    cv2_available = False
+
+
 class QPicamera2(QGraphicsView):
     done_signal = pyqtSignal()
     update_overlay_signal = pyqtSignal(object)
@@ -124,8 +131,18 @@ class QPicamera2(QGraphicsView):
         if not request:
             return
 
-        if self.enabled and self.picamera2.display_stream_name is not None:
+        camera_config = self.picamera2.camera_config
+        if self.enabled and self.picamera2.display_stream_name is not None and camera_config is not None:
+            stream_config = camera_config[self.picamera2.display_stream_name]
             img = request.make_array(self.picamera2.display_stream_name)
+            if stream_config["format"] == "YUV420":
+                if cv2_available:
+                    img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
+                    width = stream_config["size"][0]
+                    if width != stream_config["stride"]:
+                        img = img[:, :width, :]  # this will make it even more expensive!
+                else:
+                    raise RuntimeError("Qt preview cannot display YUV420 without cv2")
             img = np.ascontiguousarray(img[..., :3])
             shape = img.shape
             qim = QImage(img.data, shape[1], shape[0], QImage.Format_RGB888)
