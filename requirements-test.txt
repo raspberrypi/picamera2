@@ -19,3 +19,5 @@ pillow
 simplejpeg
 v4l2-python3
 python-prctl
+pyopengl
+PyQt5
