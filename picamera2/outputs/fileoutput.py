@@ -1,5 +1,6 @@
-from .output import Output
 import types
+
+from .output import Output
 
 
 class FileOutput(Output):

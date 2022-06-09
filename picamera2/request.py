@@ -1,14 +1,14 @@
-import time
 import threading
+import time
 
 from libcamera import Rectangle, Size
 
 from PIL import Image
 import numpy as np
 import piexif
-
-from pidng.core import PICAM2DNG
 from pidng.camdefs import Picamera2Camera
+from pidng.core import PICAM2DNG
+from PIL import Image
 
 
 class _MappedBuffer:

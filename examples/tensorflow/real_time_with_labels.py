@@ -21,18 +21,16 @@
 #
 # $ python3 real_time_with_labels.py --model mobilenet_v2.tflite --label coco_labels.txt
 
-import tflite_runtime.interpreter as tflite
-
-import sys
-import os
 import argparse
+import os
+import sys
 
 import cv2
 import numpy as np
-from PIL import Image
-from PIL import ImageFont, ImageDraw
+import tflite_runtime.interpreter as tflite
+from PIL import Image, ImageDraw, ImageFont
 
-from picamera2 import Picamera2, Preview, MappedArray
+from picamera2 import MappedArray, Picamera2, Preview
 
 normalSize = (640, 480)
 lowresSize = (320, 240)

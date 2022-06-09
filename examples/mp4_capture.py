@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 import time
 
+from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FfmpegOutput
-from picamera2 import Picamera2
 
 picam2 = Picamera2()
 video_config = picam2.video_configuration()

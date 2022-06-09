@@ -4,10 +4,12 @@
 # sudo apt install -y tesseract-ocr libtesseract-dev
 # pip3 install pytesseract
 
-from picamera2 import Picamera2, Preview, MappedArray
-import pytesseract
-import cv2
 from pprint import pprint
+
+import cv2
+import pytesseract
+
+from picamera2 import MappedArray, Picamera2, Preview
 
 picam2 = Picamera2()
 picam2.configure(picam2.preview_configuration({"size": (1024, 768)}))

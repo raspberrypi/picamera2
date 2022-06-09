@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 import time
 
-import time
-
 import cv2
 
-from picamera2 import Picamera2, Preview, MappedArray
+from picamera2 import MappedArray, Picamera2, Preview
 
 # This version creates a lores YUV stream, extracts the Y channel and runs the face
 # detector directly on that. We use the supplied OpenGL accelerated preview window

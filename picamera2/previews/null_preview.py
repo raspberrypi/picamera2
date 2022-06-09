@@ -1,5 +1,6 @@
-import picamera2.picamera2
 import threading
+
+import picamera2.picamera2
 
 
 class NullPreview:

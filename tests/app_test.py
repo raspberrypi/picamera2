@@ -2,14 +2,15 @@
 
 # Start a Qt application, and use an asynchronous thread to "click" on the GUI.
 
-import time
 import threading
+import time
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QApplication
+from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
+                             QVBoxLayout, QWidget)
 
-from picamera2.previews.qt import QGlPicamera2
 from picamera2 import Picamera2
+from picamera2.previews.qt import QGlPicamera2
 
 
 def post_callback(request):

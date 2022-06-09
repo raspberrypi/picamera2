@@ -2,8 +2,9 @@
 
 # Test that we can successfully close a QtGlPreview window and open a new one.
 
-from picamera2 import Picamera2, Preview
 import time
+
+from picamera2 import Picamera2, Preview
 
 preview_type = Preview.DRM
 

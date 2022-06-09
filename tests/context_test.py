@@ -2,6 +2,7 @@ import time
 
 from picamera2 import Picamera2, Preview
 
+
 def main():
     print("With context...")
     time.sleep(1)

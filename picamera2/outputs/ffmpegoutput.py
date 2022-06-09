@@ -1,6 +1,7 @@
-import prctl
 import signal
 import subprocess
+
+import prctl
 
 from .output import Output
 

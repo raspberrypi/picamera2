@@ -4,8 +4,9 @@ import queue
 import select
 import threading
 
-from picamera2.encoders.encoder import Encoder
 from v4l2 import *
+
+from picamera2.encoders.encoder import Encoder
 
 
 class V4L2Encoder(Encoder):

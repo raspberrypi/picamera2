@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 import os
+
 from setuptools import setup
 
 reqs = ['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3', 'python-prctl']

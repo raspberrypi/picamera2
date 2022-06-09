@@ -3,8 +3,9 @@
 # Example of setting controls. Here, after one second, we fix the AGC/AEC
 # to the values it has reached whereafter it will no longer change.
 
-from picamera2 import Picamera2, Preview
 import time
+
+from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)

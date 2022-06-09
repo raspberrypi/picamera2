@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-from enum import Enum
 import json
 import os
 import tempfile
 import threading
+from enum import Enum
 from typing import List
 
 import libcamera
@@ -13,10 +13,10 @@ from PIL import Image
 
 from picamera2.encoders import Encoder
 from picamera2.outputs import FileOutput
+from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 from picamera2.utils import initialize_logger
-from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
-from .request import CompletedRequest
 
+from .request import CompletedRequest
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw

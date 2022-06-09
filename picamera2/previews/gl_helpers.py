@@ -1,11 +1,12 @@
-from OpenGL.EGL.VERSION.EGL_1_0 import EGLNativeDisplayType, eglGetProcAddress, eglQueryString, EGL_EXTENSIONS
+from ctypes import (CFUNCTYPE, POINTER, c_bool, c_char_p, c_int, c_void_p,
+                    cdll, pointer, util)
 
-from OpenGL.raw.GLES2 import _types as _cs
+from OpenGL import GL as gl
+from OpenGL.EGL.VERSION.EGL_1_0 import (EGL_EXTENSIONS, EGLNativeDisplayType,
+                                        eglGetProcAddress, eglQueryString)
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
-from OpenGL import GL as gl
-
-from ctypes import c_int, c_char_p, c_void_p, cdll, POINTER, util, pointer, CFUNCTYPE, c_bool
+from OpenGL.raw.GLES2 import _types as _cs
 
 
 def getEGLNativeDisplay():

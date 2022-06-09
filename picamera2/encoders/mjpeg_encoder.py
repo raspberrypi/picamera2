@@ -1,5 +1,6 @@
-from picamera2.encoders.v4l2_encoder import V4L2Encoder
 from v4l2 import *
+
+from picamera2.encoders.v4l2_encoder import V4L2Encoder
 
 
 class MJPEGEncoder(V4L2Encoder):

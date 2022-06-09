@@ -1,5 +1,6 @@
-from picamera2 import Picamera2, Preview
 import time
+
+from picamera2 import Picamera2, Preview
 
 print("Preview re-initialized after start.")
 picam2 = Picamera2()
