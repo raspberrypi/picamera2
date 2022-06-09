@@ -1,6 +1,12 @@
 # Change Log
 
-## Unreleased
+## Unreleased (on "next" branch)
+
+### Added
+
+### Changed
+
+## 0.2.2 Alpha Release 2
 
 ### Added
 
