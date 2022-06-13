@@ -39,7 +39,16 @@ class Picamera2:
     @staticmethod
     def load_tuning_file(tuning_file, dir=None):
         """Load the named tuning file. If dir is given, then only that directory is checked,
-        otherwise a list of likely installation directories is searched."""
+        otherwise a list of likely installation directories is searched
+
+        :param tuning_file: Tuning file
+        :type tuning_file: str
+        :param dir: Directory of tuning file, defaults to None
+        :type dir: str, optional
+        :raises RuntimeError: Produced if tuning file not found
+        :return: Dictionary of tuning file
+        :rtype: dict
+        """
         if dir is not None:
             dirs = [dir]
         else:
@@ -936,7 +945,17 @@ class Picamera2:
         request.release()
 
     def capture_image(self, name="main", wait=True, signal_function=signal_event) -> Image:
-        """Make a PIL image from the next frame in the named stream."""
+        """Make a PIL image from the next frame in the named stream.
+
+        :param name: Stream name, defaults to "main"
+        :type name: str, optional
+        :param wait: Wait for the event loop to finish an operation and signal us, defaults to True
+        :type wait: bool, optional
+        :param signal_function: Callback, defaults to signal_event
+        :type signal_function: function, optional
+        :return: PIL Image
+        :rtype: Image
+        """
         with self.lock:
             if self.completed_requests:
                 self.capture_image_(name)
@@ -995,7 +1014,14 @@ class Picamera2:
 
     def start_recording(self, encoder, output) -> None:
         """Start recording a video using the given encoder and to the given output.
-        Output may be a string in which case the correspondingly named file is opened."""
+
+        Output may be a string in which case the correspondingly named file is opened.
+
+        :param encoder: Video encoder
+        :type encoder: Encoder
+        :param output: FileOutput object
+        :type output: FileOutput
+        """
         if isinstance(output, str):
             output = FileOutput(output)
         encoder.output = output
@@ -1012,7 +1038,12 @@ class Picamera2:
         """Display an overlay on the camera image.
 
         The overlay may be either None, in which case any overlay is removed,
-        or a 4-channel ``ndarray``, the last of thechannels being taken as the alpha channel."""
+        or a 4-channel ``ndarray``, the last of thechannels being taken as the alpha channel.
+
+        :param overlay: Overlay or None
+        :type overlay: ndarray
+        :raises RuntimeError: Must pass a 4-channel image
+        """
         if overlay is not None:
             if overlay.ndim != 3 or overlay.shape[2] != 4:
                 raise RuntimeError("Overlay must be a 4-channel image")
