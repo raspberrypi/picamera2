@@ -63,7 +63,16 @@ class Picamera2:
         raise RuntimeError("Tuning file not found")
 
     def __init__(self, camera_num=0, verbose_console=None, tuning=None):
-        """Initialise camera system and open the camera for use."""
+        """Initialise camera system and open the camera for use.
+
+        :param camera_num: Camera index, defaults to 0
+        :type camera_num: int, optional
+        :param verbose_console: Logging level, defaults to None
+        :type verbose_console: int, optional
+        :param tuning: Tuning filename, defaults to None
+        :type tuning: str, optional
+        :raises RuntimeError: Init didn't complete
+        """
         tuning_file = None
         if tuning is not None:
             if isinstance(tuning, str):
@@ -123,21 +132,33 @@ class Picamera2:
 
     @property
     def request_callback(self):
+        """Now Deprecated"""
         self.log.error("request_callback is deprecated, returning post_callback instead")
         return self.post_callback
 
     @request_callback.setter
     def request_callback(self, value):
+        """Now Deprecated"""
         self.log.error("request_callback is deprecated, setting post_callback instead")
         self.post_callback = value
 
     @property
     def asynchronous(self) -> bool:
-        """True if there is threaded operation."""
-        return self._preview is not None and getattr(self._preview, "thread", None) is not None and self._preview.thread.is_alive()
+        """True if there is threaded operation
+
+        :return: Thread operation state
+        :rtype: bool
+        """
+        return (self._preview is not None and getattr(self._preview, "thread", None) is not None
+               and self._preview.thread.is_alive())
 
     @property
     def camera_properties(self) -> dict:
+        """Camera properties
+
+        :return: Camera properties
+        :rtype: dict
+        """
         return {} if self.camera is None else self.camera_properties_
 
     def __enter__(self):
@@ -152,6 +173,12 @@ class Picamera2:
         self.close()
 
     def initialize_camera(self) -> bool:
+        """Initialize camera
+
+        :raises RuntimeError: Failure to initialise camera
+        :return: True if success
+        :rtype: bool
+        """
         if self.camera_manager.cameras:
             if isinstance(self.camera_idx, str):
                 try:
@@ -192,6 +219,10 @@ class Picamera2:
                 break
 
     def open_camera(self) -> None:
+        """Tries to open camera
+
+        :raises RuntimeError: Failed to setup camera
+        """
         if self.initialize_camera():
             if self.camera.acquire() >= 0:
                 self.is_open = True
@@ -232,6 +263,10 @@ class Picamera2:
         self.have_event_loop = True
 
     def stop_preview(self) -> None:
+        """Stop preview
+
+        :raises RuntimeError: Unable to stop preview
+        """
         if self._preview:
             try:
                 self._preview.stop()
@@ -243,6 +278,10 @@ class Picamera2:
             raise RuntimeError("No preview specified.")
 
     def close(self) -> None:
+        """Close camera
+
+        :raises RuntimeError: Closing failed
+        """
         if self._preview:
             self.stop_preview()
         if self.is_open:
@@ -460,8 +499,14 @@ class Picamera2:
                        "SBGGR12_CSI2P", "SGBRG12_CSI2P", "SGRBG12_CSI2P", "SRGGB12_CSI2P")
 
     def make_requests(self) -> List[libcamera.Request]:
-        # Make libcamera request objects. Makes as many as the number of buffers in the
-        # stream with the smallest number of buffers.
+        """Make libcamera request objects.
+
+        Makes as many as the number of buffers in the stream with the smallest number of buffers.
+
+        :raises RuntimeError: Failure
+        :return: requests
+        :rtype: List[libcamera.Request]
+        """
         num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
         requests = []
         for i in range(num_requests):
@@ -485,7 +530,13 @@ class Picamera2:
         stream_config["framesize"] = libcamera_stream_config.frame_size
 
     def update_camera_config(self, camera_config, libcamera_config) -> None:
-        # Update our camera config from libcamera's.
+        """Update our camera config from libcamera's.
+
+        :param camera_config: Camera configuration
+        :type camera_config: dict
+        :param libcamera_config: libcamera configuration
+        :type libcamera_config: dict
+        """
         camera_config["transform"] = libcamera_config.transform
         camera_config["colour_space"] = libcamera_config.at(0).color_space
         self.update_stream_config(camera_config["main"], libcamera_config.at(0))
@@ -495,7 +546,12 @@ class Picamera2:
             self.update_stream_config(camera_config["raw"], libcamera_config.at(self.raw_index))
 
     def configure_(self, camera_config=None) -> None:
-        """Configure the camera system with the given configuration."""
+        """Configure the camera system with the given configuration.
+
+        :param camera_config: Configuration, defaults to None
+        :type camera_config: dict, optional
+        :raises RuntimeError: Failed to configure
+        """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
         if camera_config is None:
@@ -940,6 +996,11 @@ class Picamera2:
             return self.wait()
 
     def capture_image_(self, name) -> None:
+        """Capture image
+
+        :param name: Stream name
+        :type name: str
+        """
         request = self.completed_requests.pop(0)
         self.async_result = request.make_image(name)
         request.release()
@@ -986,6 +1047,12 @@ class Picamera2:
             return self.wait()
 
     def start_encoder(self, encoder=None) -> None:
+        """Start encoder
+
+        :param encoder: Sets encoder or uses existing, defaults to None
+        :type encoder: Encoder, optional
+        :raises RuntimeError: No encoder set or no stream
+        """
         if encoder is not None:
             self.encoder = encoder
         streams = self.camera_configuration()
@@ -1004,10 +1071,21 @@ class Picamera2:
 
     @property
     def encoder(self):
+        """Extract current Encoder object
+
+        :return: Encoder
+        :rtype: Encoder
+        """
         return self._encoder
 
     @encoder.setter
     def encoder(self, value):
+        """Set Encoder to be used
+
+        :param value: Encoder to be set
+        :type value: Encoder
+        :raises RuntimeError: Fail to pass Encoder
+        """
         if not isinstance(value, Encoder):
             raise RuntimeError("Must pass encoder instance")
         self._encoder = value
