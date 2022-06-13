@@ -3,6 +3,7 @@ import pykms
 import mmap
 import numpy as np
 import threading
+from libcamera import PixelFormat
 from picamera2.previews.null_preview import *
 
 dd = None
@@ -70,7 +71,7 @@ class DrmPreview(NullPreview):
             h, w, channels = overlay.shape
             # Should I be recycling these instead of making new ones all the time?
             new_fb = pykms.DumbFramebuffer(self.card, w, h, "AB24")
-            with mmap.mmap(new_fb.fd(0), w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
+            with mmap.mmap(new_fb.planes[0].fd, w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
 
@@ -82,7 +83,8 @@ class DrmPreview(NullPreview):
             return
         stream = picam2.stream_map[picam2.display_stream_name]
         cfg = stream.configuration
-        width, height = cfg.size
+        pixel_format = str(cfg.pixel_format)
+        width, height = (cfg.size.width, cfg.size.height)
 
         x, y, w, h = self.window
         # Letter/pillar-box to preserve the image's aspect ratio.
@@ -96,9 +98,9 @@ class DrmPreview(NullPreview):
             w = new_w
 
         if self.plane is None:
-            if cfg.pixel_format not in self.FMT_MAP:
-                raise RuntimeError(f"Format {cfg.pixel_format} not supported by DRM preview")
-            fmt = self.FMT_MAP[cfg.pixel_format]
+            if pixel_format not in self.FMT_MAP:
+                raise RuntimeError(f"Format {pixel_format} not supported by DRM preview")
+            fmt = self.FMT_MAP[pixel_format]
 
             self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
             if self.plane is None:
@@ -120,10 +122,10 @@ class DrmPreview(NullPreview):
                     self.drmfbs = {}
                     self.stop_count = picam2.stop_count
 
-                fmt = self.FMT_MAP[cfg.pixel_format]
-                fd = fb.fd(0)
+                fmt = self.FMT_MAP[pixel_format]
+                fd = fb.planes[0].fd
                 stride = cfg.stride
-                if cfg.pixel_format in ("YUV420", "YVU420"):
+                if fmt in ("YUV420", "YVU420"):
                     h2 = height // 2
                     stride2 = stride // 2
                     size = height * stride

@@ -86,7 +86,7 @@ class Picamera2:
     def _reset_flags(self) -> None:
         self.camera = None
         self.is_open = False
-        self.camera_controls = None
+        self.camera_ctrl_info = {}
         self._preview = None
         self.camera_config = None
         self.libcamera_config = None
@@ -110,6 +110,7 @@ class Picamera2:
         self.completed_requests = []
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
         self.have_event_loop = False
+        self.camera_properties_ = {}
 
     @property
     def request_callback(self):
@@ -128,7 +129,7 @@ class Picamera2:
 
     @property
     def camera_properties(self) -> dict:
-        return {} if self.camera is None else self.camera.properties
+        return {} if self.camera is None else self.camera_properties_
 
     def __enter__(self):
         return self
@@ -156,11 +157,18 @@ class Picamera2:
 
         if self.camera is not None:
             self.__identify_camera()
-            self.camera_controls = self.camera.controls
+
+            # Re-generate the controls list to someting easer to use.
+            for k, v in self.camera.controls.items():
+                self.camera_ctrl_info[k.name] = (k, v)
+
+            # Re-generate the properties list to someting easer to use.
+            for k, v in self.camera.properties.items():
+                self.camera_properties_[k.name] = v
 
             # The next two lines could be placed elsewhere?
-            self.sensor_resolution = self.camera.properties["PixelArraySize"]
-            self.sensor_format = self.camera.generate_configuration([RAW]).at(0).pixel_format
+            self.sensor_resolution = (self.camera_properties_["PixelArraySize"].width, self.camera_properties_["PixelArraySize"].height)
+            self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
 
             self.log.info('Initialization successful.')
             return True
@@ -268,8 +276,8 @@ class Picamera2:
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         # Let the framerate vary from 12fps to as fast as possible.
-        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.Minimal,
-                    "FrameDurationLimits": (self.camera_controls["FrameDurationLimits"][0], 83333)} | controls
+        controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
+                    "FrameDurationLimits": (self.camera_ctrl_info["FrameDurationLimits"][1].min, 83333)} | controls
         config = {"use_case": "preview",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -290,8 +298,8 @@ class Picamera2:
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         # Let the framerate span the entire possible range of the sensor.
-        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.HighQuality,
-                    "FrameDurationLimits": self.camera_controls["FrameDurationLimits"][0:1]} | controls
+        controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
+                    "FrameDurationLimits": (self.camera_ctrl_info["FrameDurationLimits"][1].min, self.camera_ctrl_info["FrameDurationLimits"][1].max)} | controls
         config = {"use_case": "still",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -321,7 +329,7 @@ class Picamera2:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
-        controls = {"NoiseReductionMode": libcamera.NoiseReductionMode.Fast,
+        controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
                     "FrameDurationLimits": (33333, 33333)} | controls
         config = {"use_case": "video",
                   "transform": transform,
@@ -380,8 +388,8 @@ class Picamera2:
 
     def update_libcamera_stream_config(self, libcamera_stream_config, stream_config, buffer_count) -> None:
         # Update the libcamera stream config with ours.
-        libcamera_stream_config.size = stream_config["size"]
-        libcamera_stream_config.pixel_format = stream_config["format"]
+        libcamera_stream_config.size = libcamera.Size(stream_config["size"][0], stream_config["size"][1])
+        libcamera_stream_config.pixel_format = libcamera.PixelFormat(stream_config["format"])
         libcamera_stream_config.buffer_count = buffer_count
 
     def make_libcamera_config(self, camera_config):
@@ -462,8 +470,8 @@ class Picamera2:
 
     def update_stream_config(self, stream_config, libcamera_stream_config) -> None:
         # Update our stream config from libcamera's.
-        stream_config["format"] = libcamera_stream_config.pixel_format
-        stream_config["size"] = libcamera_stream_config.size
+        stream_config["format"] = str(libcamera_stream_config.pixel_format)
+        stream_config["size"] = (libcamera_stream_config.size.width, libcamera_stream_config.size.height)
         stream_config["stride"] = libcamera_stream_config.stride
         stream_config["framesize"] = libcamera_stream_config.frame_size
 
@@ -506,6 +514,11 @@ class Picamera2:
             raise RuntimeError("Configuration failed: {}".format(camera_config))
         self.log.info("Configuration successful!")
         self.log.debug(f"Final configuration: {camera_config}")
+
+        # Update the properties list as some of the values may have changed.
+        self.camera_properties_ = {}
+        for k in self.camera.properties.keys():
+            self.camera_properties_[k.name] = k
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
@@ -556,13 +569,25 @@ class Picamera2:
         """List the controls supported by the camera."""
         return self.camera.controls
 
+    def populate_libcamera_controls(self):
+        controls = {}
+        for k, v in self.controls.items():
+            id = self.camera_ctrl_info[k][0]
+            if id.type == libcamera.ControlType.Rectangle:
+                v = libcamera.Rectangle(*v)
+            elif id.type == libcamera.ControlType.Size:
+                v = libcamera.Size(*v)
+            controls[id] = v
+        return controls
+
     def start_(self) -> None:
         """Start the camera system running."""
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
             raise RuntimeError("Camera already started")
-        if self.camera.start(self.controls) >= 0:
+        controls = self.populate_libcamera_controls()
+        if self.camera.start(controls) >= 0:
             for request in self.make_requests():
                 self.camera.queue_request(request)
             self.log.info("Camera started")
@@ -596,7 +621,6 @@ class Picamera2:
         if self.started:
             self.stop_count += 1
             self.camera.stop()
-            self.camera_manager.get_ready_requests()  # Could anything here need flushing?
             self.started = False
             self.completed_requests = []
             self.log.info("Camera stopped")
@@ -621,7 +645,6 @@ class Picamera2:
 
     def get_completed_requests(self) -> List[CompletedRequest]:
         # Return all the requests that libcamera has completed.
-        data = os.read(self.camera_manager.efd, 8)
         requests = [CompletedRequest(req, self) for req in self.camera_manager.get_ready_requests()
                     if req.status == libcamera.Request.Status.Complete]
         self.frames += len(requests)
