@@ -1,3 +1,4 @@
+from libcamera import PixelFormat
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import pyqtSlot, QSocketNotifier
 from PyQt5.QtWidgets import QWidget, QApplication
@@ -109,7 +110,7 @@ class QGlPicamera2(QWidget):
         self.picamera2 = picam2
         picam2.have_event_loop = True
 
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
         self.camera_notifier.activated.connect(self.handle_requests)
@@ -224,26 +225,25 @@ class QGlPicamera2(QWidget):
             fb = completed_request.request.buffers[stream]
 
             cfg = stream.configuration
-            fmt = cfg.pixel_format
-            if fmt not in self.FMT_MAP:
-                raise RuntimeError(f"Format {fmt} not supported by QGlPicamera2 preview")
-            fmt = str_to_fourcc(self.FMT_MAP[fmt])
-            w, h = cfg.size
-
-            if cfg.pixel_format in ("YUV420", "YVU420"):
+            pixel_format = str(cfg.pixel_format)
+            if pixel_format not in self.FMT_MAP:
+                raise RuntimeError(f"Format {pixel_format} not supported by QGlPicamera2 preview")
+            fmt = str_to_fourcc(self.FMT_MAP[pixel_format])
+            w, h = (cfg.size.width, cfg.size.height)
+            if pixel_format in ("YUV420", "YVU420"):
                 h2 = h // 2
                 stride2 = cfg.stride // 2
                 attribs = [
                     EGL_WIDTH, w,
                     EGL_HEIGHT, h,
                     EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                    EGL_DMA_BUF_PLANE0_FD_EXT, fb.fd(0),
+                    EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
                     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
                     EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                    EGL_DMA_BUF_PLANE1_FD_EXT, fb.fd(0),
+                    EGL_DMA_BUF_PLANE1_FD_EXT, fb.planes[0].fd,
                     EGL_DMA_BUF_PLANE1_OFFSET_EXT, h * cfg.stride,
                     EGL_DMA_BUF_PLANE1_PITCH_EXT, stride2,
-                    EGL_DMA_BUF_PLANE2_FD_EXT, fb.fd(0),
+                    EGL_DMA_BUF_PLANE2_FD_EXT, fb.planes[0].fd,
                     EGL_DMA_BUF_PLANE2_OFFSET_EXT, h * cfg.stride + h2 * stride2,
                     EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
                     EGL_NONE,
@@ -253,7 +253,7 @@ class QGlPicamera2(QWidget):
                     EGL_WIDTH, w,
                     EGL_HEIGHT, h,
                     EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                    EGL_DMA_BUF_PLANE0_FD_EXT, fb.fd(0),
+                    EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
                     EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
                     EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
                     EGL_NONE,
@@ -372,7 +372,7 @@ class QGlPicamera2(QWidget):
         if not self.keep_ar or camera_config is None or camera_config['display'] is None:
             return 0, 0, window_w, window_h
 
-        image_w, image_h = stream_map[camera_config['display']].configuration.size
+        image_w, image_h = (stream_map[camera_config['display']].configuration.size.width, stream_map[camera_config['display']].configuration.size.height)
         if image_w * window_h > window_w * image_h:
             w = window_w
             h = w * image_h // image_w

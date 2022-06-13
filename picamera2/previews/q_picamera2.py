@@ -36,7 +36,7 @@ class QPicamera2(QGraphicsView):
         self.enabled = True
 
         self.update_overlay_signal.connect(self.update_overlay)
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
                                                QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
@@ -53,7 +53,8 @@ class QPicamera2(QGraphicsView):
         camera_config = self.picamera2.camera_config
         if camera_config is not None and camera_config['display'] is not None:
             # This works even before we receive any camera images.
-            size = self.picamera2.stream_map[camera_config['display']].configuration.size
+            size = (self.picamera2.stream_map[camera_config['display']].configuration.size.width,
+                    self.picamera2.stream_map[camera_config['display']].configuration.size.height)
         elif self.image_size is not None:
             # If the camera is unconfigured, stick with the last size (if available).
             size = self.image_size

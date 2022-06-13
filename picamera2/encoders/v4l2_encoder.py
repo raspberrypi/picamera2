@@ -198,7 +198,7 @@ class V4L2Encoder(Encoder):
             return
         cfg = stream.configuration
         fb = request.request.buffers[stream]
-        fd = fb.fd(0)
+        fd = fb.planes[0].fd
         request.acquire()
 
         buf = v4l2_buffer()

@@ -7,7 +7,7 @@ class NullPreview:
         import selectors
 
         sel = selectors.DefaultSelector()
-        sel.register(picam2.camera_manager.efd, selectors.EVENT_READ, self.handle_request)
+        sel.register(picam2.camera_manager.event_fd, selectors.EVENT_READ, self.handle_request)
         self.event.set()
 
         while self.running:
