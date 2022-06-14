@@ -1,5 +1,5 @@
 import numpy as np
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
                           pyqtSignal, pyqtSlot)
 from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
