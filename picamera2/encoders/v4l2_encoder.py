@@ -141,7 +141,7 @@ class V4L2Encoder(Encoder):
         pollit.register(self.vd, select.POLLIN)
 
         while self._running:
-            for fd, event in pollit.poll(200):
+            for _, event in pollit.poll(200):
                 if event & select.POLLIN:
                     buf = v4l2_buffer()
                     planes = v4l2_plane * VIDEO_MAX_PLANES

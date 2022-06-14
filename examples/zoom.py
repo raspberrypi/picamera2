@@ -17,7 +17,7 @@ time.sleep(2)
 
 size = picam2.capture_metadata()['ScalerCrop'][2:]
 
-for i in range(20):
+for _ in range(20):
     # This syncs us to the arrival of a new camera frame:
     picam2.capture_metadata()
 

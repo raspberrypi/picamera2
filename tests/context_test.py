@@ -12,9 +12,7 @@ def main():
         picam2.start()
         metadata = picam2.capture_file("context_test.jpg")
         print(metadata)
-    
     time.sleep(5)
-    
     print("Without context...")
     time.sleep(1)
     picam2 = Picamera2()

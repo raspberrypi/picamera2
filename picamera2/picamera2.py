@@ -293,7 +293,7 @@ class Picamera2:
             self.libcamera_config = None
             self.streams = None
             self.stream_map = None
-            self.log.info(f'Camera closed successfully.')
+            self.log.info('Camera closed successfully.')
 
     def make_initial_stream_config(self, stream_config: dict, updates: dict) -> dict:
         # Take an initial stream_config and add any user updates.
@@ -316,7 +316,7 @@ class Picamera2:
         config['encode'] = encode
 
     def preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=4, controls={}, display="main", encode="main"):
-        "Make a configuration suitable for camera preview."
+        """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
@@ -338,7 +338,7 @@ class Picamera2:
         return config
 
     def still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=1, controls={}, display=None, encode=None) -> dict:
-        "Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."
+        """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
@@ -360,7 +360,7 @@ class Picamera2:
         return config
 
     def video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}, display="main", encode="main") -> dict:
-        "Make a configuration suitable for video recording."
+        """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)

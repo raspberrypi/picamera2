@@ -30,7 +30,6 @@ class FfmpegOutput(Output):
         audio earlier. In general this may need tweaking depending on the hardware
         and configuration being used.
     audio_samplerate, audio_codec, audio_bitrate - the usual audio parameters.
-
     """
     def __init__(self, output_filename, audio=False, audio_device="default", audio_sync=-0.3,
                  audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000):
