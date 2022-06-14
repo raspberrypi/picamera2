@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+"""picamera2 main class"""
+
 
 import json
 import os
@@ -164,13 +166,27 @@ class Picamera2:
         return {} if self.camera is None else self.camera_properties_
 
     def __enter__(self):
+        """Used for allowing use with context manager
+
+        :return: self
+        :rtype: Picamera2
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_traceback):
+        """Used for allowing use with context manager
+
+        :param exc_type: Exception type
+        :type exc_type: Type[BaseException]
+        :param exc_val: Exception
+        :type exc_val: BaseException
+        :param exc_traceback: Traceback
+        :type exc_traceback: TracebackType
+        """
         self.close()
 
     def __del__(self):
-        # Without this libcamera will complain if we shut down without closing the camera.
+        """Without this libcamera will complain if we shut down without closing the camera."""
         self.log.debug(f"Resources now free: {self}")
         self.close()
 
@@ -299,7 +315,16 @@ class Picamera2:
             self.log.info('Camera closed successfully.')
 
     def make_initial_stream_config(self, stream_config: dict, updates: dict) -> dict:
-        # Take an initial stream_config and add any user updates.
+        """Take an initial stream_config and add any user updates.
+
+        :param stream_config: Stream configuration
+        :type stream_config: dict
+        :param updates: Updates
+        :type updates: dict
+        :raises ValueError: Invalid key
+        :return: Dictionary of stream config
+        :rtype: dict
+        """
         if updates is None:
             return None
         valid = ("format", "size")
@@ -1081,6 +1106,8 @@ class Picamera2:
         self.encoder._start()
 
     def stop_encoder(self) -> None:
+        """Stops the encoder
+        """
         self.encoder._stop()
 
     @property
