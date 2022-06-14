@@ -26,6 +26,7 @@ VIEWFINDER = libcamera.StreamRole.Viewfinder
 
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
+
     NULL = 0
     DRM = 1
     QT = 2
@@ -33,7 +34,6 @@ class Preview(Enum):
 
 
 class Picamera2:
-
     """Welcome to the PiCamera2 class."""
 
     @staticmethod
