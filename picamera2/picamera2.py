@@ -38,7 +38,9 @@ class Picamera2:
 
     @staticmethod
     def load_tuning_file(tuning_file, dir=None):
-        """Load the named tuning file. If dir is given, then only that directory is checked,
+        """Load the named tuning file.
+
+        If dir is given, then only that directory is checked,
         otherwise a list of likely installation directories is searched
 
         :param tuning_file: Tuning file
@@ -234,8 +236,9 @@ class Picamera2:
 
     def start_preview(self, preview=None, **kwargs) -> None:
         """
-        Start the given preview which drives the camera processing. The preview
-        may be either:
+        Start the given preview which drives the camera processing.
+
+        The preview may be either:
           None - in which case a NullPreview is made,
           a Preview enum value - in which case a preview of that type is made,
           or an actual preview object.
@@ -662,8 +665,9 @@ class Picamera2:
             raise RuntimeError("Camera did not start properly.")
 
     def start(self, event_loop=True) -> None:
-        """Start the camera system running. Camera controls may be sent to the
-        camera before it starts running.
+        """Start the camera system running.
+
+        Camera controls may be sent to the camera before it starts running.
 
         Additionally the event_loop parameter will cause an event loop
         to be started if there is not one running already. In this
@@ -681,7 +685,9 @@ class Picamera2:
         self.start_()
 
     def stop_(self, request=None) -> None:
-        """Stop the camera. Only call this function directly from within the camera event
+        """Stop the camera.
+
+        Only call this function directly from within the camera event
         loop, such as in a Qt application.
         """
         if self.started:
@@ -802,7 +808,9 @@ class Picamera2:
 
     def dispatch_functions(self, functions, signal_function=signal_event) -> None:
         """The main thread should use this to dispatch a number of operations for the event
-        loop to perform. When there are multiple items each will be processed on a separate
+        loop to perform.
+
+        When there are multiple items each will be processed on a separate
         trip round the event loop, meaning that a single operation could stop and restart the
         camera and the next operation would receive a request from after the restart.
         """

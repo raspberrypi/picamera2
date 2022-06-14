@@ -6,8 +6,9 @@ YUV2RGB_REC709    = np.array([[1.164, 1.164, 1.164], [0.0, -0.213, 2.112], [1.79
 
 
 def YUV420_to_RGB(YUV_in, size, matrix=YUV2RGB_JPEG, rb_swap=True, final_width=0):
-    """Convert a YUV420 image to an interleaved RGB image of half resolution. The
-    size parameter should include padding if there is any, which can be trimmed off
+    """Convert a YUV420 image to an interleaved RGB image of half resolution.
+
+    The size parameter should include padding if there is any, which can be trimmed off
     at the end with the final_width parameter.
     """
     w, h = size

@@ -6,8 +6,9 @@ from picamera2.encoders.encoder import Encoder
 
 
 class MultiEncoder(Encoder):
-    """This is a base class for a multi-threaded software encoder. Derive your encoder
-    from this class and add an encode_func method. For an example, see JpegEncoder
+    """This is a base class for a multi-threaded software encoder.
+
+    Derive your encoder from this class and add an encode_func method. For an example, see JpegEncoder
     (jpeg_encoder.py). The parallelism is likely to help when the encoder in question
     releases the GIL, for example before diving into a large C/C++ library.
     Parameters:

@@ -8,8 +8,9 @@ from .output import Output
 
 class FfmpegOutput(Output):
     """
-    The FfmpegOutput class allows an encoded video stream to be passed to FFmpeg for output,
-    meaning we can take advantange of FFmpeg's wide support for different output formats.
+    The FfmpegOutput class allows an encoded video stream to be passed to FFmpeg for output.
+
+    This means we can take advantange of FFmpeg's wide support for different output formats.
     Optionally audio recording may be included, where this is handled entirely by FFmpeg.
 
     Because we are prepared to accept whatever parameters and values that FFmpeg supports,
