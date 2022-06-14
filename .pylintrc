@@ -1,3 +1,5 @@
 [MASTER]
-
 extension-pkg-whitelist=libcamera, PyQt5, cv2
+
+[TYPECHECK]
+generated-members=cv2.*
