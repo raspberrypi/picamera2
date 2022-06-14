@@ -11,7 +11,7 @@ from picamera2.outputs import FileOutput
 
 lsize = (320, 240)
 picam2 = Picamera2()
-video_config = picam2.video_configuration(main={"size": (1280, 720), "format": "RGB888"}, 
+video_config = picam2.video_configuration(main={"size": (1280, 720), "format": "RGB888"},
                                           lores={"size": lsize, "format": "YUV420"})
 picam2.configure(video_config)
 encoder = H264Encoder(1000000)
@@ -19,7 +19,7 @@ picam2.encoder = encoder
 picam2.start()
 
 w, h = lsize
-prev = None 
+prev = None
 encoding = False
 ltime = 0
 
