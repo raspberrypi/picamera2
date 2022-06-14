@@ -22,3 +22,4 @@ python-prctl
 pyopengl
 PyQt5
 opencv-python
+pytesseract
