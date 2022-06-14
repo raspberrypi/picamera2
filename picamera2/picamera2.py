@@ -720,30 +720,6 @@ class Picamera2:
         self.functions = functions
         self.async_operation_in_progress = True
 
-    def capture_file_(self, file_output, name, format=None):
-        request = self.completed_requests.pop(0)
-        if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
-            request.save_dng(file_output)
-        else:
-            request.save(name, file_output, format=format)
-
-        self.async_result = request.get_metadata()
-        request.release()
-        return True
-
-    def capture_file(self, file_output, name="main", format=None, wait=True, signal_function=signal_event):
-        """Capture an image to a file in the current camera mode."""
-        with self.lock:
-            if self.completed_requests:
-                self.capture_file_(file_output, name, format=format)
-                if signal_function is not None:
-                    signal_function(self)
-                return self.async_result
-            else:
-                self.dispatch_functions([(lambda: self.capture_file_(file_output, name, format=format))], signal_function)
-        if wait:
-            return self.wait()
-
     def switch_mode_(self, camera_config):
         self.stop_()
         self.configure_(camera_config)
@@ -754,22 +730,6 @@ class Picamera2:
     def switch_mode(self, camera_config, wait=True, signal_function=signal_event):
         """Switch the camera into another mode given by the camera_config."""
         functions = [(lambda: self.switch_mode_(camera_config))]
-        self.dispatch_functions(functions, signal_function)
-        if wait:
-            return self.wait()
-
-    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait=True, signal_function=signal_event):
-        """Switch the camera into a new (capture) mode, capture an image to file, then return
-        back to the initial camera mode."""
-        preview_config = self.camera_config
-
-        def capture_and_switch_back_(self, file_output, preview_config, format):
-            self.capture_file_(file_output, name, format=format)
-            self.switch_mode_(preview_config)
-            return True
-
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_and_switch_back_(self, file_output, preview_config, format))]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -828,112 +788,29 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def capture_buffer_(self, name):
+    def capture_buffer_and_metadata_(self, streams):
         request = self.completed_requests.pop(0)
-        self.async_result = request.make_buffer(name)
+        buffers = []
+        for stream in streams:
+            buffers.append(request.make_buffer(stream))
+        self.async_result = (buffers, request.get_metadata())
         request.release()
         return True
 
-    def capture_buffer(self, name="main", wait=True, signal_function=signal_event):
-        """Make a 1d numpy array from the next frame in the named stream."""
-        with self.lock:
-            if self.completed_requests:
-                self.capture_buffer_(name)
-                if signal_function is not None:
-                    signal_function(self)
-                return self.async_result
-            else:
-                self.dispatch_functions([(lambda: self.capture_buffer_(name))], signal_function)
-        if wait:
-            return self.wait()
-
-    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=True, signal_function=signal_event):
-        """Switch the camera into a new (capture) mode, capture the first buffer, then return
+    def switch_mode_and_capture_buffer(self, camera_config, streams=["main"], wait=True, signal_function=signal_event):
+        """Switch the camera into a new (capture) mode, capture the first buffer from named streams, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
 
-        def capture_buffer_and_switch_back_(self, preview_config, name) -> bool:
-            self.capture_buffer_(name)
-            buffer = self.async_result
+        def capture_buffer_and_switch_back_(self, preview_config, streams) -> bool:
+            self.capture_buffer_and_metadata_(streams)
+            result = self.async_result
             self.switch_mode_(preview_config)
-            self.async_result = buffer
+            self.async_result = result
             return True
 
         functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_buffer_and_switch_back_(self, preview_config, name))]
-        self.dispatch_functions(functions, signal_function)
-        if wait:
-            return self.wait()
-
-    def capture_array_(self, name) -> bool:
-        request = self.completed_requests.pop(0)
-        self.async_result = request.make_array(name)
-        request.release()
-        return True
-
-    def capture_array(self, name="main", wait=True, signal_function=signal_event) -> np.ndarray:
-        """Make a 2d image from the next frame in the named stream."""
-        with self.lock:
-            if self.completed_requests:
-                self.capture_array_(name)
-                if signal_function is not None:
-                    signal_function(self)
-                return self.async_result
-            else:
-                self.dispatch_functions([(lambda: self.capture_array_(name))], signal_function)
-        if wait:
-            return self.wait()
-
-    def switch_mode_and_capture_array(self, camera_config, name="main", wait=True, signal_function=signal_event):
-        """Switch the camera into a new (capture) mode, capture the image array data, then return
-        back to the initial camera mode."""
-        preview_config = self.camera_config
-
-        def capture_array_and_switch_back_(self, preview_config, name) -> bool:
-            self.capture_array_(name)
-            array = self.async_result
-            self.switch_mode_(preview_config)
-            self.async_result = array
-            return True
-
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_array_and_switch_back_(self, preview_config, name))]
-        self.dispatch_functions(functions, signal_function)
-        if wait:
-            return self.wait()
-
-    def capture_image_(self, name) -> None:
-        request = self.completed_requests.pop(0)
-        self.async_result = request.make_image(name)
-        request.release()
-
-    def capture_image(self, name="main", wait=True, signal_function=signal_event) -> Image:
-        """Make a PIL image from the next frame in the named stream."""
-        with self.lock:
-            if self.completed_requests:
-                self.capture_image_(name)
-                if signal_function is not None:
-                    signal_function(self)
-                return self.async_result
-            else:
-                self.dispatch_functions([(lambda: self.make_image_(name))], signal_function)
-        if wait:
-            return self.wait()
-
-    def switch_mode_and_capture_image(self, camera_config, name="main", wait=True, signal_function=signal_event):
-        """Switch the camera into a new (capture) mode, capture the image, then return
-        back to the initial camera mode."""
-        preview_config = self.camera_config
-
-        def capture_image_and_switch_back_(self, preview_config, name):
-            self.capture_image_(name)
-            image = self.async_result
-            self.switch_mode_(preview_config)
-            self.async_result = image
-            return True
-
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_image_and_switch_back_(self, preview_config, name))]
+                     (lambda: capture_buffer_and_switch_back_(self, preview_config, streams))]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()

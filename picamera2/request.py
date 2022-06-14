@@ -133,14 +133,18 @@ class CompletedRequest:
         """Fetch the metadata corresponding to this completed request."""
         return self.request.metadata
 
-    def make_array(self, name):
+
+class PostProcess:
+    def __init__(self, picam2):
+        self.picam2 = picam2
+
+    def make_array(self, buffer, config):
         """Make a 2d numpy array from the named stream's buffer."""
-        array = self.make_buffer(name)
-        config = self.picam2.camera_config[name]
+        array = buffer
+
         fmt = config["format"]
         w, h = config["size"]
         stride = config["stride"]
-
         # Turning the 1d array into a 2d image-like array only works if the
         # image stride (which is in bytes) is a whole number of pixels. Even
         # then, if they don't match exactly you will get "padding" down the RHS.
@@ -167,10 +171,11 @@ class CompletedRequest:
             raise RuntimeError("Format " + fmt + " not supported")
         return image
 
-    def make_image(self, name, width=None, height=None):
+    def make_image(self, buffer, config, width=None, height=None):
         """Make a PIL image from the named stream's buffer."""
-        rgb = self.make_array(name)
-        fmt = self.picam2.camera_config[name]["format"]
+        rgb = self.make_array(buffer, config)
+
+        fmt = config["format"]
         mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
         mode = mode_lookup[fmt]
         pil_img = Image.frombuffer("RGB", (rgb.shape[1], rgb.shape[0]), rgb, "raw", mode, 0, 1)
@@ -183,11 +188,11 @@ class CompletedRequest:
             pil_img = pil_img.resize((width, height))
         return pil_img
 
-    def save(self, name, file_output, format=None):
-        """Save a JPEG or PNG image of the named stream's buffer."""
+    def save(self, img, metadata, file_output, format=None):
+        """Save a JPEG or PNG image."""
         # This is probably a hideously expensive way to do a capture.
         start_time = time.monotonic()
-        img = self.make_image(name)
+
         exif = b''
         if isinstance(format, str):
             format_str = format.lower()
@@ -201,7 +206,7 @@ class CompletedRequest:
                 # doesn't like RGBA to we have to bodge that to RGBX.
                 img.mode = "RGBX"
             # Make up some extra EXIF data.
-            metadata = self.get_metadata()
+            #metadata = self.get_metadata()
             zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
                         piexif.ImageIFD.Model: self.picam2.camera.id,
                         piexif.ImageIFD.Software: "Picamera2"}
@@ -217,14 +222,12 @@ class CompletedRequest:
         self.picam2.log.info(f"Saved {self} to file {file_output}.")
         self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def save_dng(self, filename, name="raw"):
+    def save_dng(self, buffer, metadata, config, filename): #, name="raw"):
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
-        raw = self.make_array(name)
+        raw = self.make_array(buffer, config)
 
-        fmt = self.picam2.camera_config[name]
-        metadata = self.get_metadata()
-        camera = Picamera2Camera(fmt, metadata)
+        camera = Picamera2Camera(config, metadata)
         r = PICAM2DNG(camera)
 
         dng_compress_level = self.picam2.options.get("compress_level", 0)
