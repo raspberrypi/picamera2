@@ -6,7 +6,6 @@ wait = 5
 buffer = 1
 
 def main():
-
     #First we create a camera instance.
     picam2 = Picamera2()
 
@@ -32,7 +31,6 @@ def main():
     picam2.stop_preview()
     null2 = time.monotonic()
 
-
     qt1 = time.monotonic()
     print("QT Preview")
     time.sleep(buffer)
@@ -40,7 +38,6 @@ def main():
     time.sleep(wait)
     picam2.stop_preview()
     qt2 = time.monotonic()
-
 
     # drm1 = time.monotonic()
     # print("DRM Preview")
@@ -56,8 +53,6 @@ def main():
     print(f"QT GL Cycle Results: {qtgl2-qtgl1-wait-buffer} s")
     print(f"Null Cycle Results: {null2-null1-wait-buffer} s")
     print(f"QT Cycle Results: {qt2-qt1-wait-buffer} s")
-
-
 
 if __name__ == "__main__":
     main()
