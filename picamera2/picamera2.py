@@ -682,7 +682,8 @@ class Picamera2:
 
     def stop_(self, request=None) -> None:
         """Stop the camera. Only call this function directly from within the camera event
-        loop, such as in a Qt application."""
+        loop, such as in a Qt application.
+        """
         if self.started:
             self.stop_count += 1
             self.camera.stop()
@@ -803,7 +804,8 @@ class Picamera2:
         """The main thread should use this to dispatch a number of operations for the event
         loop to perform. When there are multiple items each will be processed on a separate
         trip round the event loop, meaning that a single operation could stop and restart the
-        camera and the next operation would receive a request from after the restart."""
+        camera and the next operation would receive a request from after the restart.
+        """
         if self.async_operation_in_progress:
             raise RuntimeError("Failure to wait for previous operation to finish!")
         self.event.clear()
@@ -853,7 +855,8 @@ class Picamera2:
 
     def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture an image to file, then return
-        back to the initial camera mode."""
+        back to the initial camera mode.
+        """
         preview_config = self.camera_config
 
         def capture_and_switch_back_(self, file_output, preview_config, format):
@@ -874,7 +877,8 @@ class Picamera2:
 
     def capture_request(self, wait=True, signal_function=signal_event):
         """Fetch the next completed request from the camera system. You will be holding a
-        reference to this request so you must release it again to return it to the camera system."""
+        reference to this request so you must release it again to return it to the camera system.
+        """
         with self.lock:
             if self.completed_requests:
                 self.capture_request_()
@@ -942,7 +946,8 @@ class Picamera2:
 
     def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
-        back to the initial camera mode."""
+        back to the initial camera mode.
+        """
         preview_config = self.camera_config
 
         def capture_buffer_and_switch_back_(self, preview_config, name) -> bool:
@@ -1030,7 +1035,8 @@ class Picamera2:
 
     def switch_mode_and_capture_image(self, camera_config, name="main", wait=True, signal_function=signal_event):
         """Switch the camera into a new (capture) mode, capture the image, then return
-        back to the initial camera mode."""
+        back to the initial camera mode.
+        """
         preview_config = self.camera_config
 
         def capture_image_and_switch_back_(self, preview_config, name):

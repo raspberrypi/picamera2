@@ -100,7 +100,8 @@ class CompletedRequest:
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to
-        the camera system."""
+        the camera system.
+        """
         with self.lock:
             if self.ref_count == 0:
                 raise RuntimeError("CompletedRequest: acquiring lock with ref_count 0")
@@ -108,7 +109,8 @@ class CompletedRequest:
 
     def release(self):
         """Release this completed frame back to the camera system (once its reference count
-        reaches zero)."""
+        reaches zero).
+        """
         with self.lock:
             self.ref_count -= 1
             if self.ref_count < 0:
