@@ -1,7 +1,7 @@
 name: picamera2 style checker
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, next ]
 
 jobs:
   style-check:
