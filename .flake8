@@ -1,5 +1,5 @@
 [flake8]
 docstring_style=sphinx
 max-line-length = 127
-ignore = D400, D401, Q000, S311, F405,  PLW, PLC, PLR
+ignore = D400, D401, Q000, S311, F405, E402, PLW, PLC, PLR
 extend-ignore = W503, W504
