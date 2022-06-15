@@ -7,7 +7,7 @@ def main():
     print("With context...")
     time.sleep(1)
     with Picamera2() as picam2:
-        preview = picam2.preview_configuration()
+        preview = picam2.create_preview_configuration()
         picam2.configure(preview)
         picam2.start()
         metadata = picam2.capture_file("context_test.jpg")
@@ -16,7 +16,7 @@ def main():
     print("Without context...")
     time.sleep(1)
     picam2 = Picamera2()
-    preview = picam2.preview_configuration()
+    preview = picam2.create_preview_configuration()
     picam2.configure(preview)
     picam2.start()
     metadata = picam2.capture_file("no_context_test.jpg")

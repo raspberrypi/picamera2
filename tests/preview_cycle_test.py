@@ -10,7 +10,7 @@ def main():
     picam2 = Picamera2()
 
     #Let's set it up for previewing.
-    preview = picam2.preview_configuration()
+    preview = picam2.create_preview_configuration()
     picam2.configure(preview)
 
     picam2.start(event_loop=False)
