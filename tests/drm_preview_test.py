@@ -9,7 +9,7 @@ preview_type = Preview.DRM
 
 print("First preview...")
 picam2 = Picamera2()
-picam2.configure(picam2.preview_configuration())
+picam2.configure(picam2.create_preview_configuration())
 picam2.start_preview(preview_type)
 picam2.start()
 time.sleep(2)
@@ -18,7 +18,7 @@ print("Done")
 
 print("Second preview...")
 picam2 = Picamera2()
-picam2.configure(picam2.preview_configuration())
+picam2.configure(picam2.create_preview_configuration())
 picam2.start_preview(preview_type)
 picam2.start()
 time.sleep(2)

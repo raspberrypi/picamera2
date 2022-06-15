@@ -126,9 +126,9 @@ The imaging hardware on the Pi is capable of supplying up to 3 image streams to 
 
 After opening the camera, *Picamera2* must be configured with the `Picamera2.configure` method. It provides three methods for generating suitable configurations:
 
-- `Picamera2.preview_configuration` generates configurations normally suitable for camera preview.
-- `Picamera2.still_configuration` generates configurations normally suitable for still image capture.
-- `Picamera2.video_configuration` generates configurations for video recording.
+- `Picamera2.create_preview_configuration` generates configurations normally suitable for camera preview.
+- `Picamera2.create_still_configuration` generates configurations normally suitable for still image capture.
+- `Picamera2.create_video_configuration` generates configurations for video recording.
 
 In all cases, these functions can generate configurations with no user arguments at all. Otherwise the user may supply the following parameters:
 
@@ -148,38 +148,38 @@ Examples:
 
 Configure a default resolution preview.
 ```
-config = picam2.preview_configuration()
+config = picam2.create_preview_configuration()
 picam2.configure(config)
 ```
 
 Configure for a full resolution capture.
 ```
-config = picam2.still_configuration()
+config = picam2.create_still_configuration()
 picam2.configure(config)
 ```
 
 Here we configure both a VGA preview (*main*) stream, and a QVGA low resolution (*lores*) stream.
 ```
-config = picam2.preview_configuration(main={"size": (640, 480)},
+config = picam2.create_preview_configuration(main={"size": (640, 480)},
                                       lores={"size": (320, 240), "format": "YUV420"})
 picam2.configure(config)
 ```
 
 Ask for an additional raw stream at the sensor resolution. This will force the camera to run at the maximum resolution, probably at a reduced framerate. Without the size parameter (just `raw={}`) the raw frame would be the one that *libcamera* would naturally choose for the resolution of the main stream (probably much smaller).
 ```
-config = picam2.preview_configuration(raw={"size": picam2.sensor_resolution})
+config = picam2.create_preview_configuration(raw={"size": picam2.sensor_resolution})
 picam2.configure(config)
 ```
 
 Rotate all the images by 180 degrees.
 ```
-config = picam2.preview_configuration(transform=libcamera.Transform(hflip=1, vflip=1))
+config = picam2.create_preview_configuration(transform=libcamera.Transform(hflip=1, vflip=1))
 picam2.configure(config)
 ```
 
 Still image capture normally configures only a single buffer, as this is all you need. But if you're doing some form of burst capture, increasing the buffer count may enable the application to receive images more quickly.
 ```
-config = picam2.still_configuration(buffer_count=3)
+config = picam2.create_still_configuration(buffer_count=3)
 picam2.configure(config)
 ```
 
@@ -204,7 +204,7 @@ from picamera2 import Picamera2, Preview
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
 
-config = picam2.preview_configuration()
+config = picam2.create_preview_configuration()
 picam2.configure(config)
 
 picam2.start()
@@ -241,7 +241,7 @@ from picamera2 import Picamera2, Preview
 import numpy as np
 
 picam2 = Picamera2()
-picam2.configure(picam2.preview_configuration({"size": (640, 480)}))
+picam2.configure(picam2.create_preview_configuration({"size": (640, 480)}))
 picam2.start_preview(Preview.QTGL)
 overlay = np.zeros((200, 200, 4), dtype=np.uint8)
 overlay[:100, 100:] = (255, 0, 0, 64)  # red
@@ -297,13 +297,13 @@ request.release()
 
 When switching to a full resolution capture, it's common to re-start the camera in preview mode afterwards. When capturing a whole request, however, you can't re-start the camera until you're finished with that request:
 ```
-capture_config = picam2.still_configuration()
+capture_config = picam2.create_still_configuration()
 request = picam2.switch_mode_capture_request_and_stop(capture_config)
 # The camera is stopped but we can use the request. Then return the request:
 request.release()
 # And the camera could be re-configured and restarted.
-preview_config = picam2.preview_configuration()
-picam2.configure(preview_configuration)
+preview_config = picam2.create_preview_configuration()
+picam2.configure(preview_config)
 picam2.start()
 ```
 
@@ -311,7 +311,7 @@ picam2.start()
 
 Picamera2 supports saving DNG files through the _PiDNG_ library. When capturing DNGs, you will need to specify that you want a raw stream. For example, if the camera is running a normal preview, the following snippet would switch to full resolution mode (with a raw stream) and capture a DNG file.
 ```
-capture_config = picam2.still_configuration(raw={})
+capture_config = picam2.create_still_configuration(raw={})
 picam2.switch_mode_and_capture_file(capture_config, "full-res.dng", name="raw")
 ```
 
@@ -364,7 +364,7 @@ There is a second version of this [app_capture2.py](examples/app_capture2.py) th
 
 This application starts a preview window and then performs a full resolution JPEG capture. The preview normally uses one of the camera's faster readout modes, so we have to pick a separate *capture* mode, and *switch* to it, for the final capture.
 
-The `Picamera2.preview_configuration` method is best for selecting camera modes suitable for previewing, and `Picamera2.still_configuration` is best for selecting high resolution still capture modes.
+The `Picamera2.create_preview_configuration` method is best for selecting camera modes suitable for previewing, and `Picamera2.create_still_configuration` is best for selecting high resolution still capture modes.
 
 ### [capture_image_full_res.py](examples/capture_image_full_res.py)
 

@@ -6,7 +6,7 @@ import cv2
 import time
 
 picam2 = Picamera2()
-picam2.configure(picam2.video_configuration())
+picam2.configure(picam2.create_video_configuration())
 
 colour = (0, 255, 0)
 origin = (0, 30)

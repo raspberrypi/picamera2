@@ -5,7 +5,7 @@ from picamera2.encoders import MJPEGEncoder
 from picamera2 import Picamera2
 
 picam2 = Picamera2()
-video_config = picam2.video_configuration()
+video_config = picam2.create_video_configuration()
 picam2.configure(video_config)
 
 encoder = MJPEGEncoder(10000000)

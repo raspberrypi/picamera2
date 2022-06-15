@@ -12,7 +12,7 @@ from picamera2 import Picamera2
 RATIO = 3.0
 
 picam2 = Picamera2()
-picam2.configure(picam2.preview_configuration())
+picam2.configure(picam2.create_preview_configuration())
 picam2.start()
 
 # Run for a second to get a reasonable "middle" exposure level.
@@ -22,7 +22,7 @@ exposure_normal = metadata["ExposureTime"]
 gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
 picam2.stop()
 controls = {"ExposureTime": exposure_normal, "AnalogueGain": gain}
-capture_config = picam2.preview_configuration(main={"size": (1024, 768),
+capture_config = picam2.create_preview_configuration(main={"size": (1024, 768),
                                                     "format": "RGB888"},
                                               controls=controls)
 picam2.configure(capture_config)

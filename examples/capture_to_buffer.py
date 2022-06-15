@@ -5,8 +5,8 @@ import io
 import time
 
 picam2 = Picamera2()
-capture_config = picam2.still_configuration()
-picam2.configure(picam2.preview_configuration())
+capture_config = picam2.create_still_configuration()
+picam2.configure(picam2.create_preview_configuration())
 picam2.start()
 
 time.sleep(1)

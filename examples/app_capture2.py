@@ -17,14 +17,14 @@ def post_callback(request):
 
 picam2 = Picamera2()
 picam2.post_callback = post_callback
-picam2.configure(picam2.preview_configuration(main={"size": (800, 600)}))
+picam2.configure(picam2.create_preview_configuration(main={"size": (800, 600)}))
 
 app = QApplication([])
 
 
 def on_button_clicked():
     button.setEnabled(False)
-    cfg = picam2.still_configuration()
+    cfg = picam2.create_still_configuration()
     picam2.switch_mode_and_capture_file(cfg, "test.jpg", wait=False, signal_function=qpicamera2.signal_done)
 
 

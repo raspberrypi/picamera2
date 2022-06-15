@@ -22,7 +22,7 @@ def draw_faces(request):
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
-config = picam2.preview_configuration(main={"size": (640, 480)},
+config = picam2.create_preview_configuration(main={"size": (640, 480)},
                                       lores={"size": (320, 240), "format": "YUV420"})
 picam2.configure(config)
 
