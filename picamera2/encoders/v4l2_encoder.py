@@ -1,3 +1,5 @@
+"""Provide V4L2 encoding functionality"""
+
 import fcntl
 import mmap
 import queue
@@ -10,7 +12,16 @@ from picamera2.encoders.encoder import Encoder
 
 
 class V4L2Encoder(Encoder):
+    """V4L2 Encoding"""
+
     def __init__(self, bitrate, pixformat):
+        """Initialise V4L2 encoder
+
+        :param bitrate: Bitrate
+        :type bitrate: int
+        :param pixformat: Pixel format
+        :type pixformat: int
+        """
         super().__init__()
         self.bufs = {}
         self._bitrate = bitrate
@@ -101,10 +112,11 @@ class V4L2Encoder(Encoder):
             buffer.index = i
             buffer.length = 1
             buffer.m.planes = planes
-            ret = fcntl.ioctl(self.vd, VIDIOC_QUERYBUF, buffer)
-            self.bufs[i] = (mmap.mmap(self.vd.fileno(), buffer.m.planes[0].length, mmap.PROT_READ | mmap.PROT_WRITE, mmap.MAP_SHARED,
-                                      offset=buffer.m.planes[0].m.mem_offset), buffer.m.planes[0].length)
-            ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buffer)
+            fcntl.ioctl(self.vd, VIDIOC_QUERYBUF, buffer)
+            self.bufs[i] = (mmap.mmap(self.vd.fileno(), buffer.m.planes[0].length, mmap.PROT_READ |
+                            mmap.PROT_WRITE, mmap.MAP_SHARED, offset=buffer.m.planes[0].m.mem_offset),
+                            buffer.m.planes[0].length)
+            fcntl.ioctl(self.vd, VIDIOC_QBUF, buffer)
 
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
         fcntl.ioctl(self.vd, VIDIOC_STREAMON, typev)
@@ -137,6 +149,7 @@ class V4L2Encoder(Encoder):
         self.vd.close()
 
     def thread_poll(self, buf_available):
+        """Outputs encoded frames"""
         pollit = select.poll()
         pollit.register(self.vd, select.POLLIN)
 
@@ -191,6 +204,11 @@ class V4L2Encoder(Encoder):
                         queue_item.release()
 
     def encode(self, stream, request):
+        """Encodes a frame
+
+        :param stream: Stream
+        :param request: Request
+        """
         # Don't start encoding if we don't have an output handle
         # as the header seems only to be sent with the first frame
         if self._output is None:
@@ -219,5 +237,5 @@ class V4L2Encoder(Encoder):
         buf.m.planes[0].m.fd = fd
         buf.m.planes[0].bytesused = cfg.frame_size
         buf.m.planes[0].length = cfg.frame_size
-        ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
+        fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
         self.buf_frame.put(request)
