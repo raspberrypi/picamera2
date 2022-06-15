@@ -1,10 +1,19 @@
+"""Writes frames to a file"""
+
 import types
 
 from .output import Output
 
 
 class FileOutput(Output):
+    """File handling functionality for encoders"""
+
     def __init__(self, file=None):
+        """Initialise file output
+
+        :param file: _description_, defaults to None
+        :type file: str or BufferedWriter, optional
+        """
         super().__init__()
         self.dead = False
         self.fileoutput = file
@@ -36,6 +45,12 @@ class FileOutput(Output):
 
     @connectiondead.setter
     def connectiondead(self, _callback):
+        """Callback for passing exceptions
+
+        :param _callback: Callback that is called when exception caught
+        :type _callback: function
+        :raises RuntimeError: Must pass function
+        """
         if isinstance(_callback, types.FunctionType) or _callback is None:
             self._connectiondead = _callback
         else:
@@ -57,6 +72,7 @@ class FileOutput(Output):
         self.close()
 
     def close(self):
+        """Closes all files"""
         try:
             self._fileoutput.close()
         except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
