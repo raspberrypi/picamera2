@@ -8,7 +8,7 @@ from picamera2.encoders import H264Encoder
 from picamera2.outputs import FileOutput
 
 picam2 = Picamera2()
-picam2.configure(picam2.video_configuration())
+picam2.configure(picam2.create_video_configuration())
 
 colour = (0, 255, 0)
 origin = (0, 30)

@@ -12,7 +12,7 @@ import pytesseract
 from picamera2 import MappedArray, Picamera2, Preview
 
 picam2 = Picamera2()
-picam2.configure(picam2.preview_configuration({"size": (1024, 768)}))
+picam2.configure(picam2.create_preview_configuration({"size": (1024, 768)}))
 picam2.start_preview(Preview.QTGL)
 picam2.start()
 

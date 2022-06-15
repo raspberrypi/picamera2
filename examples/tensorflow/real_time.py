@@ -130,7 +130,7 @@ def main():
 
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
-    config = picam2.preview_configuration(main={"size": normalSize},
+    config = picam2.create_preview_configuration(main={"size": normalSize},
                                           lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
 

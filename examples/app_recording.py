@@ -16,7 +16,7 @@ def post_callback(request):
 
 picam2 = Picamera2()
 picam2.post_callback = post_callback
-picam2.configure(picam2.video_configuration(main={"size": (1280, 720)}))
+picam2.configure(picam2.create_video_configuration(main={"size": (1280, 720)}))
 
 app = QApplication([])
 
