@@ -4,8 +4,10 @@ from ..outputs import Output
 
 
 class Encoder:
+    """Base class for encoders"""
 
     def __init__(self):
+        """Initialises encoder"""
         self._width = 0
         self._height = 0
         self._stride = 0
@@ -15,40 +17,84 @@ class Encoder:
 
     @property
     def width(self):
+        """Gets width
+
+        :return: Width of frames
+        :rtype: int
+        """
         return self._width
 
     @width.setter
     def width(self, value):
+        """Sets width
+
+        :param value: Width
+        :type value: int
+        :raises RuntimeError: Failed to set width
+        """
         if not isinstance(value, int):
             raise RuntimeError("Width must be integer")
         self._width = value
 
     @property
     def height(self):
+        """Gets height
+
+        :return: Height of frames
+        :rtype: int
+        """
         return self._height
 
     @height.setter
     def height(self, value):
+        """Sets height
+
+        :param value: Height
+        :type value: int
+        :raises RuntimeError: Failed to set height
+        """
         if not isinstance(value, int):
             raise RuntimeError("Height must be integer")
         self._height = value
 
     @property
     def stride(self):
+        """Gets stride
+
+        :return: Stride
+        :rtype: int
+        """
         return self._stride
 
     @stride.setter
     def stride(self, value):
+        """Sets stride
+
+        :param value: Stride
+        :type value: int
+        :raises RuntimeError: Failed to set stride
+        """
         if not isinstance(value, int):
             raise RuntimeError("Stride must be integer")
         self._stride = value
 
     @property
     def format(self):
+        """Get current format
+
+        :return: Current format
+        :rtype: int
+        """
         return self._format
 
     @format.setter
     def format(self, value):
+        """Sets input format to encoder
+
+        :param value: Format
+        :type value: str
+        :raises RuntimeError: Invalid format
+        """
         if value == "RGB888":
             self._format = V4L2_PIX_FMT_BGR24
         elif value == "YUV420":
@@ -62,6 +108,11 @@ class Encoder:
 
     @property
     def output(self):
+        """Gets output objects
+
+        :return: Output object list or single Output object
+        :rtype: List[Output]
+        """
         if len(self._output) == 1:
             return self._output[0]
         else:
@@ -69,6 +120,12 @@ class Encoder:
 
     @output.setter
     def output(self, value):
+        """Sets output object, to write frames to
+
+        :param value: Output object
+        :type value: Output
+        :raises RuntimeError: Invalid output passed
+        """
         if isinstance(value, list):
             for out in value:
                 if not isinstance(out, Output):
@@ -80,6 +137,13 @@ class Encoder:
         self._output = value
 
     def encode(self, stream, request):
+        """Encode a frame
+
+        :param stream: Stream
+        :type stream: stream
+        :param request: Request
+        :type request: request
+        """
         pass
 
     def _start(self):
@@ -95,5 +159,12 @@ class Encoder:
             out.stop()
 
     def outputframe(self, frame, keyframe=True):
+        """Writes a frame
+
+        :param frame: Frame
+        :type frame: bytes
+        :param keyframe: Whether frame is a keyframe or not, defaults to True
+        :type keyframe: bool, optional
+        """
         for out in self._output:
             out.outputframe(frame, keyframe)
