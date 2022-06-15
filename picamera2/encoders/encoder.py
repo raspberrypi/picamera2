@@ -1,3 +1,5 @@
+"""Encoder functionality"""
+
 from v4l2 import *
 
 from ..outputs import Output
