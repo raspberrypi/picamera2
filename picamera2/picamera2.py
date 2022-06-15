@@ -19,6 +19,7 @@ from picamera2.outputs import FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 from picamera2.utils import initialize_logger
 
+from .configuration import CameraConfiguration, StreamConfiguration
 from .request import CompletedRequest
 
 STILL = libcamera.StreamRole.StillCapture
@@ -99,6 +100,9 @@ class Picamera2:
         try:
             self.open_camera()
             self.log.debug(f"{self.camera_manager}")
+            self.preview_configuration = self.create_preview_configuration()
+            self.still_configuration = self.create_still_configuration()
+            self.video_configuration = self.create_video_configuration()
         except Exception:
             self.log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -134,6 +138,30 @@ class Picamera2:
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
         self.have_event_loop = False
         self.camera_properties_ = {}
+
+    @property
+    def preview_configuration(self):
+        return self.preview_configuration_
+
+    @preview_configuration.setter
+    def preview_configuration(self, value):
+        self.preview_configuration_ = CameraConfiguration(value)
+
+    @property
+    def still_configuration(self):
+        return self.still_configuration_
+
+    @still_configuration.setter
+    def still_configuration(self, value):
+        self.still_configuration_ = CameraConfiguration(value)
+
+    @property
+    def video_configuration(self):
+        return self.video_configuration_
+
+    @video_configuration.setter
+    def video_configuration(self, value):
+        self.video_configuration_ = CameraConfiguration(value)
 
     @property
     def request_callback(self):
@@ -587,15 +615,37 @@ class Picamera2:
         if self.raw_index >= 0:
             self.update_stream_config(camera_config["raw"], libcamera_config.at(self.raw_index))
 
-    def configure_(self, camera_config=None) -> None:
+    def configure_(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration.
 
-        :param camera_config: Configuration, defaults to None
-        :type camera_config: dict, optional
+        :param camera_config: Configuration, defaults to the 'preview' configuration
+        :type camera_config: dict, string or CameraConfiguration, optional
         :raises RuntimeError: Failed to configure
         """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
+        initial_config = camera_config
+        if isinstance(initial_config, str):
+            if initial_config == "preview":
+                camera_config = self.preview_configuration
+            elif initial_config == "still":
+                camera_config = self.still_configuration
+            else:
+                camera_config = self.video_configuration
+        if isinstance(camera_config, CameraConfiguration):
+            # Default values should have been set for everything, except perhaps lores/raw
+            # sizes and formats. So let's put something in there if they're empty.
+            if camera_config.lores is not None:
+                if camera_config.lores.size is None:
+                    camera_config.lores.size = camera_config.main.size
+                if camera_config.lores.format is None:
+                    camera_config.lores.format = "YUV420"
+            if camera_config.raw is not None:
+                if camera_config.raw.size is None:
+                    camera_config.raw.size = camera_config.main.size
+                if camera_config.raw.format is None:
+                    camera_config.raw.format = self.sensor_format
+            camera_config = camera_config.make_dict()
         if camera_config is None:
             camera_config = self.create_preview_configuration()
 
@@ -654,13 +704,20 @@ class Picamera2:
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
+        # Fill in the embedded configuration structures if those were used.
+        if initial_config == "preview":
+            self.preview_configuration.update(camera_config)
+        elif initial_config == "still":
+            self.still_configuration.update(camera_config)
+        else:
+            self.video_configuration.update(camera_config)
         # Set the controls directly so as to overwrite whatever is there. No need for the lock
         # here as the camera is not running. Copy it so that subsequent calls to set_controls
         # don't become part of the camera_config.
         self.controls = self.camera_config['controls'].copy()
         self.configure_count += 1
 
-    def configure(self, camera_config=None) -> None:
+    def configure(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration."""
         self.configure_(camera_config)
 
