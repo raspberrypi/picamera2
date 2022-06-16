@@ -1,3 +1,4 @@
+from .controls import Controls
 
 class Configuration:
     """
@@ -68,7 +69,7 @@ class Configuration:
         for f in self._ALLOWED_FIELDS:
             if hasattr(self, f):
                 value = getattr(self, f)
-                if isinstance(value, Configuration):
+                if value is not None and f in self._FIELD_CLASS_MAP:
                     value = value.make_dict()
                 d[f] = value
         return d
@@ -81,6 +82,15 @@ class StreamConfiguration(Configuration):
 
 
 class CameraConfiguration(Configuration):
+    def __make_controls__(controls):
+        return Controls(CameraConfiguration.__picam2__, controls)
+
     _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space", "controls", "main", "lores", "raw")
-    _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
+    _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration, "controls": __make_controls__}
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
+
+    __picam2__ = None
+
+    @staticmethod
+    def set_picam2(picam2):
+        CameraConfiguration.__picam2__ = picam2

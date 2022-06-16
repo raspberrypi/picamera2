@@ -78,6 +78,7 @@ class Picamera2:
         try:
             self.open_camera()
             self.log.debug(f"{self.camera_manager}")
+            CameraConfiguration.set_picam2(self)
             self.preview_configuration = self.create_preview_configuration()
             self.still_configuration = self.create_still_configuration()
             self.video_configuration = self.create_video_configuration()
@@ -284,6 +285,7 @@ class Picamera2:
             self.libcamera_config = None
             self.streams = None
             self.stream_map = None
+            CameraConfiguration.set_picam2(None)
             self.log.info(f'Camera closed successfully.')
 
     def make_initial_stream_config(self, stream_config: dict, updates: dict) -> dict:
