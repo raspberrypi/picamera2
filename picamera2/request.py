@@ -1,6 +1,8 @@
 import threading
 import time
 
+from .controls import Controls
+
 from PIL import Image
 import numpy as np
 import piexif
@@ -118,12 +120,11 @@ class CompletedRequest:
                 # can't recycle it.
                 if self.stop_count == self.picam2.stop_count:
                     self.request.reuse()
-                    with self.picam2.controls_lock:
-                        controls = self.picam2.populate_libcamera_controls()
-                        for id, value in controls.items():
-                            self.request.set_control(id, value)
-                        self.picam2.controls = {}
-                        self.picam2.camera.queue_request(self.request)
+                    controls = self.picam2.controls.get_libcamera_controls()
+                    for id, value in controls.items():
+                        self.request.set_control(id, value)
+                    self.picam2.controls = Controls(self.picam2)
+                    self.picam2.camera.queue_request(self.request)
                 self.request = None
 
     def make_buffer(self, name):
