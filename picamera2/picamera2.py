@@ -662,18 +662,9 @@ class Picamera2:
             else:
                 camera_config = self.video_configuration
         if isinstance(camera_config, CameraConfiguration):
-            # Default values should have been set for everything, except perhaps lores/raw
-            # sizes and formats. So let's put something in there if they're empty.
-            if camera_config.lores is not None:
-                if camera_config.lores.size is None:
-                    camera_config.lores.size = camera_config.main.size
-                if camera_config.lores.format is None:
-                    camera_config.lores.format = "YUV420"
-            if camera_config.raw is not None:
-                if camera_config.raw.size is None:
-                    camera_config.raw.size = camera_config.main.size
-                if camera_config.raw.format is None:
-                    camera_config.raw.format = self.sensor_format
+            if camera_config.raw is not None and camera_config.raw.format is None:
+                camera_config.raw.format = self.sensor_format
+            # We expect values to have been set for any lores/raw streams.
             camera_config = camera_config.make_dict()
         if camera_config is None:
             camera_config = self.create_preview_configuration()
