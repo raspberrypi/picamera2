@@ -125,7 +125,7 @@ class DrmPreview(NullPreview):
                 fmt = self.FMT_MAP[pixel_format]
                 fd = fb.planes[0].fd
                 stride = cfg.stride
-                if fmt in ("YUV420", "YVU420"):
+                if pixel_format in ("YUV420", "YVU420"):
                     h2 = height // 2
                     stride2 = stride // 2
                     size = height * stride
