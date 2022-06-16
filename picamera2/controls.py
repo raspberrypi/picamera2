@@ -19,6 +19,9 @@ class Controls():
             self._controls.append(name)
         self.__dict__[name] = value
 
+    def __repr__(self):
+        return f"<Controls: {self.make_dict()}>"
+
     def __enter__(self):
         self._lock.acquire()
         return self
