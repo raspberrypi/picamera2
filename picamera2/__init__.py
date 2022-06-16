@@ -3,3 +3,4 @@ from .request import CompletedRequest, MappedArray
 from .converters import YUV420_to_RGB
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
+from .metadata import Metadata
