@@ -5,6 +5,17 @@ from libcamera import ControlType, Size, Rectangle
 
 
 class Controls():
+    def _framerates_to_durations_(framerates):
+        if not isinstance(framerates, (tuple, list)):
+            framerates = (framerates, framerates)
+        return (1000000 // framerates[1], 1000000 // framerates[0])
+
+    def _durations_to_framerates_(durations):
+        if durations[0] == durations[1]:
+            return 1000000 / durations[0]
+        return (1000000 / durations[1], 1000000 / durations[0])
+
+    _VIRTUAL_FIELDS_MAP_ = {"FrameRate": ("FrameDurationLimits", _framerates_to_durations_, _durations_to_framerates_)}
 
     def __init__(self, picam2, controls={}):
         self._picam2 = picam2
@@ -14,10 +25,21 @@ class Controls():
 
     def __setattr__(self, name, value):
         if not name.startswith('_'):
+            if name in Controls._VIRTUAL_FIELDS_MAP_:
+                real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
+                name = real_field[0]
+                value = real_field[1](value)
             if name not in self._picam2.camera_ctrl_info.keys():
                 raise RuntimeError(f"Control {name} is not advertied by libcamera")
             self._controls.append(name)
         self.__dict__[name] = value
+
+    def __getattribute__(self, name):
+        if name in Controls._VIRTUAL_FIELDS_MAP_:
+            real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
+            real_value = self.__getattribute__(real_field[0])
+            return real_field[2](real_value)
+        return super().__getattribute__(name)
 
     def __repr__(self):
         return f"<Controls: {self.make_dict()}>"
