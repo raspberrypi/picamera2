@@ -313,8 +313,10 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
-        self.align_stream(main)
+        self.align_stream(main, optimal=False)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        if lores is not None:
+            self.align_stream(lores, optimal=False)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         # Let the framerate vary from 12fps to as fast as possible.
         controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
@@ -335,8 +337,10 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
-        self.align_stream(main)
+        self.align_stream(main, optimal=False)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        if lores is not None:
+            self.align_stream(lores, optimal=False)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         # Let the framerate span the entire possible range of the sensor.
         controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
@@ -357,8 +361,10 @@ class Picamera2:
         if self.camera is None:
             raise RuntimeError("Camera not opened")
         main = self.make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
-        self.align_stream(main)
+        self.align_stream(main, optimal=False)
         lores = self.make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        if lores is not None:
+            self.align_stream(lores, optimal=False)
         raw = self.make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
@@ -400,8 +406,11 @@ class Picamera2:
         else:
             if not self.is_YUV(format) and not self.is_RGB(format):
                 raise RuntimeError("Bad format " + format + " in stream " + name)
-        if type(stream_config["size"]) is not tuple or len(stream_config["size"]) != 2:
+        size = stream_config["size"]
+        if type(size) is not tuple or len(size) != 2:
             raise RuntimeError("size in " + name + " stream should be (width, height)")
+        if size[0] % 2 or size[1] % 2:
+            raise RuntimeError("width and height should be even")
 
     def check_camera_config(self, camera_config: dict) -> None:
         required_keys = ["colour_space", "transform", "main", "lores", "raw"]
@@ -468,16 +477,25 @@ class Picamera2:
 
         return libcamera_config
 
-    def align_stream(self, stream_config: dict) -> None:
-        # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
-        # This matches the hardware behaviour and means we can be more efficient.
-        align = 32
-        if stream_config["format"] in ("YUV420", "YVU420"):
-            align = 64  # because the UV planes will have half this alignment
-        elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
-            align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+    def align_stream(self, stream_config: dict, optimal=True) -> None:
+        if optimal:
+            # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
+            # This matches the hardware behaviour and means we can be more efficient.
+            align = 32
+            if stream_config["format"] in ("YUV420", "YVU420"):
+                align = 64  # because the UV planes will have half this alignment
+            elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
+                align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+        else:
+            align = 2
         size = stream_config["size"]
         stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
+
+    def align_configuration(self, config: dict, optimal=True) -> None:
+        self.align_stream(config["main"], optimal=optimal)
+        if "lores" in config and config["lores"] is not None:
+            self.align_stream(config["lores"], optimal=optimal)
+        # No point aligning the raw stream, it wouldn't mean anything.
 
     def is_YUV(self, fmt) -> bool:
         return fmt in ("NV21", "NV12", "YUV420", "YVU420", "YVYU", "YUYV", "UYVY", "VYUY")
