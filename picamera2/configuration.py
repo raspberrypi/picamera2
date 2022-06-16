@@ -1,3 +1,4 @@
+from .controls import Controls
 
 class Configuration:
     """
@@ -68,7 +69,7 @@ class Configuration:
         for f in self._ALLOWED_FIELDS:
             if hasattr(self, f):
                 value = getattr(self, f)
-                if isinstance(value, Configuration):
+                if value is not None and f in self._FIELD_CLASS_MAP:
                     value = value.make_dict()
                 d[f] = value
         return d
@@ -84,3 +85,8 @@ class CameraConfiguration(Configuration):
     _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space", "controls", "main", "lores", "raw")
     _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
+
+    def __init__(self, d={}, picam2=None):
+        # Can't convert "controls" dicts to Controls objects automatically, so do it here:
+        d = {k: v if k != "controls" else Controls(picam2, v) for k, v in d.items()}
+        super().__init__(d)

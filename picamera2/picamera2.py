@@ -145,7 +145,7 @@ class Picamera2:
 
     @preview_configuration.setter
     def preview_configuration(self, value):
-        self.preview_configuration_ = CameraConfiguration(value)
+        self.preview_configuration_ = CameraConfiguration(value, self)
 
     @property
     def still_configuration(self):
@@ -153,7 +153,7 @@ class Picamera2:
 
     @still_configuration.setter
     def still_configuration(self, value):
-        self.still_configuration_ = CameraConfiguration(value)
+        self.still_configuration_ = CameraConfiguration(value, self)
 
     @property
     def video_configuration(self):
@@ -161,7 +161,7 @@ class Picamera2:
 
     @video_configuration.setter
     def video_configuration(self, value):
-        self.video_configuration_ = CameraConfiguration(value)
+        self.video_configuration_ = CameraConfiguration(value, self)
 
     @property
     def request_callback(self):
