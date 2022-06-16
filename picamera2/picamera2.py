@@ -17,6 +17,8 @@ from picamera2.utils import initialize_logger
 from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
 from .request import CompletedRequest
 from .configuration import CameraConfiguration, StreamConfiguration
+from .controls import Controls
+
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
@@ -104,8 +106,6 @@ class Picamera2:
         self.async_operation_in_progress = False
         self.asyc_result = None
         self.async_error = None
-        self.controls_lock = threading.Lock()
-        self.controls = {}
         self.options = {}
         self._encoder = None
         self.pre_callback = None
@@ -114,6 +114,7 @@ class Picamera2:
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
         self.have_event_loop = False
         self.camera_properties_ = {}
+        self.controls = Controls(self)
 
     @property
     def preview_configuration(self):
@@ -616,10 +617,8 @@ class Picamera2:
             self.still_configuration.update(camera_config)
         else:
             self.video_configuration.update(camera_config)
-        # Set the controls directly so as to overwrite whatever is there. No need for the lock
-        # here as the camera is not running. Copy it so that subsequent calls to set_controls
-        # don't become part of the camera_config.
-        self.controls = self.camera_config['controls'].copy()
+        # Set the controls directly so as to overwrite whatever is there.
+        self.controls.set_controls(self.camera_config['controls'])
         self.configure_count += 1
 
     def configure(self, camera_config="preview") -> None:
@@ -638,24 +637,13 @@ class Picamera2:
         """List the controls supported by the camera."""
         return self.camera.controls
 
-    def populate_libcamera_controls(self):
-        controls = {}
-        for k, v in self.controls.items():
-            id = self.camera_ctrl_info[k][0]
-            if id.type == libcamera.ControlType.Rectangle:
-                v = libcamera.Rectangle(*v)
-            elif id.type == libcamera.ControlType.Size:
-                v = libcamera.Size(*v)
-            controls[id] = v
-        return controls
-
     def start_(self) -> None:
         """Start the camera system running."""
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
             raise RuntimeError("Camera already started")
-        controls = self.populate_libcamera_controls()
+        controls = self.controls.get_libcamera_controls()
         if self.camera.start(controls) >= 0:
             for request in self.make_requests():
                 self.camera.queue_request(request)
@@ -714,9 +702,7 @@ class Picamera2:
 
     def set_controls(self, controls) -> None:
         """Set camera controls. These will be delivered with the next request that gets submitted."""
-        with self.controls_lock:
-            for key, value in controls.items():
-                self.controls[key] = value
+        self.controls.set_controls(controls)
 
     def get_completed_requests(self) -> List[CompletedRequest]:
         # Return all the requests that libcamera has completed.
