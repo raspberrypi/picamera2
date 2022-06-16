@@ -74,6 +74,19 @@ class Configuration:
                 d[f] = value
         return d
 
+    def align(self, optimal=True):
+        if optimal:
+            # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
+            # This matches the hardware behaviour and means we can be more efficient.
+            align = 32
+            if self.format in ("YUV420", "YVU420"):
+                align = 64  # because the UV planes will have half this alignment
+            elif self.format in ("XBGR8888", "XRGB8888"):
+                align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+        else:
+            align = 2
+        self.size = (self.size[0] - self.size[0] % align, self.size[1] - self.size[1] % 2)
+
 
 class StreamConfiguration(Configuration):
     _ALLOWED_FIELDS = ("size", "format", "stride", "framesize")
@@ -90,3 +103,9 @@ class CameraConfiguration(Configuration):
         # Can't convert "controls" dicts to Controls objects automatically, so do it here:
         d = {k: v if k != "controls" else Controls(picam2, v) for k, v in d.items()}
         super().__init__(d)
+
+    def align(self, optimal=True):
+        self.main.align(optimal)
+        if self.lores is not None:
+            self.lores.align(optimal)
+        # No sense trying to align the raw stream.
