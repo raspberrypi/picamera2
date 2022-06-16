@@ -292,12 +292,13 @@ class Picamera2:
         else:
             raise RuntimeError("Failed to initialize camera")
 
-    def start_preview(self, preview=None, **kwargs) -> None:
+    def start_preview(self, preview=False, **kwargs) -> None:
         """
         Start the given preview which drives the camera processing.
 
         The preview may be either:
-          None - in which case a NullPreview is made,
+          None or False - in which case a NullPreview is made,
+          True - which we hope in future to use to autodetect
           a Preview enum value - in which case a preview of that type is made,
           or an actual preview object.
 
@@ -307,7 +308,17 @@ class Picamera2:
         if self.have_event_loop:
             raise RuntimeError("An event loop is already running")
 
-        if preview is None:
+        if preview is True:
+            # Crude attempt at "autodetection" but which will mostly (?) work. We will
+            # probably find situations that need fixing, VNC perhaps.
+            display = os.getenv('DISPLAY')
+            if display is None:
+                preview = Preview.DRM
+            elif display.startswith(':'):
+                preview = Preview.QTGL
+            else:
+                preview = Preview.QT
+        if not preview:  # i.e. None or False
             preview = NullPreview()
         elif isinstance(preview, Preview):
             preview_table = {Preview.NULL: NullPreview,
@@ -760,24 +771,30 @@ class Picamera2:
             self.log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
 
-    def start(self, event_loop=True) -> None:
-        """Start the camera system running.
+    def start(self, config=None, show_preview=False) -> None:
+        """
+        Start the camera system running.
 
         Camera controls may be sent to the camera before it starts running.
 
-        Additionally the event_loop parameter will cause an event loop
-        to be started if there is not one running already. In this
-        case the event loop will not display a window of any kind. Applications
-        wanting a preview window should use start_preview before calling this
-        function.
+        The following parameters may be supplied:
 
-        An application could elect not to start an event loop at all,
-        in which in which case they would have to supply their own."""
+        config - if not None this is used to configure the camera. This is just a
+            convenience so that you don't have to call configure explicitly.
+
+        show_preview - whether to show a preview window. You can pass in the preview
+            type or True to attempt to autodetect. If left as False you'll get no
+            visible preview window but the "NULL preview" will still be run. The
+            value None would mean no event loop runs at all and you would have to
+            implement your own.
+        """
+        if config is not None:
+            self.configure(config)
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         # By default we will create an event loop is there isn't one running already.
-        if event_loop and not self.have_event_loop:
-            self.start_preview(Preview.NULL)
+        if show_preview is not None and not self.have_event_loop:
+            self.start_preview(show_preview)
         self.start_()
 
     def stop_(self, request=None) -> None:
