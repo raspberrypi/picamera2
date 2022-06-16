@@ -32,7 +32,7 @@ def capture_done():
     button.setEnabled(True)
 
 
-qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
+qpicamera2 = QGlPicamera2(picam2, width=800, height=600, keep_ar=False)
 button = QPushButton("Click to capture JPEG")
 label = QLabel()
 window = QWidget()

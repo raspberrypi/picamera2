@@ -1,6 +1,8 @@
 import time
 import threading
 
+from libcamera import Rectangle, Size
+
 from PIL import Image
 import numpy as np
 import piexif
@@ -18,11 +20,11 @@ class _MappedBuffer:
         import mmap
 
         # Check if the buffer is contiguous and find the total length.
-        fd = self.__fb.fd(0)
+        fd = self.__fb.planes[0].fd
         buflen = 0
-        for i in range(self.__fb.num_planes):
-            buflen = buflen + self.__fb.length(i)
-            if fd != self.__fb.fd(i):
+        for p in self.__fb.planes:
+            buflen = buflen + p.length
+            if fd != p.fd:
                 raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
 
         self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
@@ -117,10 +119,10 @@ class CompletedRequest:
                 if self.stop_count == self.picam2.stop_count:
                     self.request.reuse()
                     with self.picam2.controls_lock:
-                        for key, value in self.picam2.controls.items():
-                            id = self.picam2.camera.find_control(key)
+                        controls = self.picam2.populate_libcamera_controls()
+                        for id, value in controls.items():
                             self.request.set_control(id, value)
-                            self.picam2.controls = {}
+                        self.picam2.controls = {}
                         self.picam2.camera.queue_request(self.request)
                 self.request = None
 
@@ -131,7 +133,14 @@ class CompletedRequest:
 
     def get_metadata(self):
         """Fetch the metadata corresponding to this completed request."""
-        return self.request.metadata
+        metadata = {}
+        for k, v in self.request.metadata.items():
+            if isinstance(v, Rectangle):
+                v = (v.x, v.y, v.width, v.height)
+            elif isinstance(v, Size):
+                v = (v.width, v.height)
+            metadata[k.name] = v
+        return metadata
 
 
 class PostProcess:

@@ -26,7 +26,7 @@ def on_button_clicked():
         print("Busy!")
 
 
-qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
+qpicamera2 = QGlPicamera2(picam2, width=800, height=600, keep_ar=False)
 button = QPushButton("Click to capture JPEG")
 button.clicked.connect(on_button_clicked)
 label = QLabel()
