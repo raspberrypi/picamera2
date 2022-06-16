@@ -16,8 +16,7 @@ class Configuration:
         field of a CameraConfiguration, you might want it to turn into a StreamConfiguration.
 
         One of these fields can be set by doing (for example) camera_config.lores = {}, which
-        would be turned into a StreamConfiguration. Or for those averse to dicts, we allow
-        camera_config.enable_lores() instead.
+        would be turned into a StreamConfiguration.
 
     _FORWARD_FIELDS: allows certain attribute names to be forwarded to another contained
         object. For example, if someone wants to set CameraConfiguration.size they probably
@@ -43,17 +42,8 @@ class Configuration:
             raise RuntimeError(f"Invalid field '{name}'")
 
     def __getattribute__(self, name):
-        prefix = "enable_"
-        if name.startswith(prefix) and len(name) > len(prefix):
-            field = name[len(prefix):]
-
-            def func(onoff=True):
-                if onoff:
-                    self.__setattr__(field, {})
-                else:
-                    delattr(self, field)
-            return func
-
+        if name in super().__getattribute__("_FORWARD_FIELDS"):
+            return super().__getattribute__(self._FORWARD_FIELDS[name]).__getattribute__(name)
         else:
             return super().__getattribute__(name)
 
@@ -107,6 +97,18 @@ class CameraConfiguration(Configuration):
     @staticmethod
     def set_picam2(picam2):
         CameraConfiguration.__picam2__ = picam2
+
+    def enable_lores(self, onoff=True):
+        if onoff:
+            self.lores = StreamConfiguration({"size": self.main.size, "format": "YUV420"})
+        else:
+            self.lores = None
+
+    def enable_raw(self, onoff=True):
+        if onoff:
+            self.raw = StreamConfiguration({"size": self.main.size, "format": CameraConfiguration.__picam2__.sensor_format})
+        else:
+            self.raw = None
 
     def align(self, optimal=True):
         self.main.align(optimal)
