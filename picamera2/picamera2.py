@@ -574,8 +574,11 @@ class Picamera2:
         self.log.info("Configuration successful!")
         self.log.debug(f"Final configuration: {camera_config}")
 
-        # Update the properties list as some of the values may have changed.
+        # Update the controls and properties list as some of the values may have changed.
+        self.camera_ctrl_info = {}
         self.camera_properties_ = {}
+        for k, v in self.camera.controls.items():
+            self.camera_ctrl_info[k.name] = (k, v)
         for k in self.camera.properties.keys():
             self.camera_properties_[k.name] = k
 
