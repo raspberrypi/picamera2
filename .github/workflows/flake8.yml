@@ -22,7 +22,7 @@ jobs:
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
-      run: sudo apt install -y build-essential libcap-dev libfmt-dev libdrm-dev git python3-sphinx libyaml-dev python3-yaml python3-ply python3-jinja2 libgnutls28-dev openssl
+      run: sudo apt install -y build-essential libcap-dev libfmt-dev libdrm-dev git python3-sphinx libyaml-dev python3-yaml python3-ply python3-jinja2 libgnutls28-dev openssl libboost-dev
     - name: Display python version
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
