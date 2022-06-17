@@ -21,14 +21,14 @@ jobs:
       run: sudo apt update
     - name: Install apt dependencies
       run: sudo apt install -y python3-dev libpython3-dev build-essential libcap-dev ninja-build libfmt-dev libdrm-dev git
-    - name: kmsxx
-      run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
     - name: Install dependencies for testing
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: kmsxx
+      run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: set pythonpath
       run: |
         echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/py/" >> $GITHUB_ENV
