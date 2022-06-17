@@ -20,7 +20,7 @@ jobs:
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
-      run: sudo apt install -y build-essential libcap-dev ninja-build meson libfmt-dev git
+      run: sudo apt install -y build-essential libcap-dev ninja-build meson libfmt-dev libdrm-dev git
     - name: kmsxx
       run: git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: Install dependencies
