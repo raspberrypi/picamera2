@@ -12,15 +12,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
-        python-version: 3.9
+        python-version: '3.9'
+    - name: Display python version
+      run: python -c "import sys; print(sys.version)"
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
       run: sudo apt install -y python3-dev libpython3-dev build-essential libcap-dev ninja-build libfmt-dev libdrm-dev git
+    - name: Display python version
+      run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
