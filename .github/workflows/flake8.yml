@@ -31,7 +31,7 @@ jobs:
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: set pythonpath
       run: |
-        echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/pi/pykms" >> $GITHUB_ENV
+        echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/pi/" >> $GITHUB_ENV
     - name: test cv2
       run: python -c 'import cv2; print(cv2.__version__)'
     - name: Lint with flake8
