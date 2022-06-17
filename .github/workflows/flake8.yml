@@ -22,7 +22,7 @@ jobs:
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
-      run: sudo apt install -y build-essential libcap-dev libfmt-dev libdrm-dev git
+      run: sudo apt install -y build-essential libcap-dev libfmt-dev libdrm-dev git python3-sphinx
     - name: Display python version
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
@@ -31,6 +31,8 @@ jobs:
     - name: Install dependencies for testing
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: libcamera
+      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build install
     - name: kmsxx
       run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: set pythonpath
