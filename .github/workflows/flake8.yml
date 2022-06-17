@@ -32,7 +32,7 @@ jobs:
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: libcamera
-      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; sudo ninja -C build install
+      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; sudo -E ninja -C build install
     - name: kmsxx
       run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: set pythonpath
