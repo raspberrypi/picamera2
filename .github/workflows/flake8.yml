@@ -32,12 +32,12 @@ jobs:
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: libcamera
-      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; sudo -E ninja -C build install
+      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
     - name: kmsxx
       run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: set pythonpath
       run: |
-        echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/py/" >> $GITHUB_ENV
+        echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/py/:/home/runner/work/libcamera/build/src/py/" >> $GITHUB_ENV
     - name: test cv2
       run: python -c 'import cv2; print(cv2.__version__)'
     - name: test pykms
