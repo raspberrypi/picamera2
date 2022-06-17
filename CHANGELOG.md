@@ -4,7 +4,17 @@
 
 ### Added
 
+* A very trivial Metadata class is provided that can be used to wrap the metadata dictionaries, for those that prefer this style.
+* A Controls class is provided which gives an object-like view to control lists. The class is able to check that the control names are valid.
+* Configuration structures are provided so that the Picamera2 object can be configured using the "object" style. Three such instances are embedded in the Picamera2 object, namely preview_configuration, still_configuration and video_configuration.
+
 ### Changed
+
+* The start_recording() method accepts an optional configuration.
+* The start_preview() method accepts True as an indication to try and autodetect the correct type of preview window. Note that there will be situations where it guesses incorrectly.
+* The start() method can optionally be given config and show_preview parameters which will configure the camera and start the preview (if it isn't running already).
+* Streams no longer have their widths optimally aligned by default. A separate align_configuration() method can be called to enforce this.
+* The preview_configuration(), still_configuration() and video_configuration() methods (xxx_configuration) are renamed to create_xxx_configuration().
 
 ## 0.2.2 Alpha Release 2
 
