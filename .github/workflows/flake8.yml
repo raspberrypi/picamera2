@@ -34,6 +34,8 @@ jobs:
         echo "PYTHONPATH=.:/home/runner/work/kmsxx/build/pi/" >> $GITHUB_ENV
     - name: test cv2
       run: python -c 'import cv2; print(cv2.__version__)'
+    - name: test pykms
+      run: python -c 'import pykms'
     - name: Lint with flake8
       run: |
         flake8 . --count --show-source --statistics
