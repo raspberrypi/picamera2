@@ -22,7 +22,7 @@ jobs:
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
-      run: sudo apt install -y python3-dev libpython3-dev build-essential libcap-dev ninja-build libfmt-dev libdrm-dev git
+      run: sudo apt install -y python3-dev libpython3-dev pybind11-dev build-essential libcap-dev ninja-build libfmt-dev libdrm-dev git
     - name: Display python version
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
