@@ -20,7 +20,9 @@ jobs:
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
-      run: sudo apt install -y build-essential libcap-dev
+      run: sudo apt install -y build-essential libcap-dev ninja-build meson git
+    - name: kmsxx
+      run: git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -29,7 +31,7 @@ jobs:
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: set pythonpath
       run: |
-        echo "PYTHONPATH=." >> $GITHUB_ENV
+        echo "PYTHONPATH=.:~/kmsxx/build/pi/pykms" >> $GITHUB_ENV
     - name: test cv2
       run: python -c 'import cv2; print(cv2.__version__)'
     - name: Lint with flake8
