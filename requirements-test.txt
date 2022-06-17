@@ -26,3 +26,6 @@ pytesseract
 meson
 ninja
 pybind11
+Jinja2
+ply
+PyYAML
