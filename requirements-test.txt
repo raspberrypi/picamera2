@@ -24,3 +24,4 @@ PyQt5
 opencv-python
 pytesseract
 meson
+ninja
