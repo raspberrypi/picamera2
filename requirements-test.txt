@@ -25,3 +25,4 @@ opencv-python
 pytesseract
 meson
 ninja
+pybind11
