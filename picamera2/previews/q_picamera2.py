@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QSocketNotifier, QSize, QRect
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene
 from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
 import numpy as np
-
+from picamera2.request import PostProcess
 
 try:
     import cv2
@@ -19,6 +19,7 @@ class QPicamera2(QGraphicsView):
     def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True):
         super().__init__(parent=parent)
         self.picamera2 = picam2
+        self.post_process = PostProcess(picam2)
         picam2.have_event_loop = True
         self.keep_ar = keep_ar
         self.image_size = None
@@ -135,7 +136,8 @@ class QPicamera2(QGraphicsView):
         camera_config = self.picamera2.camera_config
         if self.enabled and self.picamera2.display_stream_name is not None and camera_config is not None:
             stream_config = camera_config[self.picamera2.display_stream_name]
-            img = request.make_array(self.picamera2.display_stream_name)
+            buffer = request.make_buffer(self.picamera2.display_stream_name)
+            img = self.post_process.make_array(buffer, camera_config[self.picamera2.display_stream_name])
             if stream_config["format"] == "YUV420":
                 if cv2_available:
                     img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)

@@ -150,7 +150,6 @@ class PostProcess:
     def make_array(self, buffer, config):
         """Make a 2d numpy array from the named stream's buffer."""
         array = buffer
-
         fmt = config["format"]
         w, h = config["size"]
         stride = config["stride"]
@@ -183,7 +182,6 @@ class PostProcess:
     def make_image(self, buffer, config, width=None, height=None):
         """Make a PIL image from the named stream's buffer."""
         rgb = self.make_array(buffer, config)
-
         fmt = config["format"]
         mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
         mode = mode_lookup[fmt]
@@ -201,7 +199,6 @@ class PostProcess:
         """Save a JPEG or PNG image."""
         # This is probably a hideously expensive way to do a capture.
         start_time = time.monotonic()
-
         exif = b''
         if isinstance(format, str):
             format_str = format.lower()
@@ -215,7 +212,6 @@ class PostProcess:
                 # doesn't like RGBA to we have to bodge that to RGBX.
                 img.mode = "RGBX"
             # Make up some extra EXIF data.
-            #metadata = self.get_metadata()
             zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
                         piexif.ImageIFD.Model: self.picam2.camera.id,
                         piexif.ImageIFD.Software: "Picamera2"}
@@ -231,7 +227,7 @@ class PostProcess:
         self.picam2.log.info(f"Saved {self} to file {file_output}.")
         self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def save_dng(self, buffer, metadata, config, filename): #, name="raw"):
+    def save_dng(self, buffer, metadata, config, filename):
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)

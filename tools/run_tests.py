@@ -96,7 +96,7 @@ def run_tests(tests):
             print("\tFAILED")
             print_subprocess_output(e)
             num_failed = num_failed + 1
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             print("\tTIMED OUT")
             print_subprocess_output(e)
             num_failed = num_failed + 1
