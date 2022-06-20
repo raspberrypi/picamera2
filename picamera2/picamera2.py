@@ -1063,9 +1063,11 @@ class Picamera2:
             raise RuntimeError("Must pass encoder instance")
         self._encoder = value
 
-    def start_recording(self, encoder, output) -> None:
+    def start_recording(self, encoder, output, config=None) -> None:
         """Start recording a video using the given encoder and to the given output.
         Output may be a string in which case the correspondingly named file is opened."""
+        if config is not None:
+            self.configure(config)
         if isinstance(output, str):
             output = FileOutput(output)
         encoder.output = output
