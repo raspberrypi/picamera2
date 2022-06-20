@@ -13,7 +13,7 @@ from PIL import Image
 
 from picamera2.encoders import Encoder
 from picamera2.outputs import FileOutput
-from picamera2.utils import initialize_logger
+from picamera2.utils import initialize_logger, LibcameraConfigStatus, Role
 from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
 from .request import CompletedRequest
 
@@ -485,6 +485,26 @@ class Picamera2:
         if self.raw_index >= 0:
             self.update_stream_config(camera_config["raw"], libcamera_config.at(self.raw_index))
 
+    def validate_libcamera_config(self, libcamera_config) -> bool:
+        status = libcamera_config.validate()
+        if status == LibcameraConfigStatus.INVALID:
+            raise RuntimeError("Invalid camera configuration.")
+        elif status == LibcameraConfigStatus.ADJUSTED:
+            self.log.info("Camera configuration has been adjusted!")
+            return True
+        elif status == LibcameraConfigStatus.VALID:
+            self.log.info("Camera configuration is valid!")
+            return True
+
+    def configure_libcamera(self,libcamera_config) -> bool:
+        configured = self.camera.configure(libcamera_config)
+        if configured != 0:
+            raise RuntimeError("Configuration failed: {}".format(camera_config))
+        else:
+            self.log.info("Configuration successful!")
+            self.log.debug(f"Final configuration: {camera_config}")
+            return True
+
     def configure_(self, camera_config=None) -> None:
         """Configure the camera system with the given configuration."""
         if self.started:
@@ -500,20 +520,10 @@ class Picamera2:
         self.check_camera_config(camera_config)
         libcamera_config = self.make_libcamera_config(camera_config)
 
-        # Check that libcamera is happy with it.
-        status = libcamera_config.validate()
-        self.update_camera_config(camera_config, libcamera_config)
         self.log.debug(f"Requesting configuration: {camera_config}")
-        if status == libcamera.CameraConfiguration.Status.Invalid:
-            raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
-        elif status == libcamera.CameraConfiguration.Status.Adjusted:
-            self.log.info("Camera configuration has been adjusted!")
-
-        # Configure libcamera.
-        if self.camera.configure(libcamera_config):
-            raise RuntimeError("Configuration failed: {}".format(camera_config))
-        self.log.info("Configuration successful!")
-        self.log.debug(f"Final configuration: {camera_config}")
+        self.validate_libcamera_config(libcamera_config):
+        self.configure_libcamera(libcamera_config)
+        self.update_camera_config(camera_config, libcamera_config)
 
         # Update the properties list as some of the values may have changed.
         self.camera_properties_ = {}
