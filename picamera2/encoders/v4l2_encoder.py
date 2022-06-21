@@ -24,7 +24,8 @@ class V4L2Encoder(Encoder):
         """
         super().__init__()
         self.bufs = {}
-        self._bitrate = bitrate
+        # The encoder's _setup method will calculate the final bitrate.
+        self._requested_bitrate = bitrate
         self._pixformat = pixformat
         self._controls = []
         self.vd = None

@@ -1,8 +1,19 @@
 """Encoder functionality"""
 
+from enum import Enum
 from v4l2 import *
 
 from ..outputs import Output
+
+
+class Quality(Enum):
+    """Enum type to describe the quality wanted from an encoder. This may be passed
+    if a specific value (such as bitrate) has not been set."""
+    VERY_LOW = 0
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    VERY_HIGH = 4
 
 
 class Encoder:
