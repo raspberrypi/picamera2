@@ -36,7 +36,7 @@ This README file and a set of numerous small examples can be found in the [GitHu
 
 #### Picamera2 on Pi 3 and ealier devices
 
-On Pi 3 and earlier devices it will be necessary to enable _Glamor_ if you want to use the preview window implementations that run under X-Windows. To enable Glamor, run `sudo raspi-config`, choose _Advanced Options_ and enable _Glamor_ graphic accleration.
+On Pi 3 and earlier devices it will be necessary to enable _Glamor_ if you want to use the preview window implementations that run under X-Windows. To enable Glamor, run `sudo raspi-config`, choose _Advanced Options_ and enable _Glamor_ graphic acceleration.
 
 You do not need to enable _Glamor_ if you want to use Picamera2 without a preview window, or if you use the DRM/KMS preview implementation (which runs without X-Windows). In general, on lower powered Pi devices (especially 512MB devices), running without X-Windows will be beneficial to performance.
 
