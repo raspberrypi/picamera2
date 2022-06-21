@@ -787,6 +787,8 @@ class Picamera2:
             value None would mean no event loop runs at all and you would have to
             implement your own.
         """
+        if self.camera_config is None and config is None:
+            config = "preview"
         if config is not None:
             self.configure(config)
         if self.camera_config is None:
@@ -1244,6 +1246,8 @@ class Picamera2:
         :param output: FileOutput object
         :type output: FileOutput
         """
+        if self.camera_config is None and config is None:
+            config = "video"
         if config is not None:
             self.configure(config)
         if isinstance(output, str):
