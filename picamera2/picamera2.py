@@ -14,7 +14,7 @@ import libcamera
 import numpy as np
 from PIL import Image
 
-from picamera2.encoders import Encoder
+from picamera2.encoders import Encoder, Quality
 from picamera2.outputs import FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 from picamera2.utils import initialize_logger
@@ -1181,7 +1181,7 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def start_encoder(self, encoder=None) -> None:
+    def start_encoder(self, encoder=None, quality=Quality.MEDIUM) -> None:
         """Start encoder
 
         :param encoder: Sets encoder or uses existing, defaults to None
@@ -1199,6 +1199,13 @@ class Picamera2:
         self.encoder.width, self.encoder.height = streams[name]['size']
         self.encoder.format = streams[name]['format']
         self.encoder.stride = streams[name]['stride']
+        # Also give the encoder a nominal framerate, which we'll peg at 30fps max
+        # in case we only have a dummy value
+        min_frame_duration = self.camera_ctrl_info["FrameDurationLimits"][1].min
+        min_frame_duration = max(min_frame_duration, 33333)
+        self.encoder.framerate = 1000000 / min_frame_duration
+        # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
+        self.encoder._setup(quality)
         self.encoder._start()
 
     def stop_encoder(self) -> None:
@@ -1227,7 +1234,7 @@ class Picamera2:
             raise RuntimeError("Must pass encoder instance")
         self._encoder = value
 
-    def start_recording(self, encoder, output, config=None) -> None:
+    def start_recording(self, encoder, output, config=None, quality=Quality.MEDIUM) -> None:
         """Start recording a video using the given encoder and to the given output.
 
         Output may be a string in which case the correspondingly named file is opened.
@@ -1242,8 +1249,7 @@ class Picamera2:
         if isinstance(output, str):
             output = FileOutput(output)
         encoder.output = output
-        self.encoder = encoder
-        self.start_encoder()
+        self.start_encoder(encoder, quality)
         self.start()
 
     def stop_recording(self) -> None:

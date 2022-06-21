@@ -2,24 +2,25 @@
 
 import simplejpeg
 
+from picamera2.encoders import Quality
 from picamera2.encoders.multi_encoder import MultiEncoder
 
 
 class JpegEncoder(MultiEncoder):
     """Uses functionality from MultiEncoder"""
 
-    def __init__(self, num_threads=4, q=85, colour_space='RGBX'):
+    def __init__(self, num_threads=4, q=None, colour_space='RGBX'):
         """Initialises Jpeg encoder
 
         :param num_threads: Number of threads to use, defaults to 4
         :type num_threads: int, optional
-        :param q: Quality, defaults to 85
+        :param q: Quality, defaults to None
         :type q: int, optional
         :param colour_space: Colour space, defaults to 'RGBX'
         :type colour_space: str, optional
         """
         super().__init__(num_threads=num_threads)
-        self.q = q
+        self.requested_q = q
         self.colour_space = colour_space
 
     def encode_func(self, request, name):
@@ -34,3 +35,15 @@ class JpegEncoder(MultiEncoder):
         """
         array = request.make_array(name)
         return simplejpeg.encode_jpeg(array, quality=self.q, colorspace=self.colour_space)
+
+    def _setup(self, quality):
+        if self.requested_q is None:
+            # Image size and framerate isn't an issue here, you just get what you get.
+            Q_TABLE = {Quality.VERY_LOW: 20,
+                       Quality.LOW: 40,
+                       Quality.MEDIUM: 60,
+                       Quality.HIGH: 75,
+                       Quality.VERY_HIGH: 90}
+            self.q = Q_TABLE[quality]
+        else:
+            self.q = self.requested_q
