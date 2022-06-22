@@ -15,8 +15,8 @@ import libcamera
 import numpy as np
 from PIL import Image
 
-from picamera2.encoders import Encoder, Quality
-from picamera2.outputs import FileOutput
+from picamera2.encoders import Encoder, Quality, H264Encoder, MJPEGEncoder
+from picamera2.outputs import FileOutput, FfmpegOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 from picamera2.utils import initialize_logger
 
@@ -1356,3 +1356,62 @@ class Picamera2:
             (with the stop_preview method).
         """
         self.start_and_capture_files(name=name, initial_delay=delay, preview_mode=preview_mode, capture_mode=capture_mode, num_files=1, show_preview=show_preview)
+
+    def start_and_record_video(self, output, encoder=None, config=None, quality=Quality.MEDIUM, show_preview=False, duration=0, audio=False):
+        """
+        This function makes video recording more convenient, but should only be used in command
+        line applications (not from a Qt application, for example). It will configure the camera
+        if requested and start it. The following parameters are required:
+
+        output - the name of an output file (or an output object). If the output is a string,
+            the correct output object will be created for "mp4" or "ts" files. All other formats
+            will simply be written as flat files.
+
+        The following parameters are optional:
+
+        encoder - the encoder object to use. If unspecified, the MJPEGEncoder will be selected for
+            files ending in ".mjpg" or .mjpeg", otherwise the H264Enccoder will be used.
+
+        config - the camera configuration to apply. The default behaviour (given by the value None)
+            is not to overwrite any existing configuration, though the "video" configuration will be
+            applied if the camera is unconfigured.
+
+        quality - an indication of the video quality to use. This will be ignored if the encoder
+            object was created with all its quality parameters (such as bitrate) filled in.
+
+        show_preview - whether to show a preview window (default: no). This parameter only has an
+            effect if a preview is not already running, in which case that preview would need
+            stopping first (using stop_preview) for any change to take effect.
+
+        duration - the duration of the video. The function will wait this amount of time before
+            stopping the recording and returning. The default behaviour is to return immediately
+            and to leave the recoding running (the application will have to stop it later, for
+            example by calling stop_recording).
+
+        audio - whether to record audio. This is only effective when recording to an "mp4" or "ts"
+            file, and there is a microphone installed and working as the default input device
+            through Pulseaudio.
+        """
+        if self.started:
+            self.stop()
+        if self.camera_config is None and config is None:
+            config = "video"
+        if config is not None:
+            self.configure(config)
+        if isinstance(output, str):
+            if encoder is None:
+                extension = output.split('.')[-1].lower()
+                if extension in ("mjpg", "mjpeg"):
+                    encoder = MJPEGEncoder()
+                if extension in ("mp4", "ts"):
+                    output = FfmpegOutput(output, audio=audio)
+                else:
+                    output = FileOutput(output)
+        if encoder is None:
+            encoder = H264Encoder()
+        encoder.output = output
+        self.start_encoder(encoder, quality)
+        self.start(show_preview=show_preview)
+        if duration:
+            time.sleep(duration)
+            self.stop_recording()
