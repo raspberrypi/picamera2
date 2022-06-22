@@ -8,6 +8,8 @@ examples/capture_to_buffer.py
 examples/capture_video.py
 examples/controls.py
 examples/controls_2.py
+examples/easy_capture.py
+examples/easy_video.py
 examples/exposure_fixed.py
 examples/metadata.py
 examples/mp4_capture.py
