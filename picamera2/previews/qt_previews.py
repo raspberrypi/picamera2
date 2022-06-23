@@ -13,7 +13,7 @@ class QtPreviewBase:
 
     def thread_func(self, picam2):
         # Running Qt in a thread other than the main thread is a bit tricky...
-        from PyQt5 import QtCore, QtWidgets
+        from PyQt5 import QtCore
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QApplication
 

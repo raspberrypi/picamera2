@@ -1,14 +1,9 @@
-from libcamera import PixelFormat
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import pyqtSlot, QSocketNotifier
-from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtCore import Qt, pyqtSignal
-
 import os
 import sys
 import threading
 import time
 
+from libcamera import PixelFormat
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QWidget

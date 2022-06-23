@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import numpy as np
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
                              QPushButton, QVBoxLayout, QWidget)
 

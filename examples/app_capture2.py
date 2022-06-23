@@ -4,7 +4,7 @@
 # we use the Qt signal/slot mechanism to get a callback (capture_done)
 # when the capture, that is running asynchronously, is finished.
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
                              QVBoxLayout, QWidget)
 
