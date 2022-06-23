@@ -1,8 +1,6 @@
 import time
 import threading
 
-from libcamera import Rectangle, Size
-
 from PIL import Image
 import numpy as np
 import piexif
@@ -135,11 +133,7 @@ class CompletedRequest:
         """Fetch the metadata corresponding to this completed request."""
         metadata = {}
         for k, v in self.request.metadata.items():
-            if isinstance(v, Rectangle):
-                v = (v.x, v.y, v.width, v.height)
-            elif isinstance(v, Size):
-                v = (v.width, v.height)
-            metadata[k.name] = v
+            metadata[k.name] = self.picam2._convert_from_libcamera_type(v)
         return metadata
 
     def make_array(self, name):
