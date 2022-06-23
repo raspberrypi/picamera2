@@ -191,6 +191,14 @@ class Picamera2:
         self.log.debug(f"Resources now free: {self}")
         self.close()
 
+    @staticmethod
+    def _convert_from_libcamera_type(value):
+        if isinstance(value, libcamera.Rectangle):
+            value = (value.x, value.y, value.width, value.height)
+        elif isinstance(value, libcamera.Size):
+            value = (value.width, value.height)
+        return value
+
     def initialize_camera(self) -> bool:
         """Initialize camera
 
@@ -219,10 +227,10 @@ class Picamera2:
 
             # Re-generate the properties list to someting easer to use.
             for k, v in self.camera.properties.items():
-                self.camera_properties_[k.name] = v
+                self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
 
             # The next two lines could be placed elsewhere?
-            self.sensor_resolution = (self.camera_properties_["PixelArraySize"].width, self.camera_properties_["PixelArraySize"].height)
+            self.sensor_resolution = self.camera_properties_["PixelArraySize"]
             self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
 
             self.log.info('Initialization successful.')
@@ -611,8 +619,8 @@ class Picamera2:
 
         # Update the properties list as some of the values may have changed.
         self.camera_properties_ = {}
-        for k in self.camera.properties.keys():
-            self.camera_properties_[k.name] = k
+        for k, v in self.camera.properties.items():
+            self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
