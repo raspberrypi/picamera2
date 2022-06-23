@@ -131,6 +131,10 @@ class Picamera2:
     def camera_properties(self) -> dict:
         return {} if self.camera is None else self.camera_properties_
 
+    @property
+    def camera_controls(self) -> dict:
+        return {k: (v[1].min, v[1].max, v[1].default) for k, v in self.camera_ctrl_info.items()}
+
     def __enter__(self):
         return self
 
