@@ -15,7 +15,7 @@ from picamera2.encoders import Encoder
 from picamera2.outputs import FileOutput
 from picamera2.utils import initialize_logger
 from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
-from .request import CompletedRequest
+from .request import CompletedRequest, Helpers
 
 
 STILL = libcamera.StreamRole.StillCapture
@@ -73,6 +73,7 @@ class Picamera2:
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level=verbose_console)
         self._reset_flags()
+        self.helpers = Helpers(self)
         try:
             self.open_camera()
             self.log.debug(f"{self.camera_manager}")
@@ -750,12 +751,13 @@ class Picamera2:
 
     def capture_file_(self, file_output, name, format=None):
         request = self.completed_requests.pop(0)
+        metadata = request.get_metadata()
         if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
-            request.save_dng(file_output)
+            self.helpers.save_dng(request.make_buffer(name), metadata, self.camera_config["raw"], file_output)
         else:
-            request.save(name, file_output, format=format)
+            self.helpers.save(self.helpers.make_image(request.make_buffer(name), self.camera_config["main"]), metadata, file_output, format=format)
 
-        self.async_result = request.get_metadata()
+        self.async_result = metadata
         request.release()
         return True
 
@@ -893,9 +895,50 @@ class Picamera2:
         if wait:
             return self.wait()
 
+    def capture_buffers_and_metadata_(self, streams):
+        request = self.completed_requests.pop(0)
+        buffers = []
+        for stream in streams:
+            buffers.append(request.make_buffer(stream))
+        self.async_result = (buffers, request.get_metadata())
+        request.release()
+        return True
+
+    def capture_buffers(self, streams=["main"], wait=True, signal_function=signal_event):
+        """Make a 1d numpy array from the next frame in the named streams."""
+        with self.lock:
+            if self.completed_requests:
+                self.capture_buffers_and_metadata_(streams)
+                if signal_function is not None:
+                    signal_function(self)
+                return self.async_result
+            else:
+                self.dispatch_functions([(lambda: self.capture_buffers_and_metadata_(streams))], signal_function)
+        if wait:
+            return self.wait()
+
+    def switch_mode_and_capture_buffers(self, camera_config, streams=["main"], wait=True, signal_function=signal_event):
+        """Switch the camera into a new (capture) mode, capture the first buffer from named streams, then return
+        back to the initial camera mode."""
+        preview_config = self.camera_config
+
+        def capture_buffers_and_switch_back_(self, preview_config, streams) -> bool:
+            self.capture_buffers_and_metadata_(streams)
+            result = self.async_result
+            self.switch_mode_(preview_config)
+            self.async_result = result
+            return True
+
+        functions = [(lambda: self.switch_mode_(camera_config)),
+                     (lambda: capture_buffers_and_switch_back_(self, preview_config, streams))]
+        self.dispatch_functions(functions, signal_function)
+        if wait:
+            return self.wait()
+
     def capture_array_(self, name) -> bool:
         request = self.completed_requests.pop(0)
-        self.async_result = request.make_array(name)
+        self.async_result = self.helpers.make_array(request.make_buffer(name), self.camera_config[name])
+
         request.release()
         return True
 
@@ -930,9 +973,50 @@ class Picamera2:
         if wait:
             return self.wait()
 
+    def capture_arrays_and_metadata_(self, streams):
+        request = self.completed_requests.pop(0)
+        arrays = []
+        for stream in streams:
+            arrays.append(self.helpers.make_array(request.make_buffer(stream), self.camera_config[stream]))
+        self.async_result = (arrays, request.get_metadata())
+        request.release()
+        return True
+
+    def capture_arrays(self, streams=["main"], wait=True, signal_function=signal_event) -> np.ndarray:
+        """Make a 2d image from the next frame in the named stream."""
+        with self.lock:
+            if self.completed_requests:
+                self.capture_arrays_and_metadata_(streams)
+                if signal_function is not None:
+                    signal_function(self)
+                return self.async_result
+            else:
+                self.dispatch_functions([(lambda: self.capture_arrays_and_metadata_(streams))], signal_function)
+        if wait:
+            return self.wait()
+
+    def switch_mode_and_capture_arrays(self, camera_config, streams=["main"], wait=True, signal_function=signal_event):
+        """Switch the camera into a new (capture) mode, capture the first buffer from named streams, then return
+        back to the initial camera mode."""
+        preview_config = self.camera_config
+
+        def capture_arrays_and_switch_back_(self, preview_config, streams) -> bool:
+            self.capture_arrays_and_metadata_(streams)
+            array = self.async_result
+            self.switch_mode_(preview_config)
+            self.async_result = array
+            return True
+
+        functions = [(lambda: self.switch_mode_(camera_config)),
+                     (lambda: capture_arrays_and_switch_back_(self, preview_config, streams))]
+        self.dispatch_functions(functions, signal_function)
+        if wait:
+            return self.wait()
+        
     def capture_image_(self, name) -> None:
         request = self.completed_requests.pop(0)
-        self.async_result = request.make_image(name)
+        self.async_result = self.helpers.make_image(request.make_buffer(name), self.camera_config[name])
+        
         request.release()
 
     def capture_image(self, name="main", wait=True, signal_function=signal_event) -> Image:
