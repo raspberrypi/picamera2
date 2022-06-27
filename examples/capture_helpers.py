@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Capture a DNG and a JPEG made from the same raw data.
+# Capture multiple representations of a captured frame.
 
 from picamera2 import Picamera2, Preview
 import time
@@ -15,6 +15,7 @@ picam2.configure(preview_config)
 picam2.start()
 time.sleep(2)
 
-r = picam2.switch_mode_capture_request_and_stop(capture_config)
-r.save("main", "full.jpg")
-r.save_dng("full.dng")
+buffers, metadata = picam2.switch_mode_and_capture_buffers(capture_config, ["main"])
+
+arr = picam2.helpers.make_array(buffers[0], capture_config["main"])
+image = picam2.helpers.make_image(buffers[0], capture_config["main"])

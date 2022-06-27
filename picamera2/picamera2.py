@@ -15,7 +15,7 @@ from picamera2.encoders import Encoder
 from picamera2.outputs import FileOutput
 from picamera2.utils import initialize_logger
 from picamera2.previews import NullPreview, DrmPreview, QtPreview, QtGlPreview
-from .request import CompletedRequest, PostProcess
+from .request import CompletedRequest, Helpers
 
 
 STILL = libcamera.StreamRole.StillCapture
@@ -73,7 +73,7 @@ class Picamera2:
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level=verbose_console)
         self._reset_flags()
-        self.post_process = PostProcess(self)
+        self.helpers = Helpers(self)
         try:
             self.open_camera()
             self.log.debug(f"{self.camera_manager}")
@@ -753,9 +753,9 @@ class Picamera2:
         request = self.completed_requests.pop(0)
         metadata = request.get_metadata()
         if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
-            self.post_process.save_dng(request.make_buffer(name), metadata, self.camera_config["raw"], file_output)
+            self.helpers.save_dng(request.make_buffer(name), metadata, self.camera_config["raw"], file_output)
         else:
-            self.post_process.save(self.post_process.make_image(request.make_buffer(name), self.camera_config["main"]), metadata, file_output, format=format)
+            self.helpers.save(self.helpers.make_image(request.make_buffer(name), self.camera_config["main"]), metadata, file_output, format=format)
 
         self.async_result = metadata
         request.release()
@@ -937,7 +937,7 @@ class Picamera2:
 
     def capture_array_(self, name) -> bool:
         request = self.completed_requests.pop(0)
-        self.async_result = self.post_process.make_array(request.make_buffer(name), self.camera_config[name])
+        self.async_result = self.helpers.make_array(request.make_buffer(name), self.camera_config[name])
 
         request.release()
         return True
@@ -977,7 +977,7 @@ class Picamera2:
         request = self.completed_requests.pop(0)
         arrays = []
         for stream in streams:
-            arrays.append(self.post_process.make_array(request.make_buffer(stream), self.camera_config[stream]))
+            arrays.append(self.helpers.make_array(request.make_buffer(stream), self.camera_config[stream]))
         self.async_result = (arrays, request.get_metadata())
         request.release()
         return True
@@ -1015,7 +1015,7 @@ class Picamera2:
         
     def capture_image_(self, name) -> None:
         request = self.completed_requests.pop(0)
-        self.async_result = self.post_process.make_image(request.make_buffer(name), self.camera_config[name])
+        self.async_result = self.helpers.make_image(request.make_buffer(name), self.camera_config[name])
         
         request.release()
 

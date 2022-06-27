@@ -142,8 +142,20 @@ class CompletedRequest:
             metadata[k.name] = v
         return metadata
 
+    def make_array(self, name):
+        return self.picam2.helpers.make_array(self.make_buffer(name), self.picam2.camera_config[name])
 
-class PostProcess:
+    def make_image(self, name, width=None, height=None):
+        return self.picam2.helpers.make_image(self.make_buffer(name), self.picam2.camera_config[name], width, height)
+
+    def save(self, name, file_output, format=None):
+        return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output, format)
+
+    def save_dng(self, filename, name="raw"):
+        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.picam2.camera_config[name], filename)
+
+
+class Helpers:
     def __init__(self, picam2):
         self.picam2 = picam2
 
@@ -153,6 +165,7 @@ class PostProcess:
         fmt = config["format"]
         w, h = config["size"]
         stride = config["stride"]
+
         # Turning the 1d array into a 2d image-like array only works if the
         # image stride (which is in bytes) is a whole number of pixels. Even
         # then, if they don't match exactly you will get "padding" down the RHS.
