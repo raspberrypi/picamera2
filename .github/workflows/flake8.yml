@@ -22,12 +22,14 @@ jobs:
     - name: Install dependencies for testing
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: Set libcamera hash
+      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git master | cut -c1-40)" >> $GITHUB_ENV
     - name: Cache libcamera
       id: cache-libcamera
       uses: actions/cache@v3
       with:
         path: /home/runner/work/libcamera
-        key: ${{ runner.os }}-libcamera
+        key: ${{ runner.os }}-libcamera-${{LIBCAMERA-HASH}}
     - name: Generate libcamera
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
@@ -54,12 +56,14 @@ jobs:
     - name: Install dependencies for testing
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+    - name: Set libcamera hash
+      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git master | cut -c1-40)" >> $GITHUB_ENV
     - name: Cache libcamera
       id: cache-libcamera
       uses: actions/cache@v3
       with:
         path: /home/runner/work/libcamera
-        key: ${{ runner.os }}-libcamera
+        key: ${{ runner.os }}-libcamera-${{LIBCAMERA-HASH}}
     - name: Generate libcamera
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: exit 1
