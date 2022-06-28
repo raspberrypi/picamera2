@@ -29,7 +29,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: /home/runner/work/libcamera
-        key: ${{ runner.os }}-libcamera-${{LIBCAMERA-HASH}}
+        key: ${{ runner.os }}-libcamera-${{env.LIBCAMERA-HASH}}
     - name: Generate libcamera
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
@@ -63,7 +63,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: /home/runner/work/libcamera
-        key: ${{ runner.os }}-libcamera-${{LIBCAMERA-HASH}}
+        key: ${{ runner.os }}-libcamera-${{env.LIBCAMERA-HASH}}
     - name: Generate libcamera
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: exit 1
