@@ -1,11 +1,9 @@
 name: flake8
-
 on:
-  push:
-    branches: [ main, next ]
-  pull_request:
-    branches: [ main, next ]
-
+  workflow_run:
+    workflows: ["Manual Compile Workflow"]
+    types:
+      - completed
 jobs:
   build:
 
