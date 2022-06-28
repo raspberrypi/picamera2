@@ -31,7 +31,14 @@ jobs:
     - name: Install dependencies for testing
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
-    - name: libcamera
+    - name: Cache libcamera
+      id: cache-libcamera
+      uses: actions/cache@v3
+      with:
+        path: libcamera
+        key: ${{ runner.os }}-libcamera
+    - name: Generate libcamera
+      if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
     - name: kmsxx
       run: cd /home/runner/work; git clone https://github.com/tomba/kmsxx.git; cd kmsxx; meson build; ninja -C build
