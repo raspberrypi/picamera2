@@ -77,6 +77,7 @@ class Picamera2:
         :type tuning: str, optional
         :raises RuntimeError: Init didn't complete
         """
+        print("hello")
         tuning_file = None
         if tuning is not None:
             if isinstance(tuning, str):
