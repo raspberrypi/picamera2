@@ -4,7 +4,7 @@ on:
     branches: [ main, next ]
 jobs:
   compile:
-    name: Compile Job
+    name: compile libcamera
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -34,6 +34,7 @@ jobs:
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
   lint:
+    name: lint code
     needs: compile
     runs-on: ubuntu-latest
     steps:
