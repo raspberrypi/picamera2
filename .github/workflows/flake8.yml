@@ -33,7 +33,7 @@ jobs:
     - name: Generate libcamera
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
       run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build; ninja -C build
-  build:
+  lint:
     needs: compile
     runs-on: ubuntu-latest
     steps:
@@ -78,4 +78,4 @@ jobs:
       run: python -c 'import pykms'
     - name: Lint with flake8
       run: |
-        flake8 . --count --show-source --statistics
+        flake8 . --exit-zero --count --show-source --statistics
