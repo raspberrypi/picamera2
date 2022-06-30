@@ -4,6 +4,7 @@
 
 import json
 import os
+import selectors
 import tempfile
 import threading
 from enum import Enum
@@ -731,6 +732,16 @@ class Picamera2:
         if self.started:
             self.stop_count += 1
             self.camera.stop()
+
+            # Temporary hack to flush Requests from the event queue.
+            # This is needed to prevent old completed Requests from showing
+            # up when the camera is started the next time.
+            sel = selectors.DefaultSelector()
+            sel.register(self.camera_manager.event_fd, selectors.EVENT_READ)
+            events = sel.select(0)
+            if events:
+                self.camera_manager.get_ready_requests()
+
             self.started = False
             self.completed_requests = []
             self.log.info("Camera stopped")
