@@ -1055,6 +1055,7 @@ class Picamera2:
         request = self.completed_requests.pop(0)
         self.async_result = request.make_image(name)
         request.release()
+        return True
 
     def capture_image(self, name="main", wait=True, signal_function=signal_event) -> Image:
         """Make a PIL image from the next frame in the named stream.
@@ -1075,7 +1076,7 @@ class Picamera2:
                     signal_function(self)
                 return self.async_result
             else:
-                self.dispatch_functions([(lambda: self.make_image_(name))], signal_function)
+                self.dispatch_functions([(lambda: self.capture_image_(name))], signal_function)
         if wait:
             return self.wait()
 
