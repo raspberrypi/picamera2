@@ -22,8 +22,10 @@ class NullPreview:
         # be a drop-in replacement for the Qt/DRM previews.
         self.size = (width, height)
         self.event = threading.Event()
+        self.picam2 = None
 
     def start(self, picam2):
+        self.picam2 = picam2
         self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
         self.running = True
@@ -42,3 +44,4 @@ class NullPreview:
     def stop(self):
         self.running = False
         self.thread.join()
+        self.picam2 = None

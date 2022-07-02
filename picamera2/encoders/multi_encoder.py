@@ -37,7 +37,7 @@ class MultiEncoder(Encoder):
 
             buffer = task.result()
             if self.output:
-                self.output.outputframe(buffer)
+                self.outputframe(buffer)
 
     def do_encode(self, request):
         buffer = self.encode_func(request, request.picam2.encode_stream_name)

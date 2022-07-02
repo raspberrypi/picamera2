@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 import sys
 import threading
 import os
+import time
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 import OpenGL
@@ -78,20 +79,22 @@ class EglState:
 class QGlPicamera2(QWidget):
     done_signal = pyqtSignal()
 
-    def __init__(self, picam2, parent=None, width=640, height=480):
+    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True):
         super().__init__(parent=parent)
         self.resize(width, height)
 
         self.setAttribute(Qt.WA_PaintOnScreen)
         self.setAttribute(Qt.WA_NativeWindow)
 
+        self.bg_colour = [colour / 255.0 for colour in bg_colour] + [1.0]
+        self.keep_ar = keep_ar
         self.lock = threading.Lock()
         self.count = 0
         self.overlay_present = False
         self.buffers = {}
         self.surface = None
         self.current_request = None
-        self.release_current = False
+        self.own_current = False
         self.stop_count = 0
         self.egl = EglState()
         if picam2.verbose_console:
@@ -105,6 +108,7 @@ class QGlPicamera2(QWidget):
 
         self.picamera2 = picam2
         picam2.have_event_loop = True
+
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.efd,
                                                QtCore.QSocketNotifier.Read,
                                                self)
@@ -115,7 +119,7 @@ class QGlPicamera2(QWidget):
         eglDestroySurface(self.egl.display, self.surface)
         self.surface = None
         # We may be hanging on to a request, return it to the camera system.
-        if self.current_request is not None and self.release_current:
+        if self.current_request is not None and self.own_current:
             self.current_request.release()
         self.current_request = None
 
@@ -220,13 +224,13 @@ class QGlPicamera2(QWidget):
             fb = completed_request.request.buffers[stream]
 
             cfg = stream.configuration
-            fmt = cfg.pixelFormat
+            fmt = cfg.pixel_format
             if fmt not in self.FMT_MAP:
                 raise RuntimeError(f"Format {fmt} not supported by QGlPicamera2 preview")
             fmt = str_to_fourcc(self.FMT_MAP[fmt])
             w, h = cfg.size
 
-            if cfg.pixelFormat in ("YUV420", "YVU420"):
+            if cfg.pixel_format in ("YUV420", "YVU420"):
                 h2 = h // 2
                 stride2 = cfg.stride // 2
                 attribs = [
@@ -272,14 +276,19 @@ class QGlPicamera2(QWidget):
             eglDestroyImageKHR(display, image)
 
     def set_overlay(self, overlay):
+        if self.picamera2.camera_config is None:
+            raise RuntimeError("Camera must be configured before setting overlay")
+
         with self.lock:
+            eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+
             if overlay is None:
                 self.overlay_present = False
+                self.repaint(self.current_request)
             else:
                 # All this swapping round of contexts is a bit icky, but I'd rather copy
                 # the overlay here so that the user doesn't have to worry about us still
                 # using it after this function returns.
-                eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
                 glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
@@ -287,16 +296,14 @@ class QGlPicamera2(QWidget):
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                 (height, width, channels) = overlay.shape
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay)
-                eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
                 self.overlay_present = True
+                self.repaint(self.current_request)
 
-    def repaint(self, completed_request):
-        with self.lock:
-            self.repaint_with_lock(completed_request)
+            eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
-    def repaint_with_lock(self, completed_request):
-        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
-        if completed_request.request not in self.buffers:
+    def repaint(self, completed_request, update_viewport=False):
+        # The context should be set up and cleared by the caller.
+        if completed_request and completed_request.request not in self.buffers:
             if self.stop_count != self.picamera2.stop_count:
                 if self.picamera2.verbose_console:
                     print("Garbage collect", len(self.buffers), "textures")
@@ -309,11 +316,22 @@ class QGlPicamera2(QWidget):
                 print("Make buffer for request", completed_request.request)
             self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request)
 
-        buffer = self.buffers[completed_request.request]
+            # New buffers mean the image size may change so update the viewport just in case.
+            update_viewport = True
 
-        glUseProgram(self.program_image)
-        glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture)
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
+        # If there's no request, then the viewport may never have been set up, so force it anyway.
+        if update_viewport or not completed_request:
+            x_off, y_off, w, h = self.recalculate_viewport()
+            glViewport(x_off, y_off, w, h)
+
+        glClearColor(*self.bg_colour)
+        glClear(GL_COLOR_BUFFER_BIT)
+
+        if completed_request:
+            buffer = self.buffers[completed_request.request]
+            glUseProgram(self.program_image)
+            glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture)
+            glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
 
         if self.overlay_present:
             glUseProgram(self.program_overlay)
@@ -322,22 +340,57 @@ class QGlPicamera2(QWidget):
 
         eglSwapBuffers(self.egl.display, self.surface)
 
-        if self.current_request and self.release_current:
-            self.current_request.release()
-        self.current_request = completed_request
-        eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
-
     @pyqtSlot()
     def handle_requests(self):
         request = self.picamera2.process_requests()
         if request:
             if self.picamera2.display_stream_name is not None:
-                self.repaint(request)
+                with self.lock:
+                    eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+                    self.repaint(request)
+                    eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+                    if self.current_request and self.own_current:
+                        self.current_request.release()
+                    self.current_request = request
                 # The pipeline will stall if there's only one buffer and we always hold on to
                 # the last one. When we can, however, holding on to them is still preferred.
-                if self.picamera2.camera_config['buffer_count'] > 1:
-                    self.release_current = True
+                config = self.picamera2.camera_config
+                if config is not None and config['buffer_count'] > 1:
+                    self.own_current = True
                 else:
+                    self.own_current = False
                     request.release()
             else:
                 request.release()
+
+    def recalculate_viewport(self):
+        window_w = self.width()
+        window_h = self.height()
+
+        stream_map = self.picamera2.stream_map
+        camera_config = self.picamera2.camera_config
+        if not self.keep_ar or camera_config is None or camera_config['display'] is None:
+            return 0, 0, window_w, window_h
+
+        image_w, image_h = stream_map[camera_config['display']].configuration.size
+        if image_w * window_h > window_w * image_h:
+            w = window_w
+            h = w * image_h // image_w
+        else:
+            h = window_h
+            w = h * image_w // image_h
+        x_off = (window_w - w) // 2
+        y_off = (window_h - h) // 2
+        return x_off, y_off, w, h
+
+    def resizeEvent(self, event):
+        with self.lock:
+            eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+            self.repaint(self.current_request, update_viewport=True)
+            eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+
+    def show(self):
+        super().show()
+        # We seem to need a short delay before rendering the background colour works. No idea why.
+        time.sleep(0.05)
+        self.resizeEvent(None)

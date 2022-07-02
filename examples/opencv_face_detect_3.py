@@ -1,16 +1,14 @@
 #!/usr/bin/python3
 import time
-
-import time
-
 import cv2
 
 from picamera2 import Picamera2, Preview, MappedArray
+from picamera2.encoders import H264Encoder
 
-# This version creates a lores YUV stream, extracts the Y channel and runs the face
-# detector directly on that. We use the supplied OpenGL accelerated preview window
-# and delegate the face box drawing to its callback function, thereby running the
-# preview at the full rate with face updates as and when they are ready.
+# This is like opencv_face_detect_2.py, only we draw the face boxes on a
+# recorded video. We have to use the "post_callback" to draw the faces because
+# we want capture_buffer to get the image without face boxes, but then we
+# want the boxes drawn before handing the image to the encoder.
 
 face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
 
@@ -34,11 +32,14 @@ s1 = picam2.stream_configuration("lores")["stride"]
 faces = []
 picam2.post_callback = draw_faces
 
-picam2.start()
+encoder = H264Encoder(10000000)
+picam2.start_recording(encoder, "test.h264")
 
 start_time = time.monotonic()
-# Run for 10 seconds so that we can include this example in the test suite.
+# Run for 10 seconds.
 while time.monotonic() - start_time < 10:
     buffer = picam2.capture_buffer("lores")
     grey = buffer[:s1 * h1].reshape((h1, s1))
     faces = face_detector.detectMultiScale(grey, 1.1, 3)
+
+picam2.stop_recording()

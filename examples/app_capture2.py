@@ -11,12 +11,12 @@ from picamera2.previews.qt import QGlPicamera2
 from picamera2 import Picamera2
 
 
-def request_callback(request):
+def post_callback(request):
     label.setText(''.join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items()))
 
 
 picam2 = Picamera2()
-picam2.request_callback = request_callback
+picam2.post_callback = post_callback
 picam2.configure(picam2.preview_configuration(main={"size": (800, 600)}))
 
 app = QApplication([])
@@ -32,7 +32,7 @@ def capture_done():
     button.setEnabled(True)
 
 
-qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
+qpicamera2 = QGlPicamera2(picam2, width=800, height=600, keep_ar=False)
 button = QPushButton("Click to capture JPEG")
 label = QLabel()
 window = QWidget()

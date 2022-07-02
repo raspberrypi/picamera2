@@ -8,7 +8,7 @@ import time
 picam2 = Picamera2()
 picam2.start_preview(Preview.DRM, x=100, y=100, width=640, height=480)
 
-preview_config = picam2.preview_configuration()
+preview_config = picam2.preview_configuration({"size": (640, 360)})
 picam2.configure(preview_config)
 
 picam2.start()

@@ -1,7 +1,7 @@
 # Picamera2
 
 ---
-**WARNING!** *Picamera2* is currently available here as a **preview release**. There will be bugs and problems, and both the implementation and public API are likely to change significantly and without warning. It is provided only for experimentation and not for any purposes that require any degree of stability.
+**WARNING!** *Picamera2* is currently available here as an alpha release. This means there may still be some issues, but we're hoping for feedback that can lead to further improvements. Consequently the API cannot be expected to be completely stable, but nor will we be making changes to it without due consideration.
 ---
 
 *Picamera2* is the libcamera-based replacement for *Picamera* which was a Python interface to the Raspberry Pi's legacy camera stack. *Picamera2* also presents an easy to use Python API.
@@ -10,36 +10,35 @@ For the time being, the documentation here is mostly based on a number of suppli
 
 ## Installation
 
-These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B. On other platforms your mileage may vary - good luck.
+These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B but should work on other platforms too.
 
-A version of libcamera with appropriate Python bindings, and a package with the necessary DRM/KMS bindings, are all now available from the Raspberry Pi apt repositories. Therefore, please execute:
+All the necessary packages can now be installed via `apt` and `pip3`, so the following should suffice. Please run `sudo apt update` and `sudo apt upgrade` first if you have not done so for some time. Then:
 
 ```
-sudo apt update
 sudo apt install -y python3-libcamera python3-kms++
+sudo apt install -y python3-pyqt5 python3-prctl libatlas-base-dev ffmpeg python3-pip
+pip3 install numpy --upgrade
+pip3 install picamera2
 ```
 
-Normally this will be sufficient, but if you do need to rebuild libcamera from source, please follow [these instructions](#building-libcamera-from-source).
-
-You will also need the python-v4l2 module. The official version is hopelessly out of date and appears to be unmaintained for many years, so please install the fork below:
+Or If you don't want the GUI dependencies:
 
 ```
-pip3 install v4l2-python3
+sudo apt install -y python3-libcamera python3-kms++
+sudo apt install -y python3-prctl libatlas-base-dev ffmpeg libopenjp2-7 python3-pip
+pip3 install numpy --upgrade
+NOGUI=1 pip3 install picamera2
 ```
 
-Finally fetch the *Picamera2* repository. There are some dependencies to download first.
+Should you want to rebuild libcamera from source, please follow [these instructions](#building-libcamera-from-source).
 
-```
-cd
-sudo pip3 install pyopengl piexif simplejpeg PiDNG
-sudo apt install -y python3-pyqt5 python3-numpy python3-prctl ffmpeg
-git clone https://github.com/raspberrypi/picamera2.git
-```
+This README file and a set of numerous small examples can be found in the [GitHub repository](https://github.com/raspberrypi/picamera2). Moreover you can run the GitHub version of _Picamera2_ by cloning it and adding `/home/pi/picamera2` to your PYTHONPATH variable (assuming you cloned it to `/home/pi`).
 
-To make everything run, you will also have to set your `PYTHONPATH` environment variable. For example, you could put the following in your `.bashrc` file:
-```
-export PYTHONPATH=/home/pi/picamera2
-```
+#### Picamera2 on Pi 3 and ealier devices
+
+On Pi 3 and earlier devices it will be necessary to enable _Glamor_ if you want to use the preview window implementations that run under X-Windows. To enable Glamor, run `sudo raspi-config`, choose _Advanced Options_ and enable _Glamor_ graphic acceleration.
+
+You do not need to enable _Glamor_ if you want to use Picamera2 without a preview window, or if you use the DRM/KMS preview implementation (which runs without X-Windows). In general, on lower powered Pi devices (especially 512MB devices), running without X-Windows will be beneficial to performance.
 
 #### FFmpeg
 
@@ -54,6 +53,13 @@ OpenCV is not a requirement for *Picamera2*, though a number of the supplied exa
 ```
 sudo apt install -y python3-opencv
 sudo apt install -y opencv-data
+```
+
+#### TensorFlow Lite
+
+There are some examples that use TensorFlow Lite. This can be installed with
+```
+pip3 install tflite-runtime
 ```
 
 #### Building libcamera from source
@@ -82,7 +88,7 @@ We are happy to receive pull requests that will fix bugs, add features and gener
   - Try to ensure that the automated tests are working after all the commits in the set. This avoids other developers going back to an arbitrary earlier commit and finding that things don't work. There can be occasions when other problems cause test failures beyond our control, so we'll just have to remain alert to these and work around them as best we can.
 - Where changes are likely to be more involved, or may change public APIs, authors should start a discussion with us first so that we can agree a good way forward.
 - Before submitting a pull request, please ensure that all the automated tests are passing. They can be run using the `tools/run_tests` script. Please use `tools/run_tests --help` for more information.
-- Any documentation should be updated accordingly. New examples and tests should be included wherever possible.
+- Any documentation should be updated accordingly. New examples and tests should be included wherever possible. Also consider making an entry in the change log.
 - The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
 - We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend putting
 ```
@@ -193,7 +199,7 @@ In all other cases, the user should call `start_preview` before starting *Picame
 Example:
 
 ```
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
@@ -231,7 +237,7 @@ Once the preview has been started using the `start_preview` method, an overlay m
 
 Overlays will always be stetched to cover the complete camera image. For example:
 ```
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 import numpy as np
 
 picam2 = Picamera2()

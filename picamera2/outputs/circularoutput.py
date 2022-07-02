@@ -1,4 +1,6 @@
 import collections
+from multiprocessing import Lock
+
 from .fileoutput import FileOutput
 
 
@@ -6,6 +8,7 @@ class CircularOutput(FileOutput):
     def __init__(self, file=None, buffersize=30 * 5):
         """Creates circular buffer for 5s worth of 30fps frames"""
         super().__init__(file)
+        self._lock = Lock()
         self.buffersize = buffersize
 
     @property
@@ -18,40 +21,38 @@ class CircularOutput(FileOutput):
         """Create buffer for specified number of frames"""
         if not isinstance(value, int):
             raise RuntimeError("Buffer size must be integer")
-        self._buffersize = value
-        if value == 0:
-            self._circular = None
-        else:
+        with self._lock:
+            self._buffersize = value
             self._circular = collections.deque(maxlen=value)
 
     def outputframe(self, frame, keyframe=True):
         """Write frame to circular buffer"""
-        if self._circular is not None:
+        with self._lock:
+            if self._buffersize == 0:
+                return
             self._circular += [(frame, keyframe)]
-        else:
-            return
         """Output frame to file"""
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
                 keyframe = False
-                for _ in range(len(self._circular)):
-                    frame, keyframe = self._circular.popleft()
-                    if keyframe:
-                        break
+                with self._lock:
+                    for _ in range(len(self._circular)):
+                        frame, keyframe = self._circular.popleft()
+                        if keyframe:
+                            break
                 if keyframe:
-                    self._fileoutput.write(frame)
-                    self._fileoutput.flush()
+                    self._write(frame)
                     self._firstframe = False
             else:
-                frame, keyframe = self._circular.popleft()
-                self._fileoutput.write(frame)
-                self._fileoutput.flush()
+                with self._lock:
+                    frame, keyframe = self._circular.popleft()
+                self._write(frame)
 
     def stop(self):
         """Close file handle and prevent recording"""
         self.recording = False
-        if self._circular is not None:
-            for frame, keyframe in self._circular:
-                self._fileoutput.write(frame)
-                self._fileoutput.flush()
-        self._fileoutput.close()
+        with self._lock:
+            while self._circular:
+                frame, keyframe = self._circular.popleft()
+                self._write(frame)
+        self.close()
