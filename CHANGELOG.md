@@ -4,6 +4,13 @@
 
 ### Added
 
+### Changed
+
+## 0.2.3 Alpha Release 3
+
+### Added
+
+* High level API functions "start_and_capture_file/files", "start_and_record_video" are added for users who need to know less about the Picamera2 internals.
 * A very trivial Metadata class is provided that can be used to wrap the metadata dictionaries, for those that prefer this style.
 * A Controls class is provided which gives an object-like view to control lists. The class is able to check that the control names are valid.
 * Configuration structures are provided so that the Picamera2 object can be configured using the "object" style. Three such instances are embedded in the Picamera2 object, namely preview_configuration, still_configuration and video_configuration.
