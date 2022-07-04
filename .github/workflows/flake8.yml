@@ -23,7 +23,7 @@ jobs:
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: Set libcamera hash
-      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git master | cut -c1-40)" >> $GITHUB_ENV
+      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git main | cut -c1-40)" >> $GITHUB_ENV
     - name: Cache libcamera
       id: cache-libcamera
       uses: actions/cache@v3
@@ -58,7 +58,7 @@ jobs:
       run: |
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
     - name: Set libcamera hash
-      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git master | cut -c1-40)" >> $GITHUB_ENV
+      run: echo "LIBCAMERA-HASH=$(git ls-remote https://github.com/raspberrypi/libcamera.git main | cut -c1-40)" >> $GITHUB_ENV
     - name: Cache libcamera
       id: cache-libcamera
       uses: actions/cache@v3
