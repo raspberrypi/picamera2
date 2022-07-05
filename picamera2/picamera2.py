@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
 from concurrent.futures import Future
+from email.iterators import typed_subpart_iterator
 from enum import Enum
 import json
 import os
 import tempfile
 import threading
 from functools import partial
-from typing import Any, List
+from typing import Any, List, Generic, Type, TypeVar, Dict, Optional
 
 import libcamera
 import numpy as np
@@ -33,8 +34,13 @@ class Preview(Enum):
     QT = 2
     QTGL = 3
 
+T = TypeVar('T')
 
-def _completed_future(result: Any) -> Future:
+class TypedFuture(Future, Generic[T]):
+    def result(timeout=None) -> T:
+        return super(Future).result()
+
+def _completed_future(result: T) -> TypedFuture[T]:
     future = Future()
     future.set_result(result)
     return future
@@ -107,9 +113,6 @@ class Picamera2:
         self.futures: List[Future] = []
         self.functions = []
         self.event = threading.Event()
-        self.async_operation_in_progress = False
-        self.asyc_result = None
-        self.async_error = None
         self.controls_lock = threading.Lock()
         self.controls = {}
         self.options = {}
@@ -636,6 +639,12 @@ class Picamera2:
         self.frames += len(requests)
         return requests
 
+    def _pop_request_or_none(self) -> Optional[CompletedRequest]:
+        assert self.lock.locked(), "Attempted to pop request without lock"
+        if self.completed_requests:
+            return self.self.completed_requests.pop(0)
+        return None
+
     def process_requests(self) -> None:
         # This is the function that the event loop, which runs externally to us, must
         # call.
@@ -668,23 +677,20 @@ class Picamera2:
                 self.pre_callback(display_request)
 
             # See if any actions have been queued up for us to do here.
-            # Each operation is regarded as completed when it returns True, otherwise it remains
-            # in the list to be tried again next time.
             if self.functions:
-                function = self.functions[0]
+                request = self.completed_requests.pop(0)
+                function = self.functions.pop(0)
                 future = self.futures[0]
-                self.log.debug(f"Execute function: {function}")
-                result = function()
+                try:
+                    self.log.debug(f"Executing function: {function}")
+                    future.set_running_or_notify_cancel()
+                    result = function(request)
+                    future.set_result(result)
+                    self.log.debug(f"Function {function} completed.")
+                except Exception as e:
+                    self.log.warning(f"Error when calling: {function}", exc_info=e)
+                    future.set_exception(e)
                 
-                self.functions = self.functions[1:]
-                # Once we've done everything, signal the fact to the thread that requested this work.
-                if not self.functions:
-                    if not self.async_operation_in_progress:
-                        raise RuntimeError("Waiting for non-existent asynchronous operation")
-                    self.async_operation_in_progress = False
-                    if self.async_signal_function is not None:
-                        self.async_signal_function(self)
-
             # Some applications may want to do something to the image after they've had a change
             # to copy it, but before it goes to the video encoder.
             if display_request and self.post_callback:
@@ -719,6 +725,10 @@ class Picamera2:
             raise self.async_error
         return self.async_result
 
+    @property
+    def async_operation_in_progress(self):
+        return len(self.functions) > 0
+
     def dispatch_functions(self, functions: List) -> List[Future]:
         """The main thread should use this to dispatch a number of operations for the event
         loop to perform. When there are multiple items each will be processed on a separate
@@ -728,11 +738,9 @@ class Picamera2:
             raise RuntimeError("Failure to wait for previous operation to finish!")
         self.futures = list(Future() for _ in functions)
         self.functions = functions
-        self.async_operation_in_progress = True
         return self.futures
 
-    def capture_file_(self, file_output, name, format=None):
-        request = self.completed_requests.pop(0)
+    def capture_file_(self, request: CompletedRequest, *, file_output, name, format=None) -> Dict[str: Any]:
         if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
             request.save_dng(file_output)
         else:
@@ -742,16 +750,16 @@ class Picamera2:
         request.release()
         return result
 
-    def capture_file(self, file_output, name="main", format=None) -> Future:
+    def capture_file(self, file_output, name="main", format=None) -> TypedFuture[Dict[str: Any]]:
         """Capture an image to a file in the current camera mode."""
         with self.lock:
-            if self.completed_requests:
-                metadata = self.capture_file_(file_output, name, format=format)
-                future = Future()
-                future.set_result(metadata)
+            request = self._pop_request_or_none()
+            if request:
+                metadata = self.capture_file_(request, file_output=file_output, name=name, format=format)
+                future = _completed_future(metadata)
             else:            
                 future = self.dispatch_functions([
-                    partial(self.capture_file_, file_output, name, format=format)])
+                    partial(self.capture_file_, file_output=file_output, name=name, format=format)])[0]
         return future
 
     def switch_mode_(self, camera_config):
@@ -760,18 +768,18 @@ class Picamera2:
         self.start_()
         return self.camera_config
 
-    def switch_mode(self, camera_config) -> Future:
+    def switch_mode(self, camera_config) -> TypedFuture[None]:
         """Switch the camera into another mode given by the camera_config."""
         functions = [partial(self.switch_mode_, camera_config)]
         return self.dispatch_functions(functions)[0]
 
-    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None) -> Future:
+    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None) -> TypedFuture[None]:
         """Switch the camera into a new (capture) mode, capture an image to file, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
 
-        def capture_and_switch_back_():
-            metadata = self.capture_file_(file_output, name, format=format)
+        def capture_and_switch_back_(request: CompletedRequest):
+            metadata = self.capture_file_(request, file_output=file_output, name=name, format=format)
             self.switch_mode_(preview_config)
             return metadata
 
@@ -779,25 +787,23 @@ class Picamera2:
                      capture_and_switch_back_]
         return self.dispatch_functions(functions)[1]
 
-    def capture_request_(self):
-        return self.completed_requests.pop(0)
-
-    def capture_request(self) -> Future:
+    def capture_request(self) -> Future[CompletedRequest]:
         """Fetch the next completed request from the camera system. You will be holding a
         reference to this request so you must release it again to return it to the camera system."""
+        def capture_request(request: CompletedRequest) -> CompletedRequest:
+            return request
+
         with self.lock:
-            if self.completed_requests:
-                request = self.capture_request_()
-                future = Future()
-                future.set_result(request)
+            request = self._pop_request_or_none()
+            if request is not None:
+                future = _completed_future(request)
             else:
-                future = self.dispatch_functions([self.capture_request_])[0]
+                future = self.dispatch_functions([capture_request])[0]
         return future
 
     def switch_mode_capture_request_and_stop(self, camera_config):
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
-        def capture_request_and_stop_(self):
-            request = self.capture_request_()
+        def capture_request_and_stop_(self, request: CompletedRequest):
             self.stop_()
             return request
 
@@ -805,117 +811,100 @@ class Picamera2:
                      partial(capture_request_and_stop_, self)]
         return self.dispatch_functions(functions)[1]
 
-    def capture_metadata_(self):
-        request = self.completed_requests.pop(0)
-        metadata = request.get_metadata()
-        request.release()
-        return metadata
-
-    def capture_metadata(self) -> Future:
+    def capture_metadata(self) -> Future[Dict]:
         """Fetch the metadata from the next camera frame."""
+        def _get_metadata(request: CompletedRequest)-> Dict[str: Any]:
+            metadata = request.get_metadata()
+            request.release()
+            return metadata
+
         with self.lock:
-            if self.completed_requests:
-                metadata = self.capture_metadata_()
-                future = Future()
-                future.set_result(metadata)
+            request = self._pop_request_or_none()
+            if request is not None:
+                future = _completed_future(_get_metadata(request))
             else:            
-                future = self.dispatch_functions([self.capture_metadata_])
+                future = self.dispatch_functions([_get_metadata])[0]
         return future
 
-    def capture_buffer_(self, name):
-        request = self.completed_requests.pop(0)
-        self.async_result = request.make_buffer(name)
+    def capture_buffer_(self, request: CompletedRequest, *, name: str) -> np.ndarray:
+        buffer = request.make_buffer(name)
         request.release()
-        return True
+        return buffer
 
-    def capture_buffer(self, name="main", wait=True, signal_function=signal_event):
+    def capture_buffer(self, name="main") -> TypedFuture[np.ndarray]:
         """Make a 1d numpy array from the next frame in the named stream."""
         with self.lock:
-            if self.completed_requests:
-                self.capture_buffer_(name)
-                if signal_function is not None:
-                    signal_function(self)
-                return self.async_result
+            request = self._pop_request_or_none()
+            if request is not None:
+                future = _completed_future(self.capture_buffer_(name))
             else:
-                self.dispatch_functions([partial(self.capture_buffer_, name)], signal_function)
-        if wait:
-            return self.wait()
+                future = self.dispatch_functions([partial(self.capture_buffer_, name)])
+        return future
 
-    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=True, signal_function=signal_event):
+    def switch_mode_and_capture_buffer(self, camera_config, name="main") -> TypedFuture[np.ndarray]:
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
 
         def capture_buffer_and_switch_back_() -> bool:
-            self.capture_buffer_(name)
-            buffer = self.async_result
+            buffer = self.capture_buffer_(name)
             self.switch_mode_(preview_config)
-            self.async_result = buffer
-            return True
+            return buffer
 
         functions = [partial(self.switch_mode_, camera_config),
                      capture_buffer_and_switch_back_]
-        self.dispatch_functions(functions, signal_function)
-        if wait:
-            return self.wait()
-
-    def capture_array_(self, name) -> bool:
-        request = self.completed_requests.pop(0)
-        self.async_result = request.make_array(name)
+        futures = self.dispatch_functions(functions)
+        return futures[1]
+        
+    def capture_array_(self, request: CompletedRequest, *, name: str) -> np.ndarray:
+        array = request.make_array(name)
         request.release()
-        return True
+        return array
 
-    def capture_array(self, name="main", wait=True, signal_function=signal_event) -> np.ndarray:
+    def capture_array(self, name="main") -> TypedFuture[np.ndarray]:
         """Make a 2d image from the next frame in the named stream."""
         with self.lock:
-            if self.completed_requests:
-                self.capture_array_(name)
-                if signal_function is not None:
-                    signal_function(self)
-                return self.async_result
+            request = self._pop_request_or_none()
+            if request is not None:
+                future = _completed_future(self.capture_array_(request, name=name))
             else:
-                self.dispatch_functions([partial(self.capture_array_, name)], signal_function)
-        if wait:
-            return self.wait()
+                future = self.dispatch_functions([partial(self.capture_array_, name=name)])[0]
+        
+        return future
 
-    def switch_mode_and_capture_array(self, camera_config, name="main", wait=True, signal_function=signal_event):
+    def switch_mode_and_capture_array(self, camera_config, name="main") -> TypedFuture[np.ndarray]:
         """Switch the camera into a new (capture) mode, capture the image array data, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
 
         def capture_array_and_switch_back_() -> bool:
-            self.capture_array_(name)
-            array = self.async_result
+            array = self.capture_array_(name)
             self.switch_mode_(preview_config)
-            self.async_result = array
-            return True
+            return array
 
         functions = [partial(self.switch_mode_, camera_config),
                      capture_array_and_switch_back_]
-        self.dispatch_functions(functions, signal_function)
-        if wait:
-            return self.wait()
+        futures = self.dispatch_functions(functions)
+        return futures[1]
 
-    def capture_image_(self, name) -> Image:
-        request = self.completed_requests.pop(0)
+
+    def capture_image_(self, request: CompletedRequest, *, name: str) -> Image:
         image = request.make_image(name)
         request.release()
         return image
 
-    def capture_image(self, name="main") -> Image:
+    def capture_image(self, name="main") -> TypedFuture[Image]:
         """Make a PIL image from the next frame in the named stream."""
         with self.lock:
-            if self.completed_requests:
-                image = self.capture_image_(name)
-                future = Future()
-                future.set_result(image)
-                return future
+            request = self._pop_request_or_none()
+            if request is not None:
+                future = _completed_future(self.capture_image_(request, name=name))
             else:
-                future = self.dispatch_functions([partial(self.make_image_, name)])
+                future = self.dispatch_functions([partial(self.make_image_, name=name)])
         return future
 
 
-    def switch_mode_and_capture_image(self, camera_config, name="main", wait=True, signal_function=signal_event):
+    def switch_mode_and_capture_image(self, camera_config, name="main") -> TypedFuture[Image]:
         """Switch the camera into a new (capture) mode, capture the image, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
@@ -925,10 +914,10 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return image
 
-        _, future = self.dispatch_functions([
+        futures = self.dispatch_functions([
             partial(self.switch_mode_, camera_config),
             capture_image_and_switch_back_])
-        return future
+        return futures[1]
 
     def start_encoder(self, encoder=None) -> None:
         if encoder is not None:
