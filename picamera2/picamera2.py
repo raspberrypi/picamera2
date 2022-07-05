@@ -759,10 +759,6 @@ class Picamera2:
         """Return the stream configuration for the named stream."""
         return self.camera_config[name]
 
-    def list_controls(self):
-        """List the controls supported by the camera."""
-        return self.camera.controls
-
     def start_(self) -> None:
         """Start the camera system running."""
         if self.camera_config is None:
