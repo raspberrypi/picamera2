@@ -368,7 +368,8 @@ class Picamera2:
             self.stream_map = None
             self.log.info('Camera closed successfully.')
 
-    def make_initial_stream_config(self, stream_config: dict, updates: dict) -> dict:
+    @staticmethod
+    def make_initial_stream_config(stream_config: dict, updates: dict) -> dict:
         """Take an initial stream_config and add any user updates.
 
         :param stream_config: Stream configuration
@@ -389,7 +390,8 @@ class Picamera2:
                 raise ValueError(f"Bad key '{key}': valid stream configuration keys are {valid}")
         return stream_config
 
-    def add_display_and_encode(self, config, display, encode) -> None:
+    @staticmethod
+    def add_display_and_encode(config, display, encode) -> None:
         if display is not None and config.get(display, None) is None:
             raise RuntimeError(f"Display stream {display} was not defined")
         if encode is not None and config.get(encode, None) is None:
@@ -525,7 +527,8 @@ class Picamera2:
         if camera_config["raw"] is not None:
             self.check_stream_config(camera_config["raw"], "raw")
 
-    def update_libcamera_stream_config(self, libcamera_stream_config, stream_config, buffer_count) -> None:
+    @staticmethod
+    def update_libcamera_stream_config(libcamera_stream_config, stream_config, buffer_count) -> None:
         # Update the libcamera stream config with ours.
         libcamera_stream_config.size = libcamera.Size(stream_config["size"][0], stream_config["size"][1])
         libcamera_stream_config.pixel_format = libcamera.PixelFormat(stream_config["format"])
@@ -566,7 +569,8 @@ class Picamera2:
 
         return libcamera_config
 
-    def align_stream(self, stream_config: dict, optimal=True) -> None:
+    @staticmethod
+    def align_stream(stream_config: dict, optimal=True) -> None:
         if optimal:
             # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
             # This matches the hardware behaviour and means we can be more efficient.
@@ -580,19 +584,23 @@ class Picamera2:
         size = stream_config["size"]
         stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
 
-    def align_configuration(self, config: dict, optimal=True) -> None:
+    @staticmethod
+    def align_configuration(config: dict, optimal=True) -> None:
         self.align_stream(config["main"], optimal=optimal)
         if "lores" in config and config["lores"] is not None:
             self.align_stream(config["lores"], optimal=optimal)
         # No point aligning the raw stream, it wouldn't mean anything.
 
-    def is_YUV(self, fmt) -> bool:
+    @staticmethod
+    def is_YUV(fmt) -> bool:
         return fmt in ("NV21", "NV12", "YUV420", "YVU420", "YVYU", "YUYV", "UYVY", "VYUY")
 
-    def is_RGB(self, fmt) -> bool:
+    @staticmethod
+    def is_RGB(fmt) -> bool:
         return fmt in ("BGR888", "RGB888", "XBGR8888", "XRGB8888")
 
-    def is_Bayer(self, fmt) -> bool:
+    @staticmethod
+    def is_Bayer(fmt) -> bool:
         return fmt in ("SBGGR10", "SGBRG10", "SGRBG10", "SRGGB10",
                        "SBGGR10_CSI2P", "SGBRG10_CSI2P", "SGRBG10_CSI2P", "SRGGB10_CSI2P",
                        "SBGGR12", "SGBRG12", "SGRBG12", "SRGGB12",
