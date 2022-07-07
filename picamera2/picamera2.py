@@ -23,6 +23,7 @@ from picamera2.utils import initialize_logger
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
 from .request import CompletedRequest
+from .sensor_format import SensorFormat
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
@@ -139,6 +140,7 @@ class Picamera2:
         self.have_event_loop = False
         self.camera_properties_ = {}
         self.controls = Controls(self)
+        self.sensor_modes_ = None
 
     @property
     def preview_configuration(self):
@@ -292,6 +294,38 @@ class Picamera2:
                 raise RuntimeError("Failed to acquire camera")
         else:
             raise RuntimeError("Failed to initialize camera")
+
+    @property
+    def sensor_modes(self) -> list:
+        """The available sensor modes
+
+        When called for the first time this will reconfigure the camera
+        in order to read the modes.
+        """
+        if self.sensor_modes_ is not None:
+            return self.sensor_modes_
+
+        raw_config = self.camera.generate_configuration([libcamera.StreamRole.Raw])
+        raw_formats = raw_config.at(0).formats
+        self.sensor_modes_ = []
+
+        for pix in raw_formats.pixel_formats:
+            fmt = SensorFormat(str(pix))
+            all_format = {}
+            all_format["format"] = fmt
+            all_format["unpacked"] = fmt.unpacked
+            all_format["bit_depth"] = fmt.bit_depth
+            for size in raw_formats.sizes(pix):
+                cam_mode = all_format.copy()
+                cam_mode["size"] = (size.width, size.height)
+                temp_config = self.create_preview_configuration(raw={"format": str(pix), "size": cam_mode["size"]})
+                self.configure(temp_config)
+                frameDurationLimits = [i for i in self.camera_controls["FrameDurationLimits"] if i != 0]
+                cam_mode["fps"] = round(1e6 / min(frameDurationLimits), 2)
+                cam_mode["crop_limits"] = self.camera_properties["ScalerCropMaximum"]
+                cam_mode["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
+                self.sensor_modes_.append(cam_mode)
+        return self.sensor_modes_
 
     def start_preview(self, preview=False, **kwargs) -> None:
         """
