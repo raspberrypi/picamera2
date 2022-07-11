@@ -10,7 +10,6 @@ import threading
 from enum import Enum
 from typing import List
 import time
-import re
 
 import libcamera
 import numpy as np
@@ -107,7 +106,6 @@ class Picamera2:
             self.preview_configuration = self.create_preview_configuration()
             self.still_configuration = self.create_still_configuration()
             self.video_configuration = self.create_video_configuration()
-            self.read_formats()
         except Exception:
             self.log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -142,6 +140,7 @@ class Picamera2:
         self.have_event_loop = False
         self.camera_properties_ = {}
         self.controls = Controls(self)
+        self.sensor_modes_ = None
 
     @property
     def preview_configuration(self):
@@ -296,12 +295,19 @@ class Picamera2:
         else:
             raise RuntimeError("Failed to initialize camera")
 
-    def read_formats(self) -> None:
-        """Read the available sensor formats
+    @property
+    def sensor_modes(self) -> list:
+        """The available sensor modes
+
+        When called for the first time this will reconfigure the camera
+        in order to read the modes.
         """
+        if self.sensor_modes_ is not None:
+            return self.sensor_modes_
+
         raw_config = self.camera.generate_configuration([libcamera.StreamRole.Raw])
         raw_formats = raw_config.at(0).formats
-        self.available_formats = []
+        self.sensor_modes_ = []
 
         for pix in raw_formats.pixel_formats:
             fmt = SensorFormat(str(pix))
@@ -310,15 +316,16 @@ class Picamera2:
             all_format["unpacked"] = fmt.unpacked
             all_format["bit_depth"] = fmt.bit_depth
             for size in raw_formats.sizes(pix):
-                cam_format = all_format.copy()
-                cam_format["size"] = tuple([int(i) for i in str(size).split("x")])
-                temp_config = self.create_preview_configuration(raw={"format": str(pix), "size": cam_format["size"]})
+                cam_mode = all_format.copy()
+                cam_mode["size"] = (size.width, size.height)
+                temp_config = self.create_preview_configuration(raw={"format": str(pix), "size": cam_mode["size"]})
                 self.configure(temp_config)
                 frameDurationLimits = [i for i in self.camera_controls["FrameDurationLimits"] if i != 0]
-                cam_format["fps"] = round(1e6 / min(frameDurationLimits), 2)
-                cam_format["crop_limits"] = self.camera_properties["ScalerCropMaximum"]
-                cam_format["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
-                self.available_formats.append(cam_format)
+                cam_mode["fps"] = round(1e6 / min(frameDurationLimits), 2)
+                cam_mode["crop_limits"] = self.camera_properties["ScalerCropMaximum"]
+                cam_mode["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
+                self.sensor_modes_.append(cam_mode)
+        return self.sensor_modes_
 
     def start_preview(self, preview=False, **kwargs) -> None:
         """
