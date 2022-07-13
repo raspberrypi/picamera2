@@ -34,8 +34,8 @@ class FfmpegOutput(Output):
     """
 
     def __init__(self, output_filename, audio=False, audio_device="default", audio_sync=-0.3,
-                 audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000):
-        super().__init__()
+                 audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000, pts=None):
+        super().__init__(pts=pts)
         self.ffmpeg = None
         self.output_filename = output_filename
         self.audio = audio
@@ -80,7 +80,8 @@ class FfmpegOutput(Output):
             self.ffmpeg.terminate()
             self.ffmpeg = None
 
-    def outputframe(self, frame, keyframe=True):
+    def outputframe(self, frame, keyframe=True, timestamp=None):
         if self.recording:
             self.ffmpeg.stdin.write(frame)
             self.ffmpeg.stdin.flush()  # forces every frame to get timestamped individually
+            self.outputtimestamp(timestamp)
