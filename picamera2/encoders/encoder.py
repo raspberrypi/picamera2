@@ -171,7 +171,7 @@ class Encoder:
         for out in self._output:
             out.stop()
 
-    def outputframe(self, frame, keyframe=True):
+    def outputframe(self, frame, keyframe=True, timestamp=None):
         """Writes a frame
 
         :param frame: Frame
@@ -180,4 +180,4 @@ class Encoder:
         :type keyframe: bool, optional
         """
         for out in self._output:
-            out.outputframe(frame, keyframe)
+            out.outputframe(frame, keyframe, timestamp)

@@ -8,13 +8,13 @@ from .output import Output
 class FileOutput(Output):
     """File handling functionality for encoders"""
 
-    def __init__(self, file=None):
+    def __init__(self, file=None, pts=None):
         """Initialise file output
 
         :param file: _description_, defaults to None
         :type file: str or BufferedWriter, optional
         """
-        super().__init__()
+        super().__init__(pts=pts)
         self.dead = False
         self.fileoutput = file
         self._firstframe = True
@@ -56,7 +56,7 @@ class FileOutput(Output):
         else:
             raise RuntimeError("Must pass callback function or None")
 
-    def outputframe(self, frame, keyframe=True):
+    def outputframe(self, frame, keyframe=True, timestamp=None):
         """Output frame to file"""
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
@@ -64,7 +64,7 @@ class FileOutput(Output):
                     return
                 else:
                     self._firstframe = False
-            self._write(frame)
+            self._write(frame, timestamp)
 
     def stop(self):
         """Close file handle and prevent recording"""
@@ -80,10 +80,11 @@ class FileOutput(Output):
             if self._connectiondead is not None:
                 self._connectiondead(e)
 
-    def _write(self, frame):
+    def _write(self, frame, timestamp=None):
         try:
             self._fileoutput.write(frame)
             self._fileoutput.flush()
+            self.outputtimestamp(timestamp)
         except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
             self.dead = True
             if self._connectiondead is not None:
