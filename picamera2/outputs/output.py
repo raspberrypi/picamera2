@@ -29,7 +29,7 @@ class Output:
 
     def outputtimestamp(self, timestamp):
         if self.ptsoutput is not None and timestamp is not None:
-            print(f"{timestamp // 1000}.{timestamp % 1000}", file=self.ptsoutput, flush=True)
+            print(f"{timestamp // 1000}.{timestamp % 1000:03}", file=self.ptsoutput, flush=True)
 
     @property
     def ptsoutput(self):
