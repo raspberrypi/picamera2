@@ -601,7 +601,8 @@ class Picamera2:
 
     @staticmethod
     def is_Bayer(fmt) -> bool:
-        return fmt in ("SBGGR10", "SGBRG10", "SGRBG10", "SRGGB10",
+        return fmt in ("SBGGR8", "SGBRG8", "SGRBG8", "SRGGB8",
+                       "SBGGR10", "SGBRG10", "SGRBG10", "SRGGB10",
                        "SBGGR10_CSI2P", "SGBRG10_CSI2P", "SGRBG10_CSI2P", "SRGGB10_CSI2P",
                        "SBGGR12", "SGBRG12", "SGRBG12", "SRGGB12",
                        "SBGGR12_CSI2P", "SGBRG12_CSI2P", "SGRBG12_CSI2P", "SRGGB12_CSI2P")
