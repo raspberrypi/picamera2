@@ -11,12 +11,12 @@ from picamera2.encoders.v4l2_encoder import V4L2Encoder
 class H264Encoder(V4L2Encoder):
     """Uses functionality from V4L2Encoder"""
 
-    def __init__(self, bitrate=None, repeat=False, iperiod=None):
+    def __init__(self, bitrate=None, repeat=True, iperiod=None):
         """H264 Encoder
 
         :param bitrate: Bitrate, default None
         :type bitrate: int
-        :param repeat: Repeat seq header, defaults to False
+        :param repeat: Repeat seq header, defaults to True
         :type repeat: bool, optional
         :param iperiod: Iperiod, defaults to None
         :type iperiod: int, optional
