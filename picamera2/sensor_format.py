@@ -1,4 +1,6 @@
 import re
+from libcamera import Transform
+import numpy as np
 
 
 class SensorFormat():
@@ -21,3 +23,13 @@ class SensorFormat():
 
     def __repr__(self):
         return self.format
+
+    def transform(self, transform: Transform):
+        bayer_array = np.reshape([c for c in self.bayer_order], (2, 2))
+        if transform.hflip:
+            bayer_array = np.flip(bayer_array, 1)
+        if transform.vflip:
+            bayer_array = np.flip(bayer_array, 0)
+        if transform.transpose:
+            bayer_array = np.transpose(bayer_array)
+        self.bayer_order = "".join(bayer_array.flatten())
