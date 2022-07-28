@@ -8,7 +8,7 @@ class Controls():
     def _framerates_to_durations_(framerates):
         if not isinstance(framerates, (tuple, list)):
             framerates = (framerates, framerates)
-        return (1000000 // framerates[1], 1000000 // framerates[0])
+        return (int(1000000 / framerates[1]), int(1000000 / framerates[0]))
 
     def _durations_to_framerates_(durations):
         if durations[0] == durations[1]:
