@@ -59,11 +59,13 @@ class MappedArray:
             # Working around this requires another expensive copy of all the data.
             if fmt in ("BGR888", "RGB888"):
                 if stride != w * 3:
-                    raise RuntimeError(f'MappedArray: Cannot reshape buffer {w}x{h}x3 (stride {stride})')
+                    array = array.reshape((h, stride))
+                    array = array[:, :w * 3]
                 array = array.reshape((h, w, 3))
             elif fmt in ("XBGR8888", "XRGB8888"):
                 if stride != w * 4:
-                    raise RuntimeError(f'MappedArray: Cannot reshape buffer {w}x{h}x4 (stride {stride})')
+                    array = array.reshape((h, stride))
+                    array = array[:, :w * 4]
                 array = array.reshape((h, w, 4))
             elif fmt in ("YUV420", "YVU420"):
                 # Returning YUV420 as an image of 50% greater height (the extra bit continaing
