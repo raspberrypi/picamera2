@@ -620,9 +620,9 @@ class Picamera2:
 
     @staticmethod
     def align_configuration(config: dict, optimal=True) -> None:
-        self.align_stream(config["main"], optimal=optimal)
+        Picamera2.align_stream(config["main"], optimal=optimal)
         if "lores" in config and config["lores"] is not None:
-            self.align_stream(config["lores"], optimal=optimal)
+            Picamera2.align_stream(config["lores"], optimal=optimal)
         # No point aligning the raw stream, it wouldn't mean anything.
 
     @staticmethod
