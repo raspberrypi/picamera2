@@ -6,6 +6,8 @@
 
 ### Changed
 
+* JpegEncoder defaults to producing YUV420 output now, though the constructor allows other colour subsampling modes to be chosen.
+
 ## 0.2.3 Alpha Release 3
 
 ### Added
