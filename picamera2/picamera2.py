@@ -757,6 +757,9 @@ class Picamera2:
         self.encode_stream_name = camera_config['encode']
         if self.encode_stream_name is not None and self.encode_stream_name not in camera_config:
             raise RuntimeError(f"Encode stream {self.encode_stream_name} was not defined")
+        elif self.encode_stream_name is None:
+            # If no encode stream then remove the encoder
+            self._encoder = None
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
