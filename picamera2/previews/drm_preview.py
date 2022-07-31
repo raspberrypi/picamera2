@@ -73,7 +73,7 @@ class DrmPreview(NullPreview):
             h, w, channels = overlay.shape
             # Should I be recycling these instead of making new ones all the time?
             new_fb = pykms.DumbFramebuffer(self.card, w, h, "AB24")
-            with mmap.mmap(new_fb.planes[0].fd, w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
+            with mmap.mmap(new_fb.fd(0), w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
 
@@ -125,7 +125,7 @@ class DrmPreview(NullPreview):
                     self.stop_count = picam2.stop_count
 
                 fmt = self.FMT_MAP[pixel_format]
-                fd = fb.planes[0].fd
+                fd = fb.fd(0)
                 stride = cfg.stride
                 if pixel_format in ("YUV420", "YVU420"):
                     h2 = height // 2
