@@ -9,7 +9,7 @@ from .fileoutput import FileOutput
 class CircularOutput(FileOutput):
     """Circular buffer implementation for file output"""
 
-    def __init__(self, file=None, buffersize=30 * 5):
+    def __init__(self, file=None, pts=None, buffersize=30 * 5):
         """Creates circular buffer for 5s worth of 30fps frames
 
         :param file: File output, defaults to None
@@ -17,7 +17,7 @@ class CircularOutput(FileOutput):
         :param buffersize: Number of frames, defaults to 30*5
         :type buffersize: int, optional
         """
-        super().__init__(file)
+        super().__init__(file, pts=pts)
         self._lock = Lock()
         self.buffersize = buffersize
 
@@ -35,7 +35,7 @@ class CircularOutput(FileOutput):
             self._buffersize = value
             self._circular = collections.deque(maxlen=value)
 
-    def outputframe(self, frame, keyframe=True):
+    def outputframe(self, frame, keyframe=True, timestamp=None):
         """Write frame to circular buffer
 
         :param frame: Frame
@@ -57,12 +57,12 @@ class CircularOutput(FileOutput):
                         if keyframe:
                             break
                 if keyframe:
-                    self._write(frame)
+                    self._write(frame, timestamp)
                     self._firstframe = False
             else:
                 with self._lock:
                     frame, keyframe = self._circular.popleft()
-                self._write(frame)
+                self._write(frame, timestamp)
 
     def stop(self):
         """Close file handle and prevent recording"""

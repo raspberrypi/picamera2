@@ -29,6 +29,7 @@ class V4L2Encoder(Encoder):
         self._pixformat = pixformat
         self._controls = []
         self.vd = None
+        self.firsttimestamp = None
 
     def _start(self):
         super()._start()
@@ -186,7 +187,7 @@ class V4L2Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        self.outputframe(b, keyframe)
+                        self.outputframe(b, keyframe, (buf.timestamp.secs * 1000000) + buf.timestamp.usecs)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
@@ -223,7 +224,12 @@ class V4L2Encoder(Encoder):
         request.acquire()
 
         buf = v4l2_buffer()
-        timestamp_us = fb.metadata.timestamp / 1000
+        # fb.metadata.timestamp is in nanoseconds, so convert to usecs
+        if self.firsttimestamp is None:
+            self.firsttimestamp = int(fb.metadata.timestamp / 1000)
+            timestamp_us = 0
+        else:
+            timestamp_us = int(fb.metadata.timestamp / 1000) - self.firsttimestamp
 
         # Pass frame to video 4 linux, to encode
         planes = v4l2_plane * VIDEO_MAX_PLANES
@@ -233,8 +239,8 @@ class V4L2Encoder(Encoder):
         buf.field = V4L2_FIELD_NONE
         buf.memory = V4L2_MEMORY_DMABUF
         buf.length = 1
-        buf.timestamp.tv_sec = timestamp_us / 1000000
-        buf.timestamp.tv_usec = timestamp_us % 1000000
+        buf.timestamp.secs = timestamp_us // 1000000
+        buf.timestamp.usecs = timestamp_us % 1000000
         buf.m.planes = planes
         buf.m.planes[0].m.fd = fd
         buf.m.planes[0].bytesused = cfg.frame_size
