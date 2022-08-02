@@ -27,7 +27,7 @@ app = QApplication([])
 def on_button_clicked():
     button.setEnabled(False)
     cfg = picam2.create_still_configuration()
-    picam2.switch_mode_and_capture_file(cfg, "test.jpg", wait=False, signal_function=qpicamera2.signal_done)
+    picam2.switch_mode_and_capture_file(cfg, "test.jpg", signal_function=qpicamera2.signal_done)
 
 
 def capture_done():

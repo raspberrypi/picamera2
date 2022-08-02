@@ -30,8 +30,9 @@ def on_button_clicked():
 
 def capture_done():
     # Here's the request we captured. But we must always release it when we're done with it!
-    print("Request:", picam2.async_result)
-    picam2.async_result.release()
+    request = picam2.wait()
+    print("Request:", request)
+    request.release()
     button.setEnabled(True)
 
 
