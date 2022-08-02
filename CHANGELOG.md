@@ -4,6 +4,7 @@
 
 ### Added
 
+* Support for version 2.0 tuning files, including a find_tuning_algo method to make them easier to use.
 * Demo Qt applications have been moved out of the examples folder to apps. A new "app_full.py" exists which allows phots and videos to be recorded, and gives control through a GUI of various camera and image tuning parameters.
 * Added a sensor_modes field to the Picamera2 object. This can be queried to find out exactly what raw camera modes are supported, giving details of the maximum framerate and the field of view.
 

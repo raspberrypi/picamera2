@@ -72,6 +72,22 @@ class Picamera2:
                     return json.load(fp)
         raise RuntimeError("Tuning file not found")
 
+    @staticmethod
+    def find_tuning_algo(tuning: dict, name: str) -> dict:
+        """
+        Return the parameters for the named algorithm in the given camera tuning.
+
+        :param tuning: The camera tuning object
+        :type tuning: dict
+        :param name: The name of the algorithm
+        :type name: str
+        :rtype: dict
+        """
+        version = tuning.get("version", 1)
+        if version == 1:
+            return tuning[name]
+        return next(algo for algo in tuning["algorithms"] if name in algo)[name]
+
     def __init__(self, camera_num=0, verbose_console=None, tuning=None):
         """Initialise camera system and open the camera for use.
 
