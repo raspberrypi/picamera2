@@ -4,9 +4,15 @@
 
 ### Added
 
+* Demo Qt applications have been moved out of the examples folder to apps. A new "app_full.py" exists which allows phots and videos to be recorded, and gives control through a GUI of various camera and image tuning parameters.
+* Added a sensor_modes field to the Picamera2 object. This can be queried to find out exactly what raw camera modes are supported, giving details of the maximum framerate and the field of view.
+
 ### Changed
 
 * JpegEncoder defaults to producing YUV420 output now, though the constructor allows other colour subsampling modes to be chosen.
+* Fix bug where framerates had to be integer values.
+* Fix typo in align_configuration method.
+* Allow in-place image manipulation (using the MappedArray class) even when the image rows have padding.
 
 ## 0.2.3 Alpha Release 3
 
