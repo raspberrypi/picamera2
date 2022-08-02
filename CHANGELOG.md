@@ -9,6 +9,7 @@
 
 ### Changed
 
+* There's been some refactoring which has changed the way asynchronous calls (with wait=False) work. You should now call picam2.wait() to obtain the result, and you can set the signal_function so that you can avoid calling it before it's finished. The previous fields like "async_result" have been removed.
 * JpegEncoder defaults to producing YUV420 output now, though the constructor allows other colour subsampling modes to be chosen.
 * Fix bug where framerates had to be integer values.
 * Fix typo in align_configuration method.

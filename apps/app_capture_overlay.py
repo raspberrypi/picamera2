@@ -25,12 +25,13 @@ app = QApplication([])
 
 
 def on_button_clicked():
-    if not picam2.async_operation_in_progress:
-        cfg = picam2.create_still_configuration()
-        picam2.switch_mode_and_capture_file(cfg, "test.jpg", wait=False,
-                                            signal_function=None)
-    else:
-        print("Busy!")
+    button.setEnabled(False)
+    cfg = picam2.create_still_configuration()
+    picam2.switch_mode_and_capture_file(cfg, "test.jpg", signal_function=qpicamera2.signal_done)
+
+
+def capture_done():
+    button.setEnabled(True)
 
 
 overlay = np.zeros((300, 400, 4), dtype=np.uint8)
@@ -50,6 +51,7 @@ def on_checkbox_toggled(checked):
 # qpicamera2 = QPicamera2(picam2, width=800, height=600)
 # or:
 qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
+qpicamera2.done_signal.connect(capture_done)
 
 button = QPushButton("Click to capture JPEG")
 button.clicked.connect(on_button_clicked)
