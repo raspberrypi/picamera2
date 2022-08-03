@@ -11,6 +11,7 @@ from enum import Enum
 from typing import List
 import time
 from concurrent.futures import Future
+from functools import partial
 
 import libcamera
 import numpy as np
@@ -1026,7 +1027,7 @@ class Picamera2:
 
     def capture_file(self, file_output, name="main", format=None, wait=None, signal_function=None):
         """Capture an image to a file in the current camera mode."""
-        return self._execute_or_dispatch(lambda: self.capture_file_(file_output, name, format=format),
+        return self._execute_or_dispatch(partial(self.capture_file_, file_output, name, format=format),
                                          wait, signal_function)
 
     def switch_mode_(self, camera_config):
@@ -1039,7 +1040,7 @@ class Picamera2:
         """Switch the camera into another mode given by the camera_config."""
         if wait is None:
             wait = signal_function is None
-        functions = [(lambda: self.switch_mode_(camera_config))]
+        functions = [partial(self.switch_mode_, camera_config)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1057,8 +1058,8 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_and_switch_back_(self, file_output, preview_config, format))]
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_and_switch_back_, self, file_output, preview_config, format)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1084,8 +1085,8 @@ class Picamera2:
             self.stop_()
             return (True, result)
 
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_request_and_stop_(self))]
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_request_and_stop_, self)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1109,7 +1110,7 @@ class Picamera2:
 
     def capture_buffer(self, name="main", wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame in the named stream."""
-        return self._execute_or_dispatch(lambda: self.capture_buffer_(name), wait, signal_function)
+        return self._execute_or_dispatch(partial(self.capture_buffer_, name), wait, signal_function)
 
     def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
@@ -1124,8 +1125,8 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_buffer_and_switch_back_(self, preview_config, name))]
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_buffer_and_switch_back_, self, preview_config, name)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1138,7 +1139,7 @@ class Picamera2:
 
     def capture_array(self, name="main", wait=None, signal_function=None) -> np.ndarray:
         """Make a 2d image from the next frame in the named stream."""
-        return self._execute_or_dispatch(lambda: self.capture_array_(name), wait, signal_function)
+        return self._execute_or_dispatch(partial(self.capture_array_, name), wait, signal_function)
 
     def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the image array data, then return
@@ -1152,8 +1153,8 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_array_and_switch_back_(self, preview_config, name))]
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_array_and_switch_back_, self, preview_config, name)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1181,7 +1182,7 @@ class Picamera2:
         :return: PIL Image
         :rtype: Image
         """
-        return self._execute_or_dispatch(lambda: self.capture_image_(name), wait, signal_function)
+        return self._execute_or_dispatch(partial(self.capture_image_, name), wait, signal_function)
 
     def switch_mode_and_capture_image(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the image, then return
@@ -1196,8 +1197,8 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [(lambda: self.switch_mode_(camera_config)),
-                     (lambda: capture_image_and_switch_back_(self, preview_config, name))]
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_image_and_switch_back_, self, preview_config, name)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
