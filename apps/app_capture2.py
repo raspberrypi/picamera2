@@ -30,6 +30,7 @@ def on_button_clicked():
 
 
 def capture_done():
+    picam2.wait()
     button.setEnabled(True)
 
 

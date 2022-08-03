@@ -988,6 +988,8 @@ class Picamera2:
         return result
 
     def _dispatch_functions(self, functions, signal_function=None) -> None:
+        if self._future:
+            raise RuntimeError("Failure to wait for previous operation to finish!")
         self._future = Future()
         self._future.set_running_or_notify_cancel()
         if signal_function is not None:
