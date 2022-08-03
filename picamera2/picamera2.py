@@ -418,7 +418,7 @@ class Picamera2:
             self.log.info('Camera closed successfully.')
 
     @staticmethod
-    def _make_initial_stream_config(stream_config: dict, updates: dict) -> dict:
+    def _make_initial_stream_config(stream_config: dict, updates: dict, ignore_list=[]) -> dict:
         """Take an initial stream_config and add any user updates.
 
         :param stream_config: Stream configuration
@@ -433,8 +433,12 @@ class Picamera2:
             return None
         valid = ("format", "size")
         for key, value in updates.items():
+            if isinstance(value, SensorFormat):
+                value = str(value)
             if key in valid:
                 stream_config[key] = value
+            elif key in ignore_list:
+                pass  # allows us to pass items from the sensor_modes as a raw stream
             else:
                 raise ValueError(f"Bad key '{key}': valid stream configuration keys are {valid}")
         return stream_config
@@ -448,6 +452,8 @@ class Picamera2:
         config['display'] = display
         config['encode'] = encode
 
+    _raw_stream_ignore_list = ["bit_depth", "crop_limits", "exposure_limits", "fps", "unpacked"]
+
     def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Jpeg(), buffer_count=4, controls={}, display="main", encode="main"):
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
@@ -457,10 +463,10 @@ class Picamera2:
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
-        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
+        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw, self._raw_stream_ignore_list)
         # Let the framerate vary from 12fps to as fast as possible.
         controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
-                    "FrameDurationLimits": (self.camera_ctrl_info["FrameDurationLimits"][1].min, 83333)} | controls
+                    "FrameDurationLimits": (100, 83333)} | controls
         config = {"use_case": "preview",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -484,7 +490,7 @@ class Picamera2:
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         # Let the framerate span the entire possible range of the sensor.
         controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
-                    "FrameDurationLimits": (self.camera_ctrl_info["FrameDurationLimits"][1].min, self.camera_ctrl_info["FrameDurationLimits"][1].max)} | controls
+                    "FrameDurationLimits": (100, 1000000 * 1000)} | controls
         config = {"use_case": "still",
                   "transform": transform,
                   "colour_space": colour_space,
