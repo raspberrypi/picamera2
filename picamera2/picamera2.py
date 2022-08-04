@@ -547,7 +547,7 @@ class Picamera2:
         if type(format) is not str:
             raise RuntimeError("format in " + name + " stream should be a string")
         if name == "raw":
-            if not self.is_Bayer(format):
+            if not self.is_raw(format):
                 raise RuntimeError("Unrecognised raw format " + format)
         else:
             if not self.is_YUV(format) and not self.is_RGB(format):
@@ -661,6 +661,14 @@ class Picamera2:
                        "SBGGR10_CSI2P", "SGBRG10_CSI2P", "SGRBG10_CSI2P", "SRGGB10_CSI2P",
                        "SBGGR12", "SGBRG12", "SGRBG12", "SRGGB12",
                        "SBGGR12_CSI2P", "SGBRG12_CSI2P", "SGRBG12_CSI2P", "SRGGB12_CSI2P")
+
+    @staticmethod
+    def is_mono(fmt) -> bool:
+        return fmt in ("R8", "R10", "R12", "R8_CSI2P", "R10_CSI2P", "R12_CSI2P")
+
+    @staticmethod
+    def is_raw(fmt) -> bool:
+        return Picamera2.is_Bayer(fmt) or Picamera2.is_mono(fmt)
 
     def _make_requests(self) -> List[libcamera.Request]:
         """Make libcamera request objects.
@@ -1009,7 +1017,7 @@ class Picamera2:
 
     def capture_file_(self, file_output, name, format=None):
         request = self.completed_requests.pop(0)
-        if name == "raw" and self.is_Bayer(self.camera_config["raw"]["format"]):
+        if name == "raw" and self.is_raw(self.camera_config["raw"]["format"]):
             request.save_dng(file_output)
         else:
             request.save(name, file_output, format=format)

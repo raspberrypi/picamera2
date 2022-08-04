@@ -19,12 +19,18 @@ class SensorFormat():
 
     @property
     def unpacked(self):
-        return f"S{self.bayer_order}{self.bit_depth}"
+        return f"{'' if self.mono else 'S'}{self.bayer_order}{self.bit_depth}"
+
+    @property
+    def mono(self):
+        return self.bayer_order == "R"
 
     def __repr__(self):
         return self.format
 
     def transform(self, transform: Transform):
+        if self.mono:
+            return
         bayer_array = np.reshape([c for c in self.bayer_order], (2, 2))
         if transform.hflip:
             bayer_array = np.flip(bayer_array, 1)
