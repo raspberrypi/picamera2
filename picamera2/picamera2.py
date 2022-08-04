@@ -989,7 +989,7 @@ class Picamera2:
 
         return display_request
 
-    def wait(self) -> None:
+    def wait(self):
         """Wait for the event loop to finish an operation and signal us."""
         result = self._future.result()
         self._future = None
@@ -1136,7 +1136,7 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_buffer_and_switch_back_(self, preview_config, name) -> bool:
+        def capture_buffer_and_switch_back_(self, preview_config, name):
             _, result = self.capture_buffer_(name)
             self.switch_mode_(preview_config)
             return (True, result)
@@ -1147,7 +1147,7 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def capture_array_(self, name) -> bool:
+    def capture_array_(self, name):
         request = self.completed_requests.pop(0)
         result = request.make_array(name)
         request.release()
@@ -1164,7 +1164,7 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_array_and_switch_back_(self, preview_config, name) -> bool:
+        def capture_array_and_switch_back_(self, preview_config, name):
             _, result = self.capture_array_(name)
             self.switch_mode_(preview_config)
             return (True, result)
@@ -1175,7 +1175,7 @@ class Picamera2:
         if wait:
             return self.wait()
 
-    def capture_image_(self, name) -> None:
+    def capture_image_(self, name):
         """Capture image
 
         :param name: Stream name
