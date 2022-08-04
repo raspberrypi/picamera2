@@ -24,7 +24,7 @@ from picamera2.utils import initialize_logger
 
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
-from .request import CompletedRequest
+from .request import CompletedRequest, Helpers
 from .sensor_format import SensorFormat
 
 STILL = libcamera.StreamRole.StillCapture
@@ -118,6 +118,7 @@ class Picamera2:
         self.verbose_console = verbose_console
         self.log = initialize_logger(console_level=verbose_console)
         self._reset_flags()
+        self.helpers = Helpers(self)
         try:
             self._open_camera()
             self.log.debug(f"{self.camera_manager}")
