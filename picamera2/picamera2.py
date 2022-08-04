@@ -1129,6 +1129,16 @@ class Picamera2:
         """Make a 1d numpy array from the next frame in the named stream."""
         return self._execute_or_dispatch(partial(self.capture_buffer_, name), wait, signal_function)
 
+    def capture_buffers_and_metadata_(self, names):
+        request = self.completed_requests.pop(0)
+        result = ([request.make_buffer(name) for name in names], request.get_metadata())
+        request.release()
+        return (True, result)
+
+    def capture_buffers(self, names=["main"], wait=None, signal_function=None):
+        """Make a 1d numpy array from the next frame for each of the named streams."""
+        return self._execute_or_dispatch(partial(self.capture_buffers_and_metadata_, names), wait, signal_function)
+
     def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
         back to the initial camera mode.
@@ -1148,15 +1158,44 @@ class Picamera2:
         if wait:
             return self.wait()
 
+    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait=None, signal_function=None):
+        """Switch the camera into a new (capture) mode, capture the first buffers, then return
+        back to the initial camera mode.
+        """
+        if wait is None:
+            wait = signal_function is None
+        preview_config = self.camera_config
+
+        def capture_buffers_and_switch_back_(self, preview_config, names):
+            _, result = self.capture_buffers_and_metadata_(names)
+            self.switch_mode_(preview_config)
+            return (True, result)
+
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_buffers_and_switch_back_, self, preview_config, names)]
+        self.dispatch_functions(functions, signal_function)
+        if wait:
+            return self.wait()
+
     def capture_array_(self, name):
         request = self.completed_requests.pop(0)
         result = request.make_array(name)
         request.release()
         return (True, result)
 
-    def capture_array(self, name="main", wait=None, signal_function=None) -> np.ndarray:
+    def capture_array(self, name="main", wait=None, signal_function=None):
         """Make a 2d image from the next frame in the named stream."""
         return self._execute_or_dispatch(partial(self.capture_array_, name), wait, signal_function)
+
+    def capture_arrays_and_metadata_(self, names):
+        request = self.completed_requests.pop(0)
+        result = ([request.make_array(name) for name in names], request.get_metadata())
+        request.release()
+        return (True, result)
+
+    def capture_arrays(self, names=["main"], wait=None, signal_function=None):
+        """Make 2d image arrays from the next frames in the named streams."""
+        return self._execute_or_dispatch(partial(self.capture_arrays_and_metadata_, names), wait, signal_function)
 
     def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the image array data, then return
@@ -1172,6 +1211,24 @@ class Picamera2:
 
         functions = [partial(self.switch_mode_, camera_config),
                      partial(capture_array_and_switch_back_, self, preview_config, name)]
+        self.dispatch_functions(functions, signal_function)
+        if wait:
+            return self.wait()
+
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait=None, signal_function=None):
+        """Switch the camera into a new (capture) mode, capture the image arrays, then return
+        back to the initial camera mode."""
+        if wait is None:
+            wait = signal_function is None
+        preview_config = self.camera_config
+
+        def capture_arrays_and_switch_back_(self, preview_config, names):
+            _, result = self.capture_arrays_and_metadata_(names)
+            self.switch_mode_(preview_config)
+            return (True, result)
+
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_arrays_and_switch_back_, self, preview_config, names)]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
