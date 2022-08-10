@@ -17,5 +17,6 @@ encoder = H264Encoder()
 output = CircularOutput(buffersize=fps * dur, outputtofile=False)
 output.fileoutput = "file.h264"
 picam2.start_recording(encoder, output)
+picam2.capture_metadata()
 time.sleep(dur)
 output.stop()
