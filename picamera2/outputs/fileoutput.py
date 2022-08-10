@@ -11,8 +11,10 @@ class FileOutput(Output):
     def __init__(self, file=None, pts=None):
         """Initialise file output
 
-        :param file: _description_, defaults to None
+        :param file: File to write frames to, defaults to None
         :type file: str or BufferedWriter, optional
+        :param pts: File to write timestamps to, defaults to None
+        :type pts: str or BufferedWriter, optional
         """
         super().__init__(pts=pts)
         self.dead = False
@@ -57,7 +59,15 @@ class FileOutput(Output):
             raise RuntimeError("Must pass callback function or None")
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
-        """Output frame to file"""
+        """Outputs frame from encoder
+
+        :param frame: Frame
+        :type frame: bytes
+        :param keyframe: Whether frame is a keyframe, defaults to True
+        :type keyframe: bool, optional
+        :param timestamp: Timestamp of frame
+        :type timestamp: int
+        """
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
                 if not keyframe:

@@ -12,10 +12,14 @@ class CircularOutput(FileOutput):
     def __init__(self, file=None, pts=None, buffersize=30 * 5, outputtofile=True):
         """Creates circular buffer for 5s worth of 30fps frames
 
-        :param file: File output, defaults to None
-        :type file: FileOutput, optional
+        :param file: File to write frames to, defaults to None
+        :type file: str or BufferedWriter, optional
+        :param pts: File to write timestamps to, defaults to None
+        :type pts: str or BufferedWriter, optional
         :param buffersize: Number of frames, defaults to 30*5
         :type buffersize: int, optional
+        :param outputtofile: Boolean, whether to always write frames to file
+        :type outputtofile: bool
         """
         super().__init__(file, pts=pts)
         self._lock = Lock()
@@ -43,6 +47,8 @@ class CircularOutput(FileOutput):
         :type frame: bytes
         :param keyframe: Whether frame is a keyframe, defaults to True
         :type keyframe: bool, optional
+        :param timestamp: Timestamp of frame
+        :type timestamp: int
         """
         with self._lock:
             if self._buffersize == 0:
