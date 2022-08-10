@@ -5,7 +5,11 @@ class Output:
     """Handles output functionality of encoders"""
 
     def __init__(self, pts=None):
-        """Start output, with recording set to False"""
+        """Start output, with recording set to False
+
+        :param pts: File to write timestamps to, defaults to None
+        :type pts: str or BufferedWriter, optional
+        """
         self.recording = False
         self.ptsoutput = pts
 
@@ -24,10 +28,17 @@ class Output:
         :type frame: bytes
         :param keyframe: Whether frame is a keyframe, defaults to True
         :type keyframe: bool, optional
+        :param timestamp: Timestamp of frame
+        :type timestamp: int
         """
         pass
 
     def outputtimestamp(self, timestamp):
+        """Output timestamp to file
+
+        :param timestamp: Timestamp to write to file
+        :type timestamp: int
+        """
         if self.ptsoutput is not None and timestamp is not None:
             print(f"{timestamp // 1000}.{timestamp % 1000:03}", file=self.ptsoutput, flush=True)
 
