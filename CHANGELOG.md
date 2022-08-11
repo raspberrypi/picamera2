@@ -4,6 +4,7 @@
 
 ### Added
 
+* Added APIs to capture and copy buffers/arrays from multiple streams at once: capture_buffers, capture_arrays, switch_mode_and_capture_buffers, switch_mode_and_capture_arrays.
 * Allow entries from the sensor_modes property to be used directly as the raw stream configuration.
 * Support for version 2.0 tuning files, including a find_tuning_algo method to make them easier to use.
 * Demo Qt applications have been moved out of the examples folder to apps. A new "app_full.py" exists which allows phots and videos to be recorded, and gives control through a GUI of various camera and image tuning parameters.
