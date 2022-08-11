@@ -1,5 +1,4 @@
 flake8
-flake8-bandit
 flake8-broken-line
 flake8-bugbear
 flake8-commas
