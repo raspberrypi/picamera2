@@ -382,8 +382,11 @@ class logControlSlider(QWidget):
             return round(2**((val - center) / scaling), int(-np.log10(self.precision)))
 
     def updateValue(self):
+        self.blockAllSignals(True)
         if self.box.value() != self.sliderToBox():
             self.box.setValue(self.sliderToBox())
+        self.blockAllSignals(False)
+        self.valueChanged.emit(self.value())
 
     def redrawSlider(self):
         self.slider.setMinimum(0)
@@ -395,8 +398,10 @@ class logControlSlider(QWidget):
         self.precision = val
 
     def setValue(self, val):
+        self.blockAllSignals(True)
         self.box.setValue(val)
         self.redrawSlider()
+        self.blockAllSignals(False)
 
     def setMinimum(self, val):
         self.box.setMinimum(val)
@@ -407,6 +412,10 @@ class logControlSlider(QWidget):
         self.box.setMaximum(val)
         self.maximum = val
         self.redrawSlider()
+
+    def blockAllSignals(self, y):
+        self.box.blockSignals(y)
+        self.slider.blockSignals(y)
 
     def value(self):
         return self.box.value()
@@ -436,16 +445,21 @@ class controlSlider(QWidget):
         self.slider.setSingleStep(1)
 
     def updateValue(self):
+        self.blockAllSignals(True)
         if self.box.value() != self.slider.value() * self.precision:
             self.box.setValue(self.slider.value() * self.precision)
+        self.blockAllSignals(False)
+        self.valueChanged.emit(self.value())
 
     def setSingleStep(self, val):
         self.box.setSingleStep(val)
         self.precision = val
 
     def setValue(self, val):
+        self.blockAllSignals(True)
         self.box.setValue(val)
         self.slider.setValue(int(val / self.precision))
+        self.blockAllSignals(False)
 
     def setMinimum(self, val):
         self.box.setMinimum(val)
@@ -454,6 +468,10 @@ class controlSlider(QWidget):
     def setMaximum(self, val):
         self.box.setMaximum(val)
         self.slider.setMaximum(int(val / self.precision))
+
+    def blockAllSignals(self, y):
+        self.box.blockSignals(y)
+        self.slider.blockSignals(y)
 
     def value(self):
         return self.box.value()
