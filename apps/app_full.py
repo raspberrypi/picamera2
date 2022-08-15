@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from ctypes import alignment
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
                              QVBoxLayout, QWidget, QTabWidget, QSlider,
@@ -620,8 +619,10 @@ class AECTab(QWidget):
         ])
         self.awb_mode.currentIndexChanged.connect(self.awb_update)
         self.colour_gain_r = QDoubleSpinBox()
+        self.colour_gain_r.setSingleStep(0.1)
         self.colour_gain_r.valueChanged.connect(self.awb_update)
         self.colour_gain_b = QDoubleSpinBox()
+        self.colour_gain_b.setSingleStep(0.1)
         self.colour_gain_b.valueChanged.connect(self.awb_update)
 
         self.reset()
