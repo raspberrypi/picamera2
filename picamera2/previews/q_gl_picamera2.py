@@ -34,6 +34,9 @@ class EglState:
         # GLES version earlier than 3.0 (e.g. on a Pi 3) don't support this, but it's
         # only a check so we can skip it.
         # check_gl_extensions(["GL_OES_EGL_image"])
+        n = GLint()
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, n)
+        self.max_texture_size = n.value
 
     def create_display(self):
         xdisplay = getEGLNativeDisplay()
@@ -216,7 +219,7 @@ class QGlPicamera2(QWidget):
             "YVU420": "YV12",
         }
 
-        def __init__(self, display, completed_request):
+        def __init__(self, display, completed_request, max_texture_size):
             picam2 = completed_request.picam2
             stream = picam2.stream_map[picam2.display_stream_name]
             fb = completed_request.request.buffers[stream]
@@ -227,6 +230,8 @@ class QGlPicamera2(QWidget):
                 raise RuntimeError(f"Format {pixel_format} not supported by QGlPicamera2 preview")
             fmt = str_to_fourcc(self.FMT_MAP[pixel_format])
             w, h = (cfg.size.width, cfg.size.height)
+            if w > max_texture_size or h > max_texture_size:
+                raise RuntimeError(f"Maximum supported preview image size is {max_texture_size}")
             if pixel_format in ("YUV420", "YVU420"):
                 h2 = h // 2
                 stride2 = cfg.stride // 2
@@ -311,7 +316,7 @@ class QGlPicamera2(QWidget):
 
             if self.picamera2.verbose_console:
                 print("Make buffer for request", completed_request.request)
-            self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request)
+            self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request, self.egl.max_texture_size)
 
             # New buffers mean the image size may change so update the viewport just in case.
             update_viewport = True
