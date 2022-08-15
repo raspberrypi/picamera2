@@ -73,7 +73,7 @@ class MappedArray:
                 # efficiently. We leave any packing in there, however, as it would be easier
                 # to remove that after conversion to RGB (if that's what the caller does).
                 array = array.reshape((h * 3 // 2, stride))
-            elif fmt[0] == 'S':  # raw formats
+            elif self.__request.picam2.is_raw(fmt):
                 array = array.reshape((h, stride))
             else:
                 raise RuntimeError("Format " + fmt + " not supported")
@@ -192,7 +192,7 @@ class Helpers:
             # efficiently. We leave any packing in there, however, as it would be easier
             # to remove that after conversion to RGB (if that's what the caller does).
             image = array.reshape((h * 3 // 2, stride))
-        elif fmt[0] == 'S':  # raw formats
+        elif self.picam2.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
             raise RuntimeError("Format " + fmt + " not supported")
