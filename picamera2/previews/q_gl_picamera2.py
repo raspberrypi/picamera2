@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 
-from libcamera import PixelFormat
+from libcamera import PixelFormat, Transform
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -80,7 +80,7 @@ class EglState:
 class QGlPicamera2(QWidget):
     done_signal = pyqtSignal()
 
-    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True):
+    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
         super().__init__(parent=parent)
         self.resize(width, height)
 
@@ -89,6 +89,7 @@ class QGlPicamera2(QWidget):
 
         self.bg_colour = [colour / 255.0 for colour in bg_colour] + [1.0]
         self.keep_ar = keep_ar
+        self.transform = Transform() if transform is None else transform
         self.lock = threading.Lock()
         self.count = 0
         self.overlay_present = False
@@ -146,16 +147,16 @@ class QGlPicamera2(QWidget):
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         self.overlay_texture = glGenTextures(1)
 
-        vertShaderSrc = """
+        vertShaderSrc_image = f"""
             attribute vec2 aPosition;
             varying vec2 texcoord;
 
             void main()
-            {
+            {{
                 gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                texcoord.x = aPosition.x;
-                texcoord.y = 1.0 - aPosition.y;
-            }
+                texcoord.x = {'1.0 - ' if self.transform.hflip else ''}aPosition.x;
+                texcoord.y = {'' if self.transform.vflip else '1.0 - '}aPosition.y;
+            }}
         """
         fragShaderSrc_image = """
             #extension GL_OES_EGL_image_external : enable
@@ -166,6 +167,17 @@ class QGlPicamera2(QWidget):
             void main()
             {
                 gl_FragColor = texture2D(texture, texcoord);
+            }
+        """
+        vertShaderSrc_overlay = """
+            attribute vec2 aPosition;
+            varying vec2 texcoord;
+
+            void main()
+            {
+                gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
+                texcoord.x = aPosition.x;
+                texcoord.y = 1.0 - aPosition.y;
             }
         """
         fragShaderSrc_overlay = """
@@ -180,11 +192,11 @@ class QGlPicamera2(QWidget):
         """
 
         self.program_image = shaders.compileProgram(
-            shaders.compileShader(vertShaderSrc, GL_VERTEX_SHADER),
+            shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
             shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
         )
         self.program_overlay = shaders.compileProgram(
-            shaders.compileShader(vertShaderSrc, GL_VERTEX_SHADER),
+            shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
             shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER)
         )
 
