@@ -4,6 +4,7 @@
 
 ### Added
 
+* All the preview implementations now support a "display transform", allowing the preview image to be horizontally and/or vertically flipped (whilst not affecting the underlying image). The Picamer2.start_preview method allows a libcamera transform to be passed.
 * Added APIs to capture and copy buffers/arrays from multiple streams at once: capture_buffers, capture_arrays, switch_mode_and_capture_buffers, switch_mode_and_capture_arrays.
 * Allow entries from the sensor_modes property to be used directly as the raw stream configuration.
 * Support for version 2.0 tuning files, including a find_tuning_algo method to make them easier to use.
