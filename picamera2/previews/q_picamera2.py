@@ -1,4 +1,5 @@
 import numpy as np
+from libcamera import Transform
 from PyQt5 import QtCore
 from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
                           pyqtSignal, pyqtSlot)
@@ -16,11 +17,12 @@ class QPicamera2(QGraphicsView):
     done_signal = pyqtSignal()
     update_overlay_signal = pyqtSignal(object)
 
-    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True):
+    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
         super().__init__(parent=parent)
         self.picamera2 = picam2
         picam2.have_event_loop = True
         self.keep_ar = keep_ar
+        self.transform = Transform() if transform is None else transform
         self.image_size = None
         self.last_rect = QRect(0, 0, 0, 0)
 
@@ -113,6 +115,10 @@ class QPicamera2(QGraphicsView):
         if self.keep_ar:
             factor_x = min(factor_x, factor_y)
             factor_y = factor_x
+        if self.transform.hflip:
+            factor_x = -factor_x
+        if self.transform.vflip:
+            factor_y = -factor_y
         self.scale(factor_x, factor_y)
 
         # This scales the overlay to be on top of the camera image.
@@ -121,7 +127,16 @@ class QPicamera2(QGraphicsView):
             self.overlay.resetTransform()
             factor_x = image_w / rect.width()
             factor_y = image_h / rect.height()
-            self.overlay.setTransform(QTransform.fromScale(factor_x, factor_y), True)
+            translate_x, translate_y = 0, 0
+            if self.transform.hflip:
+                factor_x = -factor_x
+                translate_x = -rect.width()
+            if self.transform.vflip:
+                factor_y = -factor_y
+                translate_y = -rect.height()
+            transform = QTransform.fromScale(factor_x, factor_y)
+            transform.translate(translate_x, translate_y)
+            self.overlay.setTransform(transform, True)
 
     def resizeEvent(self, event):
         self.fitInView()
