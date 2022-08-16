@@ -24,7 +24,7 @@ class NullPreview:
                 callback = key.data
                 callback(picam2)
 
-    def __init__(self, x=None, y=None, width=None, height=None):
+    def __init__(self, x=None, y=None, width=None, height=None, transform=None):
         """Initialise null preview
 
         :param x: X position, defaults to None
@@ -35,6 +35,8 @@ class NullPreview:
         :type width: int, optional
         :param height: Height, defaults to None
         :type height: int, optional
+        :param transform: Transform, defaults to None
+        :type transform: libcamera.Transform, optional
         """
         # Ignore width and height as they are meaningless. We only accept them so as to
         # be a drop-in replacement for the Qt/DRM previews.
