@@ -1,6 +1,6 @@
 import mmap
 import threading
-from libcamera import PixelFormat
+from libcamera import PixelFormat, Transform
 
 import numpy as np
 import pykms
@@ -22,8 +22,8 @@ class DrmPreview(NullPreview):
         "YVU420": pykms.PixelFormat.YVU420,
     }
 
-    def __init__(self, x=0, y=0, width=640, height=480):
-        self.init_drm(x, y, width, height)
+    def __init__(self, x=0, y=0, width=640, height=480, transform=None):
+        self.init_drm(x, y, width, height, transform)
         self.stop_count = 0
         super().__init__(width=width, height=height)
 
@@ -47,7 +47,7 @@ class DrmPreview(NullPreview):
             else:
                 completed_request.release()
 
-    def init_drm(self, x, y, width, height):
+    def init_drm(self, x, y, width, height, transform):
         self.card = pykms.Card()
         self.resman = pykms.ResourceManager(self.card)
         conn = self.resman.reserve_connector()
@@ -58,6 +58,7 @@ class DrmPreview(NullPreview):
         self.current = None
         self.own_current = False
         self.window = (x, y, width, height)
+        self.transform = Transform() if transform is None else transform
         self.overlay_plane = None
         self.overlay_fb = None
         self.overlay_new_fb = None
@@ -107,6 +108,12 @@ class DrmPreview(NullPreview):
             self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
             if self.plane is None:
                 raise RuntimeError("Failed to reserve DRM plane")
+            drm_rotation = 1
+            if self.transform.hflip:
+                drm_rotation |= 16
+            if self.transform.vflip:
+                drm_rotation |= 32
+            self.plane.set_prop("rotation", drm_rotation)
             # The second plane we ask for will go on top of the first.
             self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, pykms.PixelFormat.ABGR8888)
             if self.overlay_plane is None:
