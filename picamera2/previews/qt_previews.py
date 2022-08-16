@@ -63,7 +63,7 @@ class QtPreviewBase:
 class QtPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QPicamera2
-        return QPicamera2(picam2, width=self.width, height=self.height)
+        return QPicamera2(picam2, width=self.width, height=self.height, transform=self.transform)
 
     def get_title(self):
         return "QtPreview"
