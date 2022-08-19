@@ -4,6 +4,12 @@
 
 ### Added
 
+### Changed
+
+## 0.3.1 Beta Release 1
+
+### Added
+
 * All the preview implementations now support a "display transform", allowing the preview image to be horizontally and/or vertically flipped (whilst not affecting the underlying image). The Picamer2.start_preview method allows a libcamera transform to be passed.
 * Added APIs to capture and copy buffers/arrays from multiple streams at once: capture_buffers, capture_arrays, switch_mode_and_capture_buffers, switch_mode_and_capture_arrays.
 * Allow entries from the sensor_modes property to be used directly as the raw stream configuration.
@@ -13,6 +19,7 @@
 
 ### Changed
 
+* Installation through pip now avoids installing the Qt and OpenGL dependencies by default. If you want them, use "pip3 install picamera2[gui]" or just do "sudo apt install -y python3-qt5 python3-opengl" first.
 * Fixed bug displaying overlays using DRM (pykms seems to have changed underneath us).
 * There's been some refactoring which has changed the way asynchronous calls (with wait=False) work. You should now call picam2.wait() to obtain the result, and you can set the signal_function so that you can avoid calling it before it's finished. The previous fields like "async_result" have been removed.
 * JpegEncoder defaults to producing YUV420 output now, though the constructor allows other colour subsampling modes to be chosen.
