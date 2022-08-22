@@ -1,14 +1,16 @@
 # Picamera2
 
 ---
-**WARNING!** *Picamera2* is currently available here as an alpha release. This means there may still be some issues, but we're hoping for feedback that can lead to further improvements. Consequently the API cannot be expected to be completely stable, but nor will we be making changes to it without due consideration.
+*Picamera2* is currently available here as a beta release. This means there may still be some issues and bugs which we shall work on fixing, and where users identify particularly useful features we may still consider implementing them. Mostly we shall be working on bugs, stability, support, examples and documentation, as well as keeping up with ongoing _libcamera_ development.
+
+However, there will also be quite a strong presumption _against_ making signficant code changes unless it seems absolutely necessary, especially any that break existing behaviour or APIs.
 ---
 
 *Picamera2* is the libcamera-based replacement for *Picamera* which was a Python interface to the Raspberry Pi's legacy camera stack. *Picamera2* also presents an easy to use Python API.
 
 You can find [*draft* documentation here](https://datasheets.raspberrypi.com/camera/picamera2-manual-draft.pdf). This is currently incomplete but should help users to get started.
 
-There are also many examples in the `examples` folder of this repository.
+There are also many examples in the `examples` folder of this repository, and some further _Qt_ application examples in the `apps` folder.
 
 ## Installation
 
