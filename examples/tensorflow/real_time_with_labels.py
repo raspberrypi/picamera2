@@ -9,7 +9,7 @@
 # Install necessary dependences before starting,
 #
 # $ sudo apt update
-# $ sudo apt install build-essentials
+# $ sudo apt install build-essential
 # $ sudo apt install libatlas-base-dev
 # $ sudo apt install python3-pip
 # $ pip3 install tflite-runtime
