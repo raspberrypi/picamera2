@@ -397,11 +397,13 @@ class logControlSlider(QWidget):
         self.box.setSingleStep(val)
         self.precision = val
 
-    def setValue(self, val):
+    def setValue(self, val, emit=False):
         self.blockAllSignals(True)
         self.box.setValue(val)
         self.redrawSlider()
         self.blockAllSignals(False)
+        if emit:
+            self.valueChanged.emit(self.value())
 
     def setMinimum(self, val):
         self.box.setMinimum(val)
@@ -455,11 +457,13 @@ class controlSlider(QWidget):
         self.box.setSingleStep(val)
         self.precision = val
 
-    def setValue(self, val):
+    def setValue(self, val, emit=False):
         self.blockAllSignals(True)
         self.box.setValue(val)
         self.slider.setValue(int(val / self.precision))
         self.blockAllSignals(False)
+        if emit:
+            self.valueChanged.emit(self.value())
 
     def setMinimum(self, val):
         self.box.setMinimum(val)
@@ -784,10 +788,10 @@ class IMGTab(QWidget):
 
     def reset(self):
         self.ccm.setValue(picam2.camera_controls["ColourCorrectionMatrix"][2])
-        self.saturation.setValue(picam2.camera_controls["Saturation"][2])
-        self.contrast.setValue(picam2.camera_controls["Contrast"][2])
-        self.sharpness.setValue(picam2.camera_controls["Sharpness"][2])
-        self.brightness.setValue(picam2.camera_controls["Brightness"][2])
+        self.saturation.setValue(picam2.camera_controls["Saturation"][2], emit=True)
+        self.contrast.setValue(picam2.camera_controls["Contrast"][2], emit=True)
+        self.sharpness.setValue(picam2.camera_controls["Sharpness"][2], emit=True)
+        self.brightness.setValue(picam2.camera_controls["Brightness"][2], emit=True)
 
     def img_update(self):
         self.ccm.setMinimum(picam2.camera_controls["ColourCorrectionMatrix"][0])
