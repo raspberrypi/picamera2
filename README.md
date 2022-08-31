@@ -1,9 +1,7 @@
 # Picamera2
 
 ---
-*Picamera2* is currently available here as a beta release. This means there may still be some issues and bugs which we shall work on fixing, and where users identify particularly useful features we may still consider implementing them. Mostly we shall be working on bugs, stability, support, examples and documentation, as well as keeping up with ongoing _libcamera_ development.
-
-However, there will also be quite a strong presumption _against_ making signficant code changes unless it seems absolutely necessary, especially any that break existing behaviour or APIs.
+*Picamera2* is currently available here as a beta release. This means there may still be some issues and bugs which we shall work on fixing, and where users identify particularly useful features we may still consider implementing them. Mostly we shall be working on bugs, stability, support, examples and documentation, as well as keeping up with ongoing _libcamera_ development. There will also be quite a strong presumption _against_ making signficant code changes unless it seems absolutely necessary, especially any that break existing behaviour or APIs.
 ---
 
 *Picamera2* is the libcamera-based replacement for *Picamera* which was a Python interface to the Raspberry Pi's legacy camera stack. *Picamera2* also presents an easy to use Python API.
@@ -14,9 +12,15 @@ There are also many examples in the `examples` folder of this repository, and so
 
 ## Installation
 
-These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B but should work on other platforms too.
+Please note that Raspberry Pi OS images released after August 2022 should contain _Picamera2_ pre-installed. However, if you do need to install or update _Picamera2_, please follow the instructions below.
 
-All the necessary packages can now be installed via `apt` and `pip3`, so the following should suffice. Please run `sudo apt update` and `sudo apt upgrade` first if you have not done so for some time. Then:
+These instructions are for a fresh 32-bit Bullseye image running on a Pi 4B but should work on other platforms too. Please perform a `sudo apt update` and `sudo apt upgrade` first if you have not done so recently.
+
+At the time of writing (August 2022) we are about to release `apt` packages for _Picamera2_. Once these go live it will be sufficient simply to run
+```
+sudo apt install -y python3-picamera2
+```
+If, at the moment that you read this, the package is not yet published, you can install _Picamera2_ using:
 
 ```
 sudo apt install -y python3-libcamera python3-kms++
@@ -25,7 +29,11 @@ pip3 install numpy --upgrade
 pip3 install picamera2[gui]
 ```
 
-Or If you don't want the GUI dependencies:
+Note that these two methods will both install all the GUI (Qt5 and OpenGL) dependencies. If you won't want those, please use:
+```
+sudo apt install -y python3-picamera2 --no-install-recommends
+```
+or, if that package is not yet published:
 
 ```
 sudo apt install -y python3-libcamera python3-kms++

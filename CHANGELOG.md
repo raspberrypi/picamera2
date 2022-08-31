@@ -6,6 +6,14 @@
 
 ### Changed
 
+## 0.3.3 Beta Release 2
+
+### Added
+
+### Changed
+
+* Very minor changes for the latest version of libcamera. "libcamera.ColorSpace.Jpeg()" has become "libcamera.ColorSpace.Sycc()".
+
 ## 0.3.2 Beta Release 1
 
 ### Added
