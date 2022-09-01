@@ -1,0 +1,2 @@
+What to composite?person1
+Which image to use as background (empty for none)?person
