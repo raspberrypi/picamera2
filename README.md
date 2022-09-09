@@ -6,7 +6,7 @@
 
 *Picamera2* is the libcamera-based replacement for *Picamera* which was a Python interface to the Raspberry Pi's legacy camera stack. *Picamera2* also presents an easy to use Python API.
 
-You can find [*draft* documentation here](https://datasheets.raspberrypi.com/camera/picamera2-manual-draft.pdf). This is currently incomplete but should help users to get started.
+You can find [documentation here](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf) which should help you to get started.
 
 There are also many examples in the `examples` folder of this repository, and some further _Qt_ application examples in the `apps` folder.
 
