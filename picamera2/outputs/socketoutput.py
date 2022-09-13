@@ -11,7 +11,7 @@ class SocketOutput(Output):
     """Socket handling functionality for encoders"""
 
     def __init__(self, socket=None, pts=None):
-        """Initialise UDP output
+        """Initialise socket output
 
         :param socket: Socket to write frames to, defaults to None
         :type socket: socket.socket, optional
@@ -39,7 +39,7 @@ class SocketOutput(Output):
             self._socket = None
         elif isinstance(socket, socket.socket):
             if self._socket is not None:
-                self._socket.close()
+                self.close()
             self._datagram = socket.type == socket.SOCK_DGRAM
             self._socket = socket
 
@@ -65,7 +65,7 @@ class SocketOutput(Output):
             raise RuntimeError("Must pass callback function or None")
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
-        """Write frames to a UDP stream
+        """Write frames to a socket stream
 
         :param frame: Frame
         :type frame: bytes
