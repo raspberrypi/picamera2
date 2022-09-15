@@ -10,13 +10,15 @@ from .output import Output
 class FileOutput(Output):
     """File handling functionality for encoders"""
 
-    def __init__(self, file=None, pts=None):
+    def __init__(self, file=None, pts=None, split=None):
         """Initialise file output
 
         :param file: File to write frames to, defaults to None
         :type file: str or BufferedWriter, optional
         :param pts: File to write timestamps to, defaults to None
         :type pts: str or BufferedWriter, optional
+        :param split: Max transmission size of data, only applies to datagrams, defaults to None
+        :type split: int, optional
         """
         super().__init__(pts=pts)
         self.dead = False
@@ -24,6 +26,7 @@ class FileOutput(Output):
         self._firstframe = True
         self._before = None
         self._connectiondead = None
+        self._splitsize = split
 
     @property
     def fileoutput(self):
@@ -101,7 +104,7 @@ class FileOutput(Output):
     def _write(self, frame, timestamp=None):
         try:
             if self._split:
-                maxsize = 65507
+                maxsize = 65507 if self._splitsize is None else self._splitsize
                 tosend = len(frame)
                 off = 0
                 while tosend > 0:
