@@ -1,5 +1,7 @@
 """Writes frames to a file"""
 
+import io
+import socket
 import types
 
 from .output import Output
@@ -31,14 +33,20 @@ class FileOutput(Output):
     @fileoutput.setter
     def fileoutput(self, file):
         """Change file to output frames to"""
+        self._split = False
         self._firstframe = True
         if file is None:
             self._fileoutput = None
         else:
             if isinstance(file, str):
                 self._fileoutput = open(file, "wb")
-            else:
+            elif isinstance(file, io.BufferedWriter):
                 self._fileoutput = file
+            else:
+                raise RuntimeError("Must pass io.BufferedWriter")
+            if hasattr(self._fileoutput, "raw") and isinstance(self._fileoutput.raw, socket.SocketIO) and \
+                    self._fileoutput.raw._sock.type == socket.SocketKind.SOCK_DGRAM:
+                self._split = True
 
     @property
     def connectiondead(self):
@@ -92,8 +100,19 @@ class FileOutput(Output):
 
     def _write(self, frame, timestamp=None):
         try:
-            self._fileoutput.write(frame)
-            self._fileoutput.flush()
+            if self._split:
+                maxsize = 65507
+                tosend = len(frame)
+                off = 0
+                while tosend > 0:
+                    lenv = min(tosend, maxsize)
+                    self._fileoutput.write(frame[off:off + lenv])
+                    self._fileoutput.flush()
+                    off += lenv
+                    tosend -= lenv
+            else:
+                self._fileoutput.write(frame)
+                self._fileoutput.flush()
             self.outputtimestamp(timestamp)
         except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
             self.dead = True
