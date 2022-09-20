@@ -992,8 +992,12 @@ class Picamera2:
 
     def wait(self):
         """Wait for the event loop to finish an operation and signal us."""
-        result = self._future.result()
-        self._future = None
+        try:
+            result = self._future.result()
+        except Exception as e:
+            raise
+        finally:
+            self._future = None
         return result
 
     def _dispatch_functions(self, functions, signal_function=None) -> None:
@@ -1035,7 +1039,12 @@ class Picamera2:
                 raise RuntimeError("Failure to wait for previous operation to finish!")
             self._dispatch_functions([function], signal_function)
             if self.completed_requests:
-                done, result = function()
+                try:
+                    done, result = function()
+                except Exception as e:
+                    self.functions = []
+                    self._future = None
+                    raise
                 if done:
                     self.functions = []
                     self._future.set_result(result)
