@@ -131,6 +131,8 @@ class CompletedRequest:
 
     def make_buffer(self, name):
         """Make a 1d numpy array from the named stream's buffer."""
+        if self.picam2.stream_map.get(name, None) is None:
+            raise RuntimeError(f'Stream "{name}" is not defined')
         with _MappedBuffer(self, name) as b:
             return np.array(b, dtype=np.uint8)
 
@@ -203,6 +205,8 @@ class Helpers:
         rgb = self.make_array(buffer, config)
         fmt = config["format"]
         mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
+        if fmt not in mode_lookup:
+            raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
         mode = mode_lookup[fmt]
         pil_img = Image.frombuffer("RGB", (rgb.shape[1], rgb.shape[0]), rgb, "raw", mode, 0, 1)
         if width is None:
