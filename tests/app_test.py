@@ -17,6 +17,7 @@ def post_callback(request):
     label.setText(''.join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items()))
 
 
+Picamera2.set_logging()
 picam2 = Picamera2()
 picam2.post_callback = post_callback
 picam2.configure(picam2.create_preview_configuration(main={"size": (800, 600)}))
