@@ -834,6 +834,7 @@ class Picamera2:
         if self.started:
             raise RuntimeError("Camera already started")
         controls = self.controls.get_libcamera_controls()
+        self.controls = Controls(self)
         if self.camera.start(controls) >= 0:
             for request in self._make_requests():
                 self.camera.queue_request(request)
