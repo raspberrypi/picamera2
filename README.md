@@ -22,7 +22,7 @@ _Picamera2_ is _not_ supported on:
 
 On Raspberry Pi OS images, _Picamera2_ is now installed with all the GUI (_Qt_ and _OpenGL_) dependencies. On Raspberry Pi OS Lite, it is installed without the GUI dependencies, although preview images can still be displayed using DRM/KMS. If these users wish to use the additional X-Windows GUI features, they will need to run
 ```
-sudo apt install -y python3-qt5 python3-opengl
+sudo apt install -y python3-pyqt5 python3-opengl
 ```
 (No changes are required to _Picamera2_ itself.)
 
