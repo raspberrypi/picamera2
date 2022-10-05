@@ -416,6 +416,15 @@ class Picamera2:
             self.libcamera_config = None
             self.streams = None
             self.stream_map = None
+            self.camera_manager = None
+            self.camera = None
+            self.camera_ctrl_info = None
+            self.camera_config = None
+            self.libcamera_config = None
+            self.preview_configuration_ = None
+            self.still_configuration_ = None
+            self.video_configuration_ = None
+            self.allocator = None
             self.log.info('Camera closed successfully.')
 
     @staticmethod
@@ -735,6 +744,8 @@ class Picamera2:
                 camera_config = self.still_configuration
             else:
                 camera_config = self.video_configuration
+        elif isinstance(initial_config, dict):
+            camera_config = camera_config.copy()
         if isinstance(camera_config, CameraConfiguration):
             if camera_config.raw is not None and camera_config.raw.format is None:
                 camera_config.raw.format = self.sensor_format
