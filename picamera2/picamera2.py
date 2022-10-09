@@ -8,7 +8,7 @@ import selectors
 import tempfile
 import threading
 from enum import Enum
-from typing import List
+from typing import List, Tuple, Any, Dict, Optional
 import time
 from concurrent.futures import Future
 from functools import partial
@@ -151,7 +151,7 @@ class Picamera2:
         self._encoder = None
         self.pre_callback = None
         self.post_callback = None
-        self.completed_requests = []
+        self.completed_requests: List[CompletedRequest] = []
         self.lock = threading.Lock()  # protects the functions and completed_requests fields
         self.have_event_loop = False
         self.camera_properties_ = {}
@@ -159,7 +159,7 @@ class Picamera2:
         self.sensor_modes_ = None
 
     @property
-    def preview_configuration(self):
+    def preview_configuration(self) -> CameraConfiguration:
         return self.preview_configuration_
 
     @preview_configuration.setter
@@ -167,7 +167,7 @@ class Picamera2:
         self.preview_configuration_ = CameraConfiguration(value, self)
 
     @property
-    def still_configuration(self):
+    def still_configuration(self) -> CameraConfiguration:
         return self.still_configuration_
 
     @still_configuration.setter
@@ -175,7 +175,7 @@ class Picamera2:
         self.still_configuration_ = CameraConfiguration(value, self)
 
     @property
-    def video_configuration(self):
+    def video_configuration(self) -> CameraConfiguration:
         return self.video_configuration_
 
     @video_configuration.setter
@@ -455,7 +455,7 @@ class Picamera2:
 
     _raw_stream_ignore_list = ["bit_depth", "crop_limits", "exposure_limits", "fps", "unpacked"]
 
-    def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={}, display="main", encode="main"):
+    def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={}, display="main", encode="main") -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -537,6 +537,10 @@ class Picamera2:
         return config
 
     def check_stream_config(self, stream_config, name) -> None:
+        """Check the configuration of the passed in config.
+
+        Raises RuntimeError if the configuration is invalid.
+        """
         # Check the parameters for a single stream.
         if type(stream_config) is not dict:
             raise RuntimeError(name + " stream should be a dictionary")
@@ -893,7 +897,7 @@ class Picamera2:
             self.started = False
             self.completed_requests = []
             self.log.info("Camera stopped")
-        return (True, None)
+        return None
 
     def stop(self) -> None:
         """Stop the camera."""
@@ -952,17 +956,16 @@ class Picamera2:
             # Each operation is regarded as completed when it returns True, otherwise it remains
             # in the list to be tried again next time.
             if self.functions:
-                function = self.functions[0]
-                self.log.debug(f"Execute function: {function}")
                 try:
-                    done, result = function()
-                    if done:
-                        self.functions = self.functions[1:]
-                        # Once we've done everything, signal the fact to the thread that requested this work.
-                        if not self.functions:
-                            self._future.set_result(result)
+                    f, *self.functions = self.functions
+                    self.log.debug(f"Executing function: {f}")
+                    result = f()
+                    # Once we've done everything, signal the fact to the thread that requested this work.
+                    if not self.functions:
+                        self._future.set_result(result)
                 except Exception as e:
                     self.functions = []
+                    self.log.warning(f"Function {f} raised")
                     self._future.set_exception(e)
 
             # Some applications may want to do something to the image after they've had a change
@@ -1016,7 +1019,7 @@ class Picamera2:
         with self.lock:
             self._dispatch_functions(functions, signal_function)
 
-    def capture_file_(self, file_output, name, format=None):
+    def capture_file_(self, file_output, name: str, format=None):
         request = self.completed_requests.pop(0)
         if name == "raw" and self.is_raw(self.camera_config["raw"]["format"]):
             request.save_dng(file_output)
@@ -1025,7 +1028,7 @@ class Picamera2:
 
         result = request.get_metadata()
         request.release()
-        return (True, result)
+        return result
 
     def _execute_or_dispatch(self, function, wait, signal_function):
         if wait is None:
@@ -1035,15 +1038,23 @@ class Picamera2:
                 raise RuntimeError("Failure to wait for previous operation to finish!")
             self._dispatch_functions([function], signal_function)
             if self.completed_requests:
-                done, result = function()
-                if done:
-                    self.functions = []
-                    self._future.set_result(result)
+                result = function()
+                self.functions = []
+                self._future.set_result(result)
         if wait:
             return self.wait()
 
-    def capture_file(self, file_output, name="main", format=None, wait=None, signal_function=None):
-        """Capture an image to a file in the current camera mode."""
+    def capture_file(
+            self,
+            file_output,
+            name: str = "main",
+            format=None,
+            wait=None,
+            signal_function=None) -> dict:
+        """Capture an image to a file in the current camera mode.
+
+        Return the metadata for the frame captured.
+        """
         return self._execute_or_dispatch(partial(self.capture_file_, file_output, name, format=format),
                                          wait, signal_function)
 
@@ -1051,7 +1062,7 @@ class Picamera2:
         self.stop_()
         self.configure_(camera_config)
         self.start_()
-        return (True, self.camera_config)
+        return self.camera_config
 
     def switch_mode(self, camera_config, wait=None, signal_function=None):
         """Switch the camera into another mode given by the camera_config."""
@@ -1070,40 +1081,39 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_and_switch_back_(self, file_output, preview_config, format):
-            _, result = self.capture_file_(file_output, name, format=format)
+        def capture_and_switch_back_():
+            result = self.capture_file_(file_output, name, format=format)
             self.switch_mode_(preview_config)
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_and_switch_back_, self, file_output, preview_config, format)]
+                     capture_and_switch_back_]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
 
     def capture_request_(self):
         # The "use" of this request is transferred from the completed_requests list to the caller.
-        return (True, self.completed_requests.pop(0))
+        return self.completed_requests.pop(0)
 
     def capture_request(self, wait=None, signal_function=None):
         """Fetch the next completed request from the camera system. You will be holding a
         reference to this request so you must release it again to return it to the camera system.
         """
-        function = self.capture_request_
-        return self._execute_or_dispatch(function, wait, signal_function)
+        return self._execute_or_dispatch(self.capture_request_, wait, signal_function)
 
     def switch_mode_capture_request_and_stop(self, camera_config, wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
         if wait is None:
             wait = signal_function is None
 
-        def capture_request_and_stop_(self):
-            _, result = self.capture_request_()
+        def capture_request_and_stop_():
+            result = self.capture_request_()
             self.stop_()
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_request_and_stop_, self)]
+                     capture_request_and_stop_]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1112,28 +1122,27 @@ class Picamera2:
         request = self.completed_requests.pop(0)
         result = request.get_metadata()
         request.release()
-        return (True, result)
+        return result
 
     def capture_metadata(self, wait=None, signal_function=None):
         """Fetch the metadata from the next camera frame."""
-        function = self.capture_metadata_
-        return self._execute_or_dispatch(function, wait, signal_function)
+        return self._execute_or_dispatch(self.capture_metadata_, wait, signal_function)
 
     def capture_buffer_(self, name):
         request = self.completed_requests.pop(0)
         result = request.make_buffer(name)
         request.release()
-        return (True, result)
+        return result
 
     def capture_buffer(self, name="main", wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame in the named stream."""
         return self._execute_or_dispatch(partial(self.capture_buffer_, name), wait, signal_function)
 
-    def capture_buffers_and_metadata_(self, names):
+    def capture_buffers_and_metadata_(self, names) -> Tuple[List[np.ndarray], dict]:
         request = self.completed_requests.pop(0)
         result = ([request.make_buffer(name) for name in names], request.get_metadata())
         request.release()
-        return (True, result)
+        return result
 
     def capture_buffers(self, names=["main"], wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame for each of the named streams."""
@@ -1147,13 +1156,13 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_buffer_and_switch_back_(self, preview_config, name):
-            _, result = self.capture_buffer_(name)
+        def capture_buffer_and_switch_back_():
+            result = self.capture_buffer_(name)
             self.switch_mode_(preview_config)
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_buffer_and_switch_back_, self, preview_config, name)]
+                     capture_buffer_and_switch_back_]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1166,13 +1175,13 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_buffers_and_switch_back_(self, preview_config, names):
-            _, result = self.capture_buffers_and_metadata_(names)
+        def capture_buffers_and_switch_back_():
+            result = self.capture_buffers_and_metadata_(names)
             self.switch_mode_(preview_config)
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_buffers_and_switch_back_, self, preview_config, names)]
+                     capture_buffers_and_switch_back_]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1181,17 +1190,17 @@ class Picamera2:
         request = self.completed_requests.pop(0)
         result = request.make_array(name)
         request.release()
-        return (True, result)
+        return result
 
     def capture_array(self, name="main", wait=None, signal_function=None):
         """Make a 2d image from the next frame in the named stream."""
         return self._execute_or_dispatch(partial(self.capture_array_, name), wait, signal_function)
 
-    def capture_arrays_and_metadata_(self, names):
+    def capture_arrays_and_metadata_(self, names) -> Tuple[List[np.ndarray], Dict[str, Any]]:
         request = self.completed_requests.pop(0)
         result = ([request.make_array(name) for name in names], request.get_metadata())
         request.release()
-        return (True, result)
+        return result
 
     def capture_arrays(self, names=["main"], wait=None, signal_function=None):
         """Make 2d image arrays from the next frames in the named streams."""
@@ -1204,13 +1213,13 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_array_and_switch_back_(self, preview_config, name):
-            _, result = self.capture_array_(name)
+        def capture_array_and_switch_back_():
+            result = self.capture_array_(name)
             self.switch_mode_(preview_config)
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_array_and_switch_back_, self, preview_config, name)]
+                     capture_array_and_switch_back_]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
@@ -1222,18 +1231,18 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_arrays_and_switch_back_(self, preview_config, names):
-            _, result = self.capture_arrays_and_metadata_(names)
+        def capture_arrays_and_switch_back_():
+            result = self.capture_arrays_and_metadata_(names)
             self.switch_mode_(preview_config)
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_arrays_and_switch_back_, self, preview_config, names)]
+                     capture_arrays_and_switch_back_]
         self.dispatch_functions(functions, signal_function)
         if wait:
             return self.wait()
 
-    def capture_image_(self, name):
+    def capture_image_(self, name: str) -> Image:
         """Capture image
 
         :param name: Stream name
@@ -1242,9 +1251,9 @@ class Picamera2:
         request = self.completed_requests.pop(0)
         result = request.make_image(name)
         request.release()
-        return (True, result)
+        return result
 
-    def capture_image(self, name="main", wait=None, signal_function=None) -> Image:
+    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1258,7 +1267,7 @@ class Picamera2:
         """
         return self._execute_or_dispatch(partial(self.capture_image_, name), wait, signal_function)
 
-    def switch_mode_and_capture_image(self, camera_config, name="main", wait=None, signal_function=None):
+    def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None, signal_function=None) -> Image:
         """Switch the camera into a new (capture) mode, capture the image, then return
         back to the initial camera mode.
         """
@@ -1266,10 +1275,10 @@ class Picamera2:
             wait = signal_function is None
         preview_config = self.camera_config
 
-        def capture_image_and_switch_back_(self, preview_config, name):
-            _, result = self.capture_image_(name)
+        def capture_image_and_switch_back_(self, preview_config, name) -> Image:
+            result = self.capture_image_(name)
             self.switch_mode_(preview_config)
-            return (True, result)
+            return result
 
         functions = [partial(self.switch_mode_, camera_config),
                      partial(capture_image_and_switch_back_, self, preview_config, name)]
@@ -1310,7 +1319,7 @@ class Picamera2:
         self.encoder._stop()
 
     @property
-    def encoder(self):
+    def encoder(self) -> Optional[Encoder]:
         """Extract current Encoder object
 
         :return: Encoder
@@ -1370,7 +1379,7 @@ class Picamera2:
                 raise RuntimeError("Overlay must be a 4-channel image")
         self._preview.set_overlay(overlay)
 
-    def start_and_capture_files(self, name="image{:03d}.jpg", initial_delay=1, preview_mode="preview", capture_mode="still", num_files=1, delay=1, show_preview=True):
+    def start_and_capture_files(self, name: str = "image{:03d}.jpg", initial_delay=1, preview_mode="preview", capture_mode="still", num_files=1, delay=1, show_preview=True):
         """
         This function makes capturing multiple images more conenient, but should only be used in
         command line line applications (not from a Qt application, for example). If will configure
