@@ -331,7 +331,6 @@ class Picamera2:
 
         if self.camera is not None:
             self.__identify_camera()
-
             # Re-generate the controls list to someting easer to use.
             for k, v in self.camera.controls.items():
                 self.camera_ctrl_info[k.name] = (k, v)
@@ -534,8 +533,9 @@ class Picamera2:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw, self._raw_stream_ignore_list)
         # Let the framerate vary from 12fps to as fast as possible.
-        controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
-                    "FrameDurationLimits": (100, 83333)} | controls
+        if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
+            controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
+                        "FrameDurationLimits": (100, 83333)} | controls
         config = {"use_case": "preview",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -558,8 +558,9 @@ class Picamera2:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         # Let the framerate span the entire possible range of the sensor.
-        controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
-                    "FrameDurationLimits": (100, 1000000 * 1000)} | controls
+        if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
+            controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
+                        "FrameDurationLimits": (100, 1000000 * 1000)} | controls
         config = {"use_case": "still",
                   "transform": transform,
                   "colour_space": colour_space,
@@ -591,8 +592,9 @@ class Picamera2:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
-        controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
-                    "FrameDurationLimits": (33333, 33333)} | controls
+        if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
+            controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
+                        "FrameDurationLimits": (33333, 33333)} | controls
         config = {"use_case": "video",
                   "transform": transform,
                   "colour_space": colour_space,

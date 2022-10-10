@@ -1,14 +1,14 @@
+import io
 import threading
 import time
 
-from .controls import Controls
-
-from PIL import Image
 import numpy as np
 import piexif
 from pidng.camdefs import Picamera2Camera
 from pidng.core import PICAM2DNG
 from PIL import Image
+
+from .controls import Controls
 
 
 class _MappedBuffer:
@@ -194,6 +194,8 @@ class Helpers:
             # efficiently. We leave any packing in there, however, as it would be easier
             # to remove that after conversion to RGB (if that's what the caller does).
             image = array.reshape((h * 3 // 2, stride))
+        elif fmt == "MJPEG":
+            image = np.array(Image.open(io.BytesIO(array)))
         elif self.picam2.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
@@ -202,8 +204,11 @@ class Helpers:
 
     def make_image(self, buffer, config, width=None, height=None):
         """Make a PIL image from the named stream's buffer."""
-        rgb = self.make_array(buffer, config)
         fmt = config["format"]
+        if fmt == "MJPEG":
+            return Image.open(io.BytesIO(buffer))
+        else:
+            rgb = self.make_array(buffer, config)
         mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
         if fmt not in mode_lookup:
             raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
@@ -235,17 +240,21 @@ class Helpers:
                 # doesn't like RGBA to we have to bodge that to RGBX.
                 img.mode = "RGBX"
             # Make up some extra EXIF data.
-            zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
-                        piexif.ImageIFD.Model: self.picam2.camera.id,
-                        piexif.ImageIFD.Software: "Picamera2"}
-            total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
-            exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
-                        piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
-            exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
+            if "AnalogueGain" in metadata and "DigitalGain" in metadata:
+                zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
+                            piexif.ImageIFD.Model: self.picam2.camera.id,
+                            piexif.ImageIFD.Software: "Picamera2"}
+                total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
+                exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                            piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
+                exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
         # compress_level=1 saves pngs much faster, and still gets most of the compression.
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
-        img.save(file_output, compress_level=png_compress_level, quality=jpeg_quality, exif=exif, format=format)
+        keywords = {"compress_level": png_compress_level, "quality": jpeg_quality, "format": format}
+        if exif != b'':
+            keywords |= {"exif": exif}
+        img.save(file_output, **keywords)
         end_time = time.monotonic()
         self.picam2.log.info(f"Saved {self} to file {file_output}.")
         self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
