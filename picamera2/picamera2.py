@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """picamera2 main class"""
 
+from collections import defaultdict
 
 import json
 import os
@@ -44,6 +45,44 @@ class Preview(Enum):
     QTGL = 3
 
 
+class CameraManager:
+    def __init__(self):
+        self.cameras = {}
+        self.cms = libcamera.CameraManager.singleton()
+        self.thread = threading.Thread(target=self.listen)
+        self.thread.setDaemon(True)
+        self.running = True
+        self.thread.start()
+
+    def listen(self):
+        import selectors
+        sel = selectors.DefaultSelector()
+        sel.register(self.cms.event_fd, selectors.EVENT_READ, self.handle_request)
+
+        while self.running:
+            events = sel.select(0.2)
+            for key, _ in events:
+                callback = key.data
+                callback(self.cameras)
+
+    def handle_request(self, cameras):
+        """Handle requests
+
+        :param picam2: picamera2 object
+        :type picam2: Picamera2
+        """
+
+        cams = set()
+        for req in self.cms.get_ready_requests():
+            if req.status == libcamera.Request.Status.Complete:
+                cams.add(req.cookie)
+                with cameras[req.cookie]._requestslock:
+                    cameras[req.cookie]._requests += [CompletedRequest(req, cameras[req.cookie])]
+        for c in cams:
+            cameras[c].notifyme_w.write(b"\x00")
+            cameras[c].notifyme_w.flush()
+
+
 class Picamera2:
     """Welcome to the PiCamera2 class."""
 
@@ -52,6 +91,7 @@ class Picamera2:
     WARNING = logging.WARNING
     ERROR = logging.ERROR
     CRITICAL = logging.CRITICAL
+    _cm = None
 
     @staticmethod
     def set_logging(level=logging.WARN, output=sys.stderr, msg=None):
@@ -148,8 +188,16 @@ class Picamera2:
                 os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning_file.name
         else:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
-        self.camera_manager = libcamera.CameraManager.singleton()
+        if not Picamera2._cm:
+            Picamera2._cm = CameraManager()
+        self.notifyme_r, notifymew = os.pipe()
+        self.notifyme_rr = os.fdopen(self.notifyme_r, 'rb')
+        self.notifyme_w = os.fdopen(notifymew, 'wb')
+        self.camera_manager = Picamera2._cm.cms
         self.camera_idx = camera_num
+        self._cm.cameras[camera_num] = self
+        self._requestslock = threading.Lock()
+        self._requests = []
         if verbose_console is None:
             verbose_console = int(os.environ.get('PICAMERA2_LOG_LEVEL', '0'))
         self.verbose_console = verbose_console
@@ -287,6 +335,15 @@ class Picamera2:
             value = (value.width, value.height)
         return value
 
+    def _grab_camera(self, idx):
+        if isinstance(idx, str):
+            try:
+                return self.camera_manager.get(idx)
+            except Exception:
+                return self.camera_manager.find(idx)
+        elif isinstance(idx, int):
+            return self.camera_manager.cameras[idx]
+
     def _initialize_camera(self) -> bool:
         """Initialize camera
 
@@ -295,13 +352,7 @@ class Picamera2:
         :rtype: bool
         """
         if self.camera_manager.cameras:
-            if isinstance(self.camera_idx, str):
-                try:
-                    self.camera = self.camera_manager.get(self.camera_idx)
-                except Exception:
-                    self.camera = self.camera_manager.find(self.camera_idx)
-            elif isinstance(self.camera_idx, int):
-                self.camera = self.camera_manager.cameras[self.camera_idx]
+            self.camera = self._grab_camera(self.camera_idx)
         else:
             self.log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
             raise RuntimeError("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
@@ -427,9 +478,9 @@ class Picamera2:
         """
         if self._preview:
             try:
+                self.have_event_loop = False
                 self._preview.stop()
                 self._preview = None
-                self.have_event_loop = False
             except Exception:
                 raise RuntimeError("Unable to stop preview.")
         else:
@@ -733,16 +784,14 @@ class Picamera2:
         num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
         requests = []
         for i in range(num_requests):
-            request = self.camera.create_request()
+            request = self.camera.create_request(self.camera_idx)
             if request is None:
                 raise RuntimeError("Could not create request")
 
             for stream in self.streams:
                 if request.add_buffer(stream, self.allocator.buffers(stream)[i]) < 0:
                     raise RuntimeError("Failed to set request buffer")
-
             requests.append(request)
-
         return requests
 
     def _update_stream_config(self, stream_config, libcamera_stream_config) -> None:
@@ -852,7 +901,6 @@ class Picamera2:
                 raise RuntimeError("Failed to allocate buffers.")
             msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
             self.log.debug(msg)
-
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
@@ -963,20 +1011,16 @@ class Picamera2:
         """Set camera controls. These will be delivered with the next request that gets submitted."""
         self.controls.set_controls(controls)
 
-    def _get_completed_requests(self) -> List[CompletedRequest]:
-        # Return all the requests that libcamera has completed.
-        requests = [CompletedRequest(req, self) for req in self.camera_manager.get_ready_requests()
-                    if req.status == libcamera.Request.Status.Complete]
-        self.frames += len(requests)
-        return requests
-
     def process_requests(self) -> None:
         # This is the function that the event loop, which runs externally to us, must
         # call.
-        requests = self._get_completed_requests()
-        if not requests:
+        requests = []
+        with self._requestslock:
+            requests = self._requests
+            self._requests = []
+        if requests == []:
             return
-
+        self.frames += len(requests)
         # It works like this:
         # * We maintain a list of the requests that libcamera has completed (completed_requests).
         #   But we keep only a minimal number here so that we have one available to "return

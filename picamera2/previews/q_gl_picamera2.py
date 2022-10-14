@@ -111,9 +111,8 @@ class QGlPicamera2(QWidget):
         self.picamera2 = picam2
         picam2.have_event_loop = True
 
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
-                                               QtCore.QSocketNotifier.Read,
-                                               self)
+        self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
+                                               QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
     def cleanup(self):
@@ -356,6 +355,7 @@ class QGlPicamera2(QWidget):
 
     @pyqtSlot()
     def handle_requests(self):
+        self.picamera2.notifyme_rr.read(1)
         request = self.picamera2.process_requests()
         if request:
             if self.picamera2.display_stream_name is not None:
