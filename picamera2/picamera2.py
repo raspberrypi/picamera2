@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 """picamera2 main class"""
 
+from collections import defaultdict
 
+import atexit
 import json
 import os
 import selectors
@@ -44,6 +46,66 @@ class Preview(Enum):
     QTGL = 3
 
 
+class CameraManager:
+    def __init__(self):
+        self.running = False
+        self.cameras = {}
+        self._lock = threading.Lock()
+
+    def setup(self):
+        self.cms = libcamera.CameraManager.singleton()
+        self.thread = threading.Thread(target=self.listen, daemon=True)
+        self.running = True
+        self.thread.start()
+
+    def add(self, index, camera):
+        with self._lock:
+            self.cameras[index] = camera
+            if not self.running:
+                self.setup()
+
+    def cleanup(self, index):
+        flag = False
+        with self._lock:
+            del self.cameras[index]
+            if self.cameras == {}:
+                self.running = False
+                flag = True
+        if flag:
+            self.thread.join()
+            self.cms = None
+
+    def listen(self):
+        import selectors
+        sel = selectors.DefaultSelector()
+        sel.register(self.cms.event_fd, selectors.EVENT_READ, self.handle_request)
+
+        while self.running:
+            events = sel.select(0.2)
+            for key, _ in events:
+                callback = key.data
+                callback()
+
+        sel.unregister(self.cms.event_fd)
+        self.cms = None
+
+    def handle_request(self, flushid=None):
+        """Handle requests
+
+        :param cameras: Dictionary of Picamera2
+        :type cameras: dict
+        """
+        with self._lock:
+            cams = set()
+            for req in self.cms.get_ready_requests():
+                if req.status == libcamera.Request.Status.Complete and req.cookie != flushid:
+                    cams.add(req.cookie)
+                    with self.cameras[req.cookie]._requestslock:
+                        self.cameras[req.cookie]._requests += [CompletedRequest(req, self.cameras[req.cookie])]
+            for c in cams:
+                os.write(self.cameras[c].notifyme_w, b"\x00")
+
+
 class Picamera2:
     """Welcome to the PiCamera2 class."""
 
@@ -52,6 +114,7 @@ class Picamera2:
     WARNING = logging.WARNING
     ERROR = logging.ERROR
     CRITICAL = logging.CRITICAL
+    _cm = None
 
     @staticmethod
     def set_logging(level=logging.WARN, output=sys.stderr, msg=None):
@@ -148,8 +211,14 @@ class Picamera2:
                 os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning_file.name
         else:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
-        self.camera_manager = libcamera.CameraManager.singleton()
+        if not Picamera2._cm:
+            Picamera2._cm = CameraManager()
+        self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
+        self.notifymeread = os.fdopen(self.notifyme_r, 'rb')
+        self._cm.add(camera_num, self)
         self.camera_idx = camera_num
+        self._requestslock = threading.Lock()
+        self._requests = []
         if verbose_console is None:
             verbose_console = int(os.environ.get('PICAMERA2_LOG_LEVEL', '0'))
         self.verbose_console = verbose_console
@@ -167,6 +236,10 @@ class Picamera2:
         finally:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
+
+    @property
+    def camera_manager(self):
+        return Picamera2._cm.cms
 
     def _reset_flags(self) -> None:
         self.camera = None
@@ -310,6 +383,15 @@ class Picamera2:
             value = (value.width, value.height)
         return value
 
+    def _grab_camera(self, idx):
+        if isinstance(idx, str):
+            try:
+                return self.camera_manager.get(idx)
+            except Exception:
+                return self.camera_manager.find(idx)
+        elif isinstance(idx, int):
+            return self.camera_manager.cameras[idx]
+
     def _initialize_camera(self) -> bool:
         """Initialize camera
 
@@ -318,13 +400,7 @@ class Picamera2:
         :rtype: bool
         """
         if self.camera_manager.cameras:
-            if isinstance(self.camera_idx, str):
-                try:
-                    self.camera = self.camera_manager.get(self.camera_idx)
-                except Exception:
-                    self.camera = self.camera_manager.find(self.camera_idx)
-            elif isinstance(self.camera_idx, int):
-                self.camera = self.camera_manager.cameras[self.camera_idx]
+            self.camera = self._grab_camera(self.camera_idx)
         else:
             self.log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
             raise RuntimeError("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
@@ -455,9 +531,9 @@ class Picamera2:
         """
         if self._preview:
             try:
+                self.have_event_loop = False
                 self._preview.stop()
                 self._preview = None
-                self.have_event_loop = False
             except Exception:
                 raise RuntimeError("Unable to stop preview.")
         else:
@@ -474,12 +550,10 @@ class Picamera2:
             self.stop()
             if self.camera.release() < 0:
                 raise RuntimeError("Failed to release camera")
+            self._cm.cleanup(self.camera_idx)
             self.is_open = False
-            self.camera_config = None
-            self.libcamera_config = None
             self.streams = None
             self.stream_map = None
-            self.camera_manager = None
             self.camera = None
             self.camera_ctrl_info = None
             self.camera_config = None
@@ -488,6 +562,8 @@ class Picamera2:
             self.still_configuration_ = None
             self.video_configuration_ = None
             self.allocator = None
+            self.notifymeread.close()
+            os.close(self.notifyme_w)
             self.log.info('Camera closed successfully.')
 
     @staticmethod
@@ -763,16 +839,14 @@ class Picamera2:
         num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
         requests = []
         for i in range(num_requests):
-            request = self.camera.create_request()
+            request = self.camera.create_request(self.camera_idx)
             if request is None:
                 raise RuntimeError("Could not create request")
 
             for stream in self.streams:
                 if request.add_buffer(stream, self.allocator.buffers(stream)[i]) < 0:
                     raise RuntimeError("Failed to set request buffer")
-
             requests.append(request)
-
         return requests
 
     def _update_stream_config(self, stream_config, libcamera_stream_config) -> None:
@@ -882,7 +956,6 @@ class Picamera2:
                 raise RuntimeError("Failed to allocate buffers.")
             msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
             self.log.debug(msg)
-
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
@@ -964,16 +1037,13 @@ class Picamera2:
             self.stop_count += 1
             self.camera.stop()
 
-            # Temporary hack to flush Requests from the event queue.
+            # Flush Requests from the event queue.
             # This is needed to prevent old completed Requests from showing
             # up when the camera is started the next time.
-            sel = selectors.DefaultSelector()
-            sel.register(self.camera_manager.event_fd, selectors.EVENT_READ)
-            events = sel.select(0)
-            if events:
-                self.camera_manager.get_ready_requests()
-
+            self._cm.handle_request(self.camera_idx)
             self.started = False
+            with self._requestslock:
+                self._requests = []
             self.completed_requests = []
             self.log.info("Camera stopped")
         return (True, None)
@@ -993,20 +1063,16 @@ class Picamera2:
         """Set camera controls. These will be delivered with the next request that gets submitted."""
         self.controls.set_controls(controls)
 
-    def _get_completed_requests(self) -> List[CompletedRequest]:
-        # Return all the requests that libcamera has completed.
-        requests = [CompletedRequest(req, self) for req in self.camera_manager.get_ready_requests()
-                    if req.status == libcamera.Request.Status.Complete]
-        self.frames += len(requests)
-        return requests
-
     def process_requests(self) -> None:
         # This is the function that the event loop, which runs externally to us, must
         # call.
-        requests = self._get_completed_requests()
-        if not requests:
+        requests = []
+        with self._requestslock:
+            requests = self._requests
+            self._requests = []
+        if requests == []:
             return
-
+        self.frames += len(requests)
         # It works like this:
         # * We maintain a list of the requests that libcamera has completed (completed_requests).
         #   But we keep only a minimal number here so that we have one available to "return

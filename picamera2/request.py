@@ -102,6 +102,7 @@ class CompletedRequest:
         self.picam2 = picam2
         self.stop_count = picam2.stop_count
         self.configure_count = picam2.configure_count
+        self.config = self.picam2.camera_config.copy()
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to
@@ -123,7 +124,7 @@ class CompletedRequest:
             elif self.ref_count == 0:
                 # If the camera has been stopped since this request was returned then we
                 # can't recycle it.
-                if self.stop_count == self.picam2.stop_count:
+                if self.picam2.camera and self.stop_count == self.picam2.stop_count:
                     self.request.reuse()
                     controls = self.picam2.controls.get_libcamera_controls()
                     for id, value in controls.items():
@@ -148,11 +149,11 @@ class CompletedRequest:
 
     def make_array(self, name):
         """Make a 2d numpy array from the named stream's buffer."""
-        return self.picam2.helpers.make_array(self.make_buffer(name), self.picam2.camera_config[name])
+        return self.picam2.helpers.make_array(self.make_buffer(name), self.config[name])
 
     def make_image(self, name, width=None, height=None):
         """Make a PIL image from the named stream's buffer."""
-        return self.picam2.helpers.make_image(self.make_buffer(name), self.picam2.camera_config[name], width, height)
+        return self.picam2.helpers.make_image(self.make_buffer(name), self.config[name], width, height)
 
     def save(self, name, file_output, format=None):
         """Save a JPEG or PNG image of the named stream's buffer."""
@@ -160,7 +161,7 @@ class CompletedRequest:
 
     def save_dng(self, filename, name="raw"):
         """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.picam2.camera_config[name], filename)
+        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.config[name], filename)
 
 
 class Helpers:
