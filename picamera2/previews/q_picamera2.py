@@ -39,7 +39,7 @@ class QPicamera2(QGraphicsView):
         self.title_function = None
 
         self.update_overlay_signal.connect(self.update_overlay)
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
                                                QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
@@ -144,10 +144,10 @@ class QPicamera2(QGraphicsView):
 
     @pyqtSlot()
     def handle_requests(self):
+        self.picamera2.notifymeread.read()
         request = self.picamera2.process_requests()
         if not request:
             return
-
         if self.title_function is not None:
             self.setWindowTitle(self.title_function(request.get_metadata()))
         camera_config = self.picamera2.camera_config

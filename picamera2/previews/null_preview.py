@@ -15,12 +15,13 @@ class NullPreview:
         import selectors
 
         sel = selectors.DefaultSelector()
-        sel.register(picam2.camera_manager.event_fd, selectors.EVENT_READ, self.handle_request)
+        sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
         self.event.set()
 
         while self.running:
             events = sel.select(0.2)
             for key, _ in events:
+                picam2.notifymeread.read()
                 callback = key.data
                 callback(picam2)
 
