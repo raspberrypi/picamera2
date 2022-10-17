@@ -118,8 +118,12 @@ class DrmPreview(NullPreview):
             self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, pykms.PixelFormat.ABGR8888)
             if self.overlay_plane is None:
                 raise RuntimeError("Failed to reserve DRM overlay plane")
-            # Want "coverage" mode, not pre-multiplied alpha.
-            self.overlay_plane.set_prop("pixel blend mode", 1)
+            # Want "coverage" mode, not pre-multiplied alpha. fkms doesn't seem to have this
+            # property so we suppress the error, but it seems to have the right behaviour anyway.
+            try:
+                self.overlay_plane.set_prop("pixel blend mode", 1)
+            except RuntimeError:
+                pass
 
         if completed_request is not None:
             fb = completed_request.request.buffers[stream]
