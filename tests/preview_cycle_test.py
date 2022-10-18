@@ -55,4 +55,5 @@ def main():
     print(f"QT Cycle Results: {qt2-qt1-wait-buffer} s")
 
 if __name__ == "__main__":
+    Picamera2.set_logging()
     main()

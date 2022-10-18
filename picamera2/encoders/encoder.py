@@ -4,6 +4,7 @@ from enum import Enum
 from v4l2 import *
 
 from ..outputs import Output
+from ..request import _MappedBuffer
 
 
 class Quality(Enum):
@@ -27,6 +28,7 @@ class Encoder:
         self._format = None
         self._output = []
         self._running = False
+        self.firsttimestamp = None
 
     @property
     def width(self):
@@ -117,7 +119,16 @@ class Encoder:
         elif value == "XRGB8888":
             self._format = V4L2_PIX_FMT_RGBA32
         else:
-            raise RuntimeError("Invalid format")
+            if type(self) is Encoder:
+                """Currently allow any format that is
+                passed, when Encoder used directly.
+                We can't use Picamera2.is_raw(value) etc.
+                to validate formats here, as we get a circular import
+                when trying to import Picamera2
+                """
+                self._format = value
+            else:
+                raise RuntimeError("Invalid format")
 
     @property
     def output(self):
@@ -157,7 +168,10 @@ class Encoder:
         :param request: Request
         :type request: request
         """
-        pass
+        fb = request.request.buffers[stream]
+        timestamp_us = self._timestamp(fb)
+        with _MappedBuffer(request, request.picam2.encode_stream_name) as b:
+            self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
     def _start(self):
         if self._running:
@@ -181,3 +195,15 @@ class Encoder:
         """
         for out in self._output:
             out.outputframe(frame, keyframe, timestamp)
+
+    def _setup(self, quality):
+        pass
+
+    def _timestamp(self, fb):
+        ts = int(fb.metadata.timestamp / 1000)
+        if self.firsttimestamp is None:
+            self.firsttimestamp = ts
+            timestamp_us = 0
+        else:
+            timestamp_us = ts - self.firsttimestamp
+        return timestamp_us

@@ -6,6 +6,19 @@
 
 ### Changed
 
+## 0.3.4 Beta Release 3
+
+### Added
+
+* Ability to record uncompressed or raw video frames.
+
+### Changed
+
+* Releasing of camera resources has been made more reliable, so once the Picamera2 object has been closed it can be re-opened more reliably (optionally by other processes).
+* Logging has been revised to work better with applications already using Python logging.
+* Some reporting of, and recovery from, certain error conditions has been improved.
+* Large encoded video frames are now split automatically for streaming over UDP.
+
 ## 0.3.3 Beta Release 2
 
 ### Added

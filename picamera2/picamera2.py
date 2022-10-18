@@ -12,6 +12,8 @@ from typing import List
 import time
 from concurrent.futures import Future
 from functools import partial
+import logging
+import sys
 
 import libcamera
 import numpy as np
@@ -20,7 +22,6 @@ from PIL import Image
 from picamera2.encoders import Encoder, Quality, H264Encoder, MJPEGEncoder
 from picamera2.outputs import FileOutput, FfmpegOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
-from picamera2.utils import initialize_logger
 
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
@@ -32,6 +33,7 @@ RAW = libcamera.StreamRole.Raw
 VIDEO = libcamera.StreamRole.VideoRecording
 VIEWFINDER = libcamera.StreamRole.Viewfinder
 
+_logger = logging.getLogger("picamera2")
 
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
@@ -44,6 +46,38 @@ class Preview(Enum):
 
 class Picamera2:
     """Welcome to the PiCamera2 class."""
+
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+    CRITICAL = logging.CRITICAL
+
+    @staticmethod
+    def set_logging(level=logging.WARN, output=sys.stderr, msg=None):
+        """Configure logging for simple standalone use cases, for example:
+        Picamera2.set_logging(Picamera2.INFO)
+        Picamera2.set_logging(level=Picamera2.DEBUG, msg="%(levelname)s: %(message)s")
+
+        :param level: A logging level
+        :type level: int
+        :param output: An output stream for the messages
+        :type output: file-like object
+        :param msg: Logging message format
+        :type msg: str
+        """
+        _logger.handlers.clear()
+
+        if level is not None:
+            _logger.setLevel(level)
+
+        if output is not None:
+            handler = logging.StreamHandler(output)
+            _logger.addHandler(handler)
+
+            if msg is None:
+                msg = "%(name)s %(levelname)s: %(message)s"
+            handler.setFormatter(logging.Formatter(msg))
 
     @staticmethod
     def load_tuning_file(tuning_file, dir=None):
@@ -94,12 +128,15 @@ class Picamera2:
 
         :param camera_num: Camera index, defaults to 0
         :type camera_num: int, optional
-        :param verbose_console: Logging level, defaults to None
+        :param verbose_console: Unused
         :type verbose_console: int, optional
         :param tuning: Tuning filename, defaults to None
         :type tuning: str, optional
         :raises RuntimeError: Init didn't complete
         """
+        self.log = _logger
+        if verbose_console is not None:
+            self.log.warn("verbose_console parameter is no longer used, use Picamera2.set_logging instead")
         tuning_file = None
         if tuning is not None:
             if isinstance(tuning, str):
@@ -116,7 +153,6 @@ class Picamera2:
         if verbose_console is None:
             verbose_console = int(os.environ.get('PICAMERA2_LOG_LEVEL', '0'))
         self.verbose_console = verbose_console
-        self.log = initialize_logger(console_level=verbose_console)
         self._reset_flags()
         self.helpers = Helpers(self)
         try:
@@ -336,8 +372,8 @@ class Picamera2:
                 cam_mode["size"] = (size.width, size.height)
                 temp_config = self.create_preview_configuration(raw={"format": str(pix), "size": cam_mode["size"]})
                 self.configure(temp_config)
-                frameDurationLimits = [i for i in self.camera_controls["FrameDurationLimits"] if i != 0]
-                cam_mode["fps"] = round(1e6 / min(frameDurationLimits), 2)
+                frameDurationMin = self.camera_controls["FrameDurationLimits"][0]
+                cam_mode["fps"] = round(1e6 / frameDurationMin, 2)
                 cam_mode["crop_limits"] = self.camera_properties["ScalerCropMaximum"]
                 cam_mode["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
                 self.sensor_modes_.append(cam_mode)
@@ -416,6 +452,15 @@ class Picamera2:
             self.libcamera_config = None
             self.streams = None
             self.stream_map = None
+            self.camera_manager = None
+            self.camera = None
+            self.camera_ctrl_info = None
+            self.camera_config = None
+            self.libcamera_config = None
+            self.preview_configuration_ = None
+            self.still_configuration_ = None
+            self.video_configuration_ = None
+            self.allocator = None
             self.log.info('Camera closed successfully.')
 
     @staticmethod
@@ -735,6 +780,8 @@ class Picamera2:
                 camera_config = self.still_configuration
             else:
                 camera_config = self.video_configuration
+        elif isinstance(initial_config, dict):
+            camera_config = camera_config.copy()
         if isinstance(camera_config, CameraConfiguration):
             if camera_config.raw is not None and camera_config.raw.format is None:
                 camera_config.raw.format = self.sensor_format
@@ -834,6 +881,7 @@ class Picamera2:
         if self.started:
             raise RuntimeError("Camera already started")
         controls = self.controls.get_libcamera_controls()
+        self.controls = Controls(self)
         if self.camera.start(controls) >= 0:
             for request in self._make_requests():
                 self.camera.queue_request(request)
@@ -992,8 +1040,12 @@ class Picamera2:
 
     def wait(self):
         """Wait for the event loop to finish an operation and signal us."""
-        result = self._future.result()
-        self._future = None
+        try:
+            result = self._future.result()
+        except Exception as e:
+            raise
+        finally:
+            self._future = None
         return result
 
     def _dispatch_functions(self, functions, signal_function=None) -> None:
@@ -1035,7 +1087,12 @@ class Picamera2:
                 raise RuntimeError("Failure to wait for previous operation to finish!")
             self._dispatch_functions([function], signal_function)
             if self.completed_requests:
-                done, result = function()
+                try:
+                    done, result = function()
+                except Exception as e:
+                    self.functions = []
+                    self._future = None
+                    raise
                 if done:
                     self.functions = []
                     self._future.set_result(result)

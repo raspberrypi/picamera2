@@ -29,7 +29,6 @@ class V4L2Encoder(Encoder):
         self._pixformat = pixformat
         self._controls = []
         self.vd = None
-        self.firsttimestamp = None
 
     def _start(self):
         super()._start()
@@ -225,11 +224,7 @@ class V4L2Encoder(Encoder):
 
         buf = v4l2_buffer()
         # fb.metadata.timestamp is in nanoseconds, so convert to usecs
-        if self.firsttimestamp is None:
-            self.firsttimestamp = int(fb.metadata.timestamp / 1000)
-            timestamp_us = 0
-        else:
-            timestamp_us = int(fb.metadata.timestamp / 1000) - self.firsttimestamp
+        timestamp_us = self._timestamp(fb)
 
         # Pass frame to video 4 linux, to encode
         planes = v4l2_plane * VIDEO_MAX_PLANES
