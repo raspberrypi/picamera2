@@ -13,7 +13,7 @@ class CircularOutput(FileOutput):
         """Creates circular buffer for 5s worth of 30fps frames
 
         :param file: File to write frames to, defaults to None
-        :type file: str or BufferedWriter, optional
+        :type file: str or BufferedIOBase, optional
         :param pts: File to write timestamps to, defaults to None
         :type pts: str or BufferedWriter, optional
         :param buffersize: Number of frames, defaults to 30*5

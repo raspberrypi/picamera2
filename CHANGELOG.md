@@ -6,6 +6,15 @@
 
 ### Changed
 
+## 0.3.5 Beta Release 4
+
+### Added
+
+### Changed
+
+* Add support for outputting timestamps when using the JPEG encoder for video.
+* Fix a bug which prevented the mjpeg_server.py example from working. This has also been added to the automatic test suite so shouldn't get broken again!
+
 ## 0.3.4 Beta Release 3
 
 ### Added
