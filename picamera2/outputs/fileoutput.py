@@ -14,7 +14,7 @@ class FileOutput(Output):
         """Initialise file output
 
         :param file: File to write frames to, defaults to None
-        :type file: str or BufferedWriter, optional
+        :type file: str or BufferedIOBase, optional
         :param pts: File to write timestamps to, defaults to None
         :type pts: str or BufferedWriter, optional
         :param split: Max transmission size of data, only applies to datagrams, defaults to None
@@ -43,10 +43,10 @@ class FileOutput(Output):
         else:
             if isinstance(file, str):
                 self._fileoutput = open(file, "wb")
-            elif isinstance(file, io.BufferedWriter):
+            elif isinstance(file, io.BufferedIOBase):
                 self._fileoutput = file
             else:
-                raise RuntimeError("Must pass io.BufferedWriter")
+                raise RuntimeError("Must pass io.BufferedIOBase")
             if hasattr(self._fileoutput, "raw") and isinstance(self._fileoutput.raw, socket.SocketIO) and \
                     self._fileoutput.raw._sock.type == socket.SocketKind.SOCK_DGRAM:
                 self._split = True
