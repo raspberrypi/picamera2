@@ -43,6 +43,7 @@ tests/context_test.py
 tests/display_transform_null.py
 tests/display_transform_qt.py
 tests/large_datagram.py
+tests/mjpeg_server.py
 tests/mode_test.py
 tests/preview_cycle_test.py
 tests/preview_location_test.py
