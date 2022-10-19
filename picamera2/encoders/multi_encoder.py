@@ -45,19 +45,21 @@ class MultiEncoder(Encoder):
             if task is None:
                 return
 
-            buffer = task.result()
+            buffer, timestamp_us = task.result()
             if self.output:
-                self.outputframe(buffer)
+                self.outputframe(buffer, timestamp=timestamp_us)
 
-    def do_encode(self, request):
+    def do_encode(self, request, stream):
         """Encodes frame in a thread
 
         :param request: Request
         :return: Buffer
         """
+        fb = request.request.buffers[stream]
+        timestamp_us = self._timestamp(fb)
         buffer = self.encode_func(request, request.picam2.encode_stream_name)
         request.release()
-        return buffer
+        return (buffer, timestamp_us)
 
     def encode(self, stream, request):
         """Encode frame using a thread
@@ -67,7 +69,7 @@ class MultiEncoder(Encoder):
         """
         if self._running:
             request.acquire()
-            self.tasks.put(self.threads.submit(self.do_encode, request))
+            self.tasks.put(self.threads.submit(self.do_encode, request, stream))
 
     def encode_func(self, request, name):
         """Empty function, which will be overriden"""
