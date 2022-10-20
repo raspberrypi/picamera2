@@ -41,7 +41,7 @@ If you have installed _Picamera2_ previously using `pip`, then you should also u
 
 Thereafter, you can install _Picamera2_ _with_ all the GUI (_Qt_ and _OpenGL_) dependencies using
 ```
-sudo apt install -y python3-picamera2`
+sudo apt install -y python3-picamera2
 ```
 If you do _not_ want the GUI dependencies, use
 ```
