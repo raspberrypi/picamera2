@@ -59,6 +59,9 @@ class QtPreviewBase:
     def set_overlay(self, overlay):
         self.qpicamera2.set_overlay(overlay)
 
+    def set_title_function(self, function):
+        self.qpicamera2.title_function = function
+
 
 class QtPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
