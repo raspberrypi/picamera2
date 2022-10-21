@@ -80,3 +80,6 @@ class NullPreview:
         self.running = False
         self.thread.join()
         self.picam2 = None
+
+    def set_title_function(self, function):
+        pass

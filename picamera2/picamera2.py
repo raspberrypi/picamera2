@@ -193,6 +193,7 @@ class Picamera2:
         self.camera_properties_ = {}
         self.controls = Controls(self)
         self.sensor_modes_ = None
+        self._title_fields = None
 
     @property
     def preview_configuration(self) -> CameraConfiguration:
@@ -253,6 +254,28 @@ class Picamera2:
     @property
     def camera_controls(self) -> dict:
         return {k: (v[1].min, v[1].max, v[1].default) for k, v in self.camera_ctrl_info.items()}
+
+    @property
+    def title_fields(self):
+        """The metadata fields reported in the title bar of any preview window."""
+        return self._title_fields
+
+    @title_fields.setter
+    def title_fields(self, fields):
+        def make_title(fields, metadata):
+            def tidy(item):
+                if isinstance(item, float):
+                    return round(item, 3)
+                elif isinstance(item, tuple):
+                    return tuple(tidy(i) for i in item)
+                else:
+                    return item
+            return "".join("{} {} ".format(f, tidy(metadata.get(f, "INVALID"))) for f in fields)
+
+        self._title_fields = fields
+        function = None if fields is None else (lambda md: make_title(fields, md))
+        if self._preview is not None:
+            self._preview.set_title_function(function)
 
     def __enter__(self):
         """Used for allowing use with context manager

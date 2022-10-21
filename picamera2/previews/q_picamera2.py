@@ -36,6 +36,7 @@ class QPicamera2(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.enabled = True
+        self.title_function = None
 
         self.update_overlay_signal.connect(self.update_overlay)
         self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
@@ -147,6 +148,8 @@ class QPicamera2(QGraphicsView):
         if not request:
             return
 
+        if self.title_function is not None:
+            self.setWindowTitle(self.title_function(request.get_metadata()))
         camera_config = self.picamera2.camera_config
         if self.enabled and self.picamera2.display_stream_name is not None and camera_config is not None:
             stream_config = camera_config[self.picamera2.display_stream_name]

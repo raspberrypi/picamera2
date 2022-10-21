@@ -98,6 +98,7 @@ class QGlPicamera2(QWidget):
         self.current_request = None
         self.own_current = False
         self.stop_count = 0
+        self.title_function = None
         self.egl = EglState()
         if picam2.verbose_console:
             print("EGL {} {}".format(
@@ -358,6 +359,8 @@ class QGlPicamera2(QWidget):
     def handle_requests(self):
         request = self.picamera2.process_requests()
         if request:
+            if self.title_function is not None:
+                self.setWindowTitle(self.title_function(request.get_metadata()))
             if self.picamera2.display_stream_name is not None:
                 with self.lock:
                     eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
