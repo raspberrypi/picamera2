@@ -194,6 +194,10 @@ class Helpers:
             # efficiently. We leave any packing in there, however, as it would be easier
             # to remove that after conversion to RGB (if that's what the caller does).
             image = array.reshape((h * 3 // 2, stride))
+        elif fmt in ("YUYV", "YVYU", "UYVY", "VYUY"):
+            # These dimensions seem a bit strange, but mean that
+            # cv2.cvtColor(image, cv2.COLOR_YUV2BGR_YUYV) will convert directly to RGB.
+            image = array.reshape(h, stride // 2, 2)
         elif fmt == "MJPEG":
             image = np.array(Image.open(io.BytesIO(array)))
         elif self.picam2.is_raw(fmt):

@@ -384,7 +384,12 @@ class Picamera2:
         self.sensor_modes_ = []
 
         for pix in raw_formats.pixel_formats:
-            fmt = SensorFormat(str(pix))
+            name = str(pix)
+            if not self.is_raw(name):
+                # Not a raw sensor so we can't deduce much about it. Quote the name and carry on.
+                self.sensor_modes_.append({"format": name})
+                continue
+            fmt = SensorFormat(name)
             all_format = {}
             all_format["format"] = fmt
             all_format["unpacked"] = fmt.unpacked
@@ -625,7 +630,8 @@ class Picamera2:
             if not self.is_raw(format):
                 raise RuntimeError("Unrecognised raw format " + format)
         else:
-            if not self.is_YUV(format) and not self.is_RGB(format):
+            # Allow "MJPEG" as we have some support for USB MJPEG-type cameras.
+            if not self.is_YUV(format) and not self.is_RGB(format) and format != 'MJPEG':
                 raise RuntimeError("Bad format " + format + " in stream " + name)
         size = stream_config["size"]
         if type(size) is not tuple or len(size) != 2:
