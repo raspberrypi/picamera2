@@ -40,28 +40,8 @@ sudo apt upgrade
 If you have installed _Picamera2_ previously using `pip`, then you should also uninstall this (`pip3 uninstall picamera2`).
 
 Thereafter, you can install _Picamera2_ _with_ all the GUI (_Qt_ and _OpenGL_) dependencies using
-
 ```
-sudo apt install -y python3-pyqt5 python3-opengl
-```
-(No changes are required to _Picamera2_ itself.)
-
-### Installation using `apt`
-
-`apt` is the recommended way of installing and updating _Picamera2_.
-
-If _Picamera2_ is already installed, you can update it with `sudo apt install -y python3-picamera2`, or as part of a full system update (for example, `sudo apt upgrade`).
-
-If _Picamera2_ is not already installed, then your image is presumably older and you should start with
-```
-sudo apt update
-sudo apt upgrade
-```
-If you have installed _Picamera2_ previously using `pip`, then you should also uninstall this (`pip3 uninstall picamera2`).
-
-Thereafter, you can install _Picamera2_ _with_ all the GUI (_Qt_ and _OpenGL_) dependencies using
-```
-sudo apt install -y python3-picamera2`
+sudo apt install -y python3-picamera2
 ```
 If you do _not_ want the GUI dependencies, use
 ```
