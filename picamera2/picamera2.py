@@ -964,14 +964,9 @@ class Picamera2:
             self.stop_count += 1
             self.camera.stop()
 
-            # Temporary hack to flush Requests from the event queue.
-            # This is needed to prevent old completed Requests from showing
-            # up when the camera is started the next time.
-            sel = selectors.DefaultSelector()
-            sel.register(self.camera_manager.event_fd, selectors.EVENT_READ)
-            events = sel.select(0)
-            if events:
-                self.camera_manager.get_ready_requests()
+            # Flush out any pending completed requests so that they can't pop out
+            # next time we start the camera.
+            self.camera_manager.get_ready_requests()
 
             self.started = False
             self.completed_requests = []
