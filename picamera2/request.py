@@ -21,9 +21,12 @@ class _MappedBuffer:
 
         # Check if the buffer is contiguous and find the total length.
         fd = self.__fb.planes[0].fd
+        planes_metadata = self.__fb.metadata.planes
         buflen = 0
-        for p in self.__fb.planes:
-            buflen = buflen + p.length
+        for p, p_metadata in zip(self.__fb.planes, planes_metadata):
+            # bytes_used is the same as p.length for regular frames, but correctly reflects
+            # the compressed image size for MJPEG cameras.
+            buflen = buflen + p_metadata.bytes_used
             if fd != p.fd:
                 raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
 
