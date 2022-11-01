@@ -16,9 +16,9 @@ class NullPreview:
 
         sel = selectors.DefaultSelector()
         sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
-        self.event.set()
+        self._started.set()
 
-        while self.running:
+        while not self._abort.is_set():
             events = sel.select(0.2)
             for key, _ in events:
                 picam2.notifymeread.read()
@@ -42,7 +42,8 @@ class NullPreview:
         # Ignore width and height as they are meaningless. We only accept them so as to
         # be a drop-in replacement for the Qt/DRM previews.
         self.size = (width, height)
-        self.event = threading.Event()
+        self._abort = threading.Event()
+        self._started = threading.Event()
         self.picam2 = None
 
     def start(self, picam2):
@@ -52,12 +53,12 @@ class NullPreview:
         :type picam2: Picamera2
         """
         self.picam2 = picam2
-        self.event.clear()
+        self._started.clear()
+        self._abort.clear()
         self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
-        self.running = True
         self.thread.start()
-        self.event.wait()
+        self._started.wait()
 
     def set_overlay(self, overlay):
         """Sets overlay
@@ -79,7 +80,7 @@ class NullPreview:
 
     def stop(self):
         """Stop preview"""
-        self.running = False
+        self._abort.set()
         self.thread.join()
         self.picam2 = None
 
