@@ -51,6 +51,7 @@ class NullPreview:
         :type picam2: Picamera2
         """
         self.picam2 = picam2
+        self.event.clear()
         self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
         self.running = True
