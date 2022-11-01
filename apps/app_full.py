@@ -61,7 +61,10 @@ def post_callback(request):
 # Set up camera and application
 picam2 = Picamera2()
 picam2.post_callback = post_callback
-still_kwargs = {"lores": {}, "display": "lores", "encode": "lores", "buffer_count": 1}
+lores_size = picam2.sensor_resolution
+while lores_size[0] > 1600:
+    lores_size = (lores_size[0] // 2 & ~1, lores_size[1] // 2 & ~1)
+still_kwargs = {"lores": {"size": lores_size}, "display": "lores", "encode": "lores", "buffer_count": 1}
 picam2.still_configuration = picam2.create_still_configuration(
     **still_kwargs
 )
