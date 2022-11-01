@@ -1,6 +1,11 @@
+from abc import ABC, abstractmethod
+from copy import deepcopy
+from importlib.metadata import metadata
 import io
+from logging import getLogger
 import threading
 import time
+from typing import Dict
 
 import numpy as np
 import piexif
@@ -9,6 +14,9 @@ from pidng.core import PICAM2DNG
 from PIL import Image
 
 from .controls import Controls
+import picamera2.formats as formats
+
+_log = getLogger(__name__)
 
 
 class _MappedBuffer:
@@ -76,7 +84,7 @@ class MappedArray:
                 # efficiently. We leave any packing in there, however, as it would be easier
                 # to remove that after conversion to RGB (if that's what the caller does).
                 array = array.reshape((h * 3 // 2, stride))
-            elif self.__request.picam2.is_raw(fmt):
+            elif formats.is_raw(fmt):
                 array = array.reshape((h, stride))
             else:
                 raise RuntimeError("Format " + fmt + " not supported")
@@ -93,86 +101,24 @@ class MappedArray:
     def array(self):
         return self.__array
 
+class RequestLike(ABC):
+    @abstractmethod
+    def make_buffer(self, name: str) -> np.ndarray:
+        raise NotImplementedError()
 
-class CompletedRequest:
-    def __init__(self, request, picam2):
-        self.request = request
-        self.ref_count = 1
-        self.lock = threading.Lock()
-        self.picam2 = picam2
-        self.stop_count = picam2.stop_count
-        self.configure_count = picam2.configure_count
+    @abstractmethod
+    def get_metadata(self) -> dict:
+        raise NotImplementedError()
 
-    def acquire(self):
-        """Acquire a reference to this completed request, which stops it being recycled back to
-        the camera system.
-        """
-        with self.lock:
-            if self.ref_count == 0:
-                raise RuntimeError("CompletedRequest: acquiring lock with ref_count 0")
-            self.ref_count += 1
+    @abstractmethod
+    def get_camera_config(self, name: str) -> dict:
+        raise NotImplementedError
 
-    def release(self):
-        """Release this completed frame back to the camera system (once its reference count
-        reaches zero).
-        """
-        with self.lock:
-            self.ref_count -= 1
-            if self.ref_count < 0:
-                raise RuntimeError("CompletedRequest: lock now has negative ref_count")
-            elif self.ref_count == 0:
-                # If the camera has been stopped since this request was returned then we
-                # can't recycle it.
-                if self.stop_count == self.picam2.stop_count:
-                    self.request.reuse()
-                    controls = self.picam2.controls.get_libcamera_controls()
-                    for id, value in controls.items():
-                        self.request.set_control(id, value)
-                    self.picam2.controls = Controls(self.picam2)
-                    self.picam2.camera.queue_request(self.request)
-                self.request = None
-
-    def make_buffer(self, name):
-        """Make a 1d numpy array from the named stream's buffer."""
-        if self.picam2.stream_map.get(name, None) is None:
-            raise RuntimeError(f'Stream "{name}" is not defined')
-        with _MappedBuffer(self, name) as b:
-            return np.array(b, dtype=np.uint8)
-
-    def get_metadata(self):
-        """Fetch the metadata corresponding to this completed request."""
-        metadata = {}
-        for k, v in self.request.metadata.items():
-            metadata[k.name] = self.picam2._convert_from_libcamera_type(v)
-        return metadata
-
-    def make_array(self, name):
+class RequestTransforms(RequestLike):
+    def make_array(self, name: str) -> np.ndarray:
         """Make a 2d numpy array from the named stream's buffer."""
-        return self.picam2.helpers.make_array(self.make_buffer(name), self.picam2.camera_config[name])
-
-    def make_image(self, name, width=None, height=None):
-        """Make a PIL image from the named stream's buffer."""
-        return self.picam2.helpers.make_image(self.make_buffer(name), self.picam2.camera_config[name], width, height)
-
-    def save(self, name, file_output, format=None):
-        """Save a JPEG or PNG image of the named stream's buffer."""
-        return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output, format)
-
-    def save_dng(self, filename, name="raw"):
-        """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.picam2.camera_config[name], filename)
-
-
-class Helpers:
-    """This class implements functionality required by the CompletedRequest methods, but
-    in such a way that it can be usefully accessed even without a CompletedRequest object."""
-
-    def __init__(self, picam2):
-        self.picam2 = picam2
-
-    def make_array(self, buffer, config):
-        """Make a 2d numpy array from the named stream's buffer."""
-        array = buffer
+        array = self.make_buffer(name)
+        config = self.get_camera_config(name)
         fmt = config["format"]
         w, h = config["size"]
         stride = config["stride"]
@@ -203,14 +149,16 @@ class Helpers:
             image = array.reshape(h, stride // 2, 2)
         elif fmt == "MJPEG":
             image = np.array(Image.open(io.BytesIO(array)))
-        elif self.picam2.is_raw(fmt):
+        elif formats.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
             raise RuntimeError("Format " + fmt + " not supported")
         return image
 
-    def make_image(self, buffer, config, width=None, height=None):
+    def make_image(self, name, width=None, height=None) -> Image:
         """Make a PIL image from the named stream's buffer."""
+        buffer = self.make_buffer(name)
+        config = self.get_camera_config(name)
         fmt = config["format"]
         if fmt == "MJPEG":
             return Image.open(io.BytesIO(buffer))
@@ -230,9 +178,11 @@ class Helpers:
             pil_img = pil_img.resize((width, height))
         return pil_img
 
-    def save(self, img, metadata, file_output, format=None):
+    def save(self, name, file_output, format=None, png_compress_level=1, jpeg_quality=90):
         """Save a JPEG or PNG image of the named stream's buffer."""
         # This is probably a hideously expensive way to do a capture.
+        img = self.make_image(name)
+        metadata = self.get_metadata()
         start_time = time.monotonic()
         exif = b''
         if isinstance(format, str):
@@ -255,30 +205,107 @@ class Helpers:
                 exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
                             piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
                 exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
-        # compress_level=1 saves pngs much faster, and still gets most of the compression.
-        png_compress_level = self.picam2.options.get("compress_level", 1)
-        jpeg_quality = self.picam2.options.get("quality", 90)
+
         keywords = {"compress_level": png_compress_level, "quality": jpeg_quality, "format": format}
         if exif != b'':
             keywords |= {"exif": exif}
         img.save(file_output, **keywords)
         end_time = time.monotonic()
-        self.picam2.log.info(f"Saved {self} to file {file_output}.")
-        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Saved {self} to file {file_output}.")
+        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def save_dng(self, buffer, metadata, config, filename):
+    def save_dng(self, filename, name="raw", dng_compress_level=0):
         """Save a DNG RAW image of the raw stream's buffer."""
+        buffer = self.make_buffer(name)
+        config = self.get_camera_config(name)
+
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)
 
         camera = Picamera2Camera(config, metadata)
         r = PICAM2DNG(camera)
 
-        dng_compress_level = self.picam2.options.get("compress_level", 0)
-
         r.options(compress=dng_compress_level)
         r.convert(raw, filename)
 
         end_time = time.monotonic()
-        self.picam2.log.info(f"Saved {self} to file {filename}.")
-        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Saved {self} to file {filename}.")
+        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+
+
+class RequestCopy(RequestLike):
+    def __init__(self, buffers: Dict[str, np.ndarray], metadata: dict, camera_config: dict):
+        self._buffers = buffers
+        self._metadata = deepcopy(metadata)
+        self._camera_config = deepcopy(camera_config)
+
+    def make_buffer(self, name: str) -> np.ndarray:
+        """Make a 1d numpy array from the named stream's buffer."""
+        return self._buffers[name]
+
+    def get_camera_config(self, name: str) -> dict:
+        """Fetch the metadata corresponding to this completed request."""
+        return self._camera_config[name]
+
+    def get_metadata(self) -> dict:
+        """Get the metadata associated with this frame"""
+        return self._metadata
+
+class CompletedRequest(RequestLike):
+    def __init__(self, request, picam2):
+        self.request = request
+        self.ref_count = 1
+        self.lock = threading.Lock()
+        self.picam2 = picam2
+        self.stop_count = picam2.stop_count
+        self.configure_count = picam2.configure_count
+        self.camera_config = deepcopy(self.picam2.camera_config)
+
+    def copy(self) -> RequestCopy:
+        names = self.picam2.stream_map.keys()
+        buffers = {name: self.make_buffer(name) for name in names}
+        return RequestCopy(buffers, self.get_metadata(), self.camera_config)
+
+    def acquire(self):
+        """Acquire a reference to this completed request, which stops it being recycled back to
+        the camera system.
+        """
+        with self.lock:
+            if self.ref_count == 0:
+                raise RuntimeError("CompletedRequest: acquiring lock with ref_count 0")
+            self.ref_count += 1
+
+    def release(self):
+        """Release this completed frame back to the camera system (once its reference count
+        reaches zero).
+        """
+        with self.lock:
+            self.ref_count -= 1
+            if self.ref_count < 0:
+                raise RuntimeError("CompletedRequest: lock now has negative ref_count")
+            elif self.ref_count == 0:
+                # If the camera has been stopped since this request was returned then we
+                # can't recycle it.
+                if self.stop_count == self.picam2.stop_count:
+                    self.request.reuse()
+                    controls = self.picam2.controls.get_libcamera_controls()
+                    for id, value in controls.items():
+                        self.request.set_control(id, value)
+                    self.picam2.controls = Controls(self.picam2)
+                    self.picam2.camera.queue_request(self.request)
+                self.request = None
+
+    def make_buffer(self, name: str) -> np.ndarray:
+        if self.picam2.stream_map.get(name, None) is None:
+            raise RuntimeError(f'Stream "{name}" is not defined')
+        with _MappedBuffer(self, name) as b:
+            return np.array(b, dtype=np.uint8)
+
+    def get_metadata(self) -> dict:
+        metadata = {}
+        for k, v in self.request.metadata.items():
+            metadata[k.name] = self.picam2._convert_from_libcamera_type(v)
+        return metadata
+
+    def get_camera_config(self, name: str) -> dict:
+        return self.camera_config[name]

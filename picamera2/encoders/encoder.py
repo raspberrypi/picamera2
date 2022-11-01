@@ -122,9 +122,6 @@ class Encoder:
             if type(self) is Encoder:
                 """Currently allow any format that is
                 passed, when Encoder used directly.
-                We can't use Picamera2.is_raw(value) etc.
-                to validate formats here, as we get a circular import
-                when trying to import Picamera2
                 """
                 self._format = value
             else:
