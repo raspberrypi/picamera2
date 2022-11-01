@@ -1,6 +1,10 @@
 """Null preview"""
 
+from logging import getLogger
 import threading
+
+
+_log = getLogger(__name__)
 
 
 class NullPreview:
@@ -73,7 +77,12 @@ class NullPreview:
         :param picam2: picamera2 object
         :type picam2: Picamera2
         """
-        completed_request = picam2.process_requests()
+        try:
+            completed_request = picam2.process_requests()
+        except Exception as e:
+            _log.exception("Exception during process_requests()", exc_info=e)
+            raise
+
         if completed_request:
             completed_request.release()
 
