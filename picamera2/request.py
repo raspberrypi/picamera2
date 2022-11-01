@@ -233,7 +233,7 @@ class RequestTransforms(RequestLike):
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
 
-class RequestCopy(RequestLike):
+class RequestCopy(RequestTransforms):
     def __init__(self, buffers: Dict[str, np.ndarray], metadata: dict, camera_config: dict):
         self._buffers = buffers
         self._metadata = deepcopy(metadata)
@@ -251,7 +251,7 @@ class RequestCopy(RequestLike):
         """Get the metadata associated with this frame"""
         return self._metadata
 
-class CompletedRequest(RequestLike):
+class CompletedRequest(RequestTransforms):
     def __init__(self, request, picam2):
         self.request = request
         self.ref_count = 1
