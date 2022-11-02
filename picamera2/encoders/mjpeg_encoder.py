@@ -3,7 +3,7 @@
 from math import sqrt
 from picamera2.encoders import Quality
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
-from v4l2 import *
+from v4l2 import V4L2_PIX_FMT_MJPEG
 
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
 
