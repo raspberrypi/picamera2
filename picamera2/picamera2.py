@@ -1023,7 +1023,8 @@ class Picamera2:
 
         if func:
             req = requests.pop(0)
-            self.log.debug(f"Execute function: {func} on {req}")
+            # TODO reset to debug
+            self.log.info(f"Execute function: {func} on {req}")
             try:
                 result = func(req)
                 fut.set_result(result)
