@@ -117,7 +117,7 @@ class FileOutput(Output):
                 self._fileoutput.write(frame)
                 self._fileoutput.flush()
             self.outputtimestamp(timestamp)
-        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
+        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError, ValueError) as e:
             self.dead = True
             if self._connectiondead is not None:
                 self._connectiondead(e)
