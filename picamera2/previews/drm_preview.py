@@ -8,7 +8,36 @@ import pykms
 import picamera2.picamera2
 from picamera2.previews.null_preview import *
 
-dd = None
+
+class DrmManager():
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.use_count = 0
+
+    def add(self, drm_preview):
+        with self.lock:
+            if self.use_count == 0:
+                self.card = pykms.Card()
+                self.resman = pykms.ResourceManager(self.card)
+                conn = self.resman.reserve_connector()
+                self.crtc = self.resman.reserve_crtc(conn)
+                print(self.card, self.resman, conn, self.crtc)
+            self.use_count += 1
+        drm_preview.card = self.card
+        drm_preview.resman = self.resman
+        drm_preview.crtc = self.crtc
+
+    def remove(self, drm_preview):
+        drm_preview.card = None
+        drm_preview.resman = None
+        drm_preview.crtc = None
+        with self.lock:
+            self.use_count -= 1
+            if self.use_count == 0:
+                self.crtc = None
+                self.resman = None
+                self.card = None
+
 
 class DrmPreview(NullPreview):
     FMT_MAP = {
@@ -21,6 +50,8 @@ class DrmPreview(NullPreview):
         "YUV420": pykms.PixelFormat.YUV420,
         "YVU420": pykms.PixelFormat.YVU420,
     }
+
+    _manager = DrmManager()
 
     def __init__(self, x=0, y=0, width=640, height=480, transform=None):
         self.init_drm(x, y, width, height, transform)
@@ -48,10 +79,7 @@ class DrmPreview(NullPreview):
                 completed_request.release()
 
     def init_drm(self, x, y, width, height, transform):
-        self.card = pykms.Card()
-        self.resman = pykms.ResourceManager(self.card)
-        conn = self.resman.reserve_connector()
-        self.crtc = self.resman.reserve_crtc(conn)
+        DrmPreview._manager.add(self)
 
         self.plane = None
         self.drmfbs = {}
@@ -181,6 +209,6 @@ class DrmPreview(NullPreview):
         self.drmfbs = {}
         self.overlay_new_fb = None
         self.overlay_fb = None
-        self.crtc = None
-        self.resman = None
-        self.card = None
+        self.plane = None
+        self.overlay_plane = None
+        DrmPreview._manager.remove(self)
