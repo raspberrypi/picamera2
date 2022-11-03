@@ -399,31 +399,31 @@ class Picamera2:
         :return: True if success
         :rtype: bool
         """
-        if self.camera_manager.cameras:
-            self.camera = self._grab_camera(self.camera_idx)
-        else:
+        if not self.camera_manager.cameras:
             self.log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
             raise RuntimeError("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
 
-        if self.camera is not None:
-            self.__identify_camera()
-            # Re-generate the controls list to someting easer to use.
-            for k, v in self.camera.controls.items():
-                self.camera_ctrl_info[k.name] = (k, v)
+        self.camera = self._grab_camera(self.camera_idx)
 
-            # Re-generate the properties list to someting easer to use.
-            for k, v in self.camera.properties.items():
-                self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
-
-            # The next two lines could be placed elsewhere?
-            self.sensor_resolution = self.camera_properties_["PixelArraySize"]
-            self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
-
-            self.log.info('Initialization successful.')
-            return True
-        else:
+        if self.camera is None:
             self.log.error("Initialization failed.")
             raise RuntimeError("Initialization failed.")
+
+        self.__identify_camera()
+        # Re-generate the controls list to someting easer to use.
+        for k, v in self.camera.controls.items():
+            self.camera_ctrl_info[k.name] = (k, v)
+
+        # Re-generate the properties list to someting easer to use.
+        for k, v in self.camera.properties.items():
+            self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
+
+        # The next two lines could be placed elsewhere?
+        self.sensor_resolution = self.camera_properties_["PixelArraySize"]
+        self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
+
+        self.log.info('Initialization successful.')
+        return True
 
     def __identify_camera(self):
         for idx, address in enumerate(self.camera_manager.cameras):
@@ -436,14 +436,15 @@ class Picamera2:
 
         :raises RuntimeError: Failed to setup camera
         """
-        if self._initialize_camera():
-            if self.camera.acquire() >= 0:
-                self.is_open = True
-                self.log.info("Camera now open.")
-            else:
-                raise RuntimeError("Failed to acquire camera")
-        else:
+        if not self._initialize_camera():
             raise RuntimeError("Failed to initialize camera")
+
+        acq_code = self.camera.acquire()
+        if acq_code != 0:
+            raise RuntimeError(f"camera.acquire() returned unexpected code: {acq_code}")
+
+        self.is_open = True
+        self.log.info("Camera now open.")
 
     @property
     def sensor_modes(self) -> list:
@@ -529,15 +530,15 @@ class Picamera2:
 
         :raises RuntimeError: Unable to stop preview
         """
-        if self._preview:
-            try:
-                self.have_event_loop = False
-                self._preview.stop()
-                self._preview = None
-            except Exception:
-                raise RuntimeError("Unable to stop preview.")
-        else:
+        if not self._preview:
             raise RuntimeError("No preview specified.")
+
+        try:
+            self._preview.stop()
+            self._preview = None
+            self.have_event_loop = False
+        except Exception:
+            raise RuntimeError("Unable to stop preview.")
 
     def close(self) -> None:
         """Close camera
@@ -546,25 +547,28 @@ class Picamera2:
         """
         if self._preview:
             self.stop_preview()
-        if self.is_open:
-            self.stop()
-            if self.camera.release() < 0:
-                raise RuntimeError("Failed to release camera")
-            self._cm.cleanup(self.camera_idx)
-            self.is_open = False
-            self.streams = None
-            self.stream_map = None
-            self.camera = None
-            self.camera_ctrl_info = None
-            self.camera_config = None
-            self.libcamera_config = None
-            self.preview_configuration_ = None
-            self.still_configuration_ = None
-            self.video_configuration_ = None
-            self.allocator = None
-            self.notifymeread.close()
-            os.close(self.notifyme_w)
-            self.log.info('Camera closed successfully.')
+        if not self.is_open:
+            return
+
+        self.stop()
+        release_code = self.camera.release()
+        if release_code < 0:
+            raise RuntimeError(f"Failed to release camera ({release_code})")
+        self._cm.cleanup(self.camera_idx)
+        self.is_open = False
+        self.streams = None
+        self.stream_map = None
+        self.camera = None
+        self.camera_ctrl_info = None
+        self.camera_config = None
+        self.libcamera_config = None
+        self.preview_configuration_ = None
+        self.still_configuration_ = None
+        self.video_configuration_ = None
+        self.allocator = None
+        self.notifymeread.close()
+        os.close(self.notifyme_w)
+        self.log.info('Camera closed successfully.')
 
     @staticmethod
     def _make_initial_stream_config(stream_config: dict, updates: dict, ignore_list=[]) -> dict:
