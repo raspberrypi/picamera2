@@ -360,28 +360,31 @@ class QGlPicamera2(QWidget):
     def handle_requests(self):
         self.picamera2.notifymeread.read()
         request = self.picamera2.process_requests()
-        if request:
-            if self.title_function is not None:
-                self.setWindowTitle(self.title_function(request.get_metadata()))
-            if self.picamera2.display_stream_name is not None:
-                with self.lock:
-                    if self.running:
-                        eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
-                        self.repaint(request)
-                        eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
-                    if self.current_request and self.own_current:
-                        self.current_request.release()
-                    self.current_request = request
-                # The pipeline will stall if there's only one buffer and we always hold on to
-                # the last one. When we can, however, holding on to them is still preferred.
-                config = self.picamera2.camera_config
-                if config is not None and config['buffer_count'] > 1:
-                    self.own_current = True
-                else:
-                    self.own_current = False
-                    request.release()
+        if not request:
+            return
+
+        if self.title_function is not None:
+            self.setWindowTitle(self.title_function(request.get_metadata()))
+        if self.picamera2.display_stream_name is not None:
+            with self.lock:
+                if self.running:
+                    eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+                    self.repaint(request)
+                    eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+                if self.current_request and self.own_current:
+                    self.current_request.release()
+                self.current_request = request
+            # The pipeline will stall if there's only one buffer and we always hold on to
+            # the last one. When we can, however, holding on to them is still preferred.
+            config = self.picamera2.camera_config
+            if config is not None and config['buffer_count'] > 1:
+                self.own_current = True
             else:
+                self.own_current = False
                 request.release()
+        else:
+            self.own_current = False
+            request.release()
 
     def recalculate_viewport(self):
         window_w = self.width()

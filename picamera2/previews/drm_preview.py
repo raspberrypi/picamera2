@@ -60,23 +60,26 @@ class DrmPreview(NullPreview):
 
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()
-        if completed_request:
-            if picam2.display_stream_name is not None:
-                with self.lock:
-                    self.render_drm(picam2, completed_request)
-                    if self.current and self.own_current:
-                        self.current.release()
-                    self.current = completed_request
-                # The pipeline will stall if there's only one buffer and we always hold on to
-                # the last one. When we can, however, holding on to them is still preferred.
-                config = picam2.camera_config
-                if config is not None and config['buffer_count'] > 1:
-                    self.own_current = True
-                else:
-                    self.own_current = False
-                    completed_request.release()
+
+        if not completed_request:
+            return
+
+        if picam2.display_stream_name is not None:
+            with self.lock:
+                self.render_drm(picam2, completed_request)
+                if self.current and self.own_current:
+                    self.current.release()
+                self.current = completed_request
+            # The pipeline will stall if there's only one buffer and we always hold on to
+            # the last one. When we can, however, holding on to them is still preferred.
+            config = picam2.camera_config
+            if config is not None and config['buffer_count'] > 1:
+                self.own_current = True
             else:
+                self.own_current = False
                 completed_request.release()
+        else:
+            completed_request.release()
 
     def init_drm(self, x, y, width, height, transform):
         DrmPreview._manager.add(self)
