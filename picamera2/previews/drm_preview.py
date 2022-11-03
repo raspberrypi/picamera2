@@ -1,11 +1,10 @@
 import mmap
 import threading
-from libcamera import PixelFormat, Transform
 
 import numpy as np
 import pykms
+from libcamera import PixelFormat, Transform
 
-import picamera2.picamera2
 from picamera2.previews.null_preview import *
 
 
@@ -49,6 +48,7 @@ class DrmPreview(NullPreview):
         "XBGR8888": pykms.PixelFormat.XBGR8888,
         "YUV420": pykms.PixelFormat.YUV420,
         "YVU420": pykms.PixelFormat.YVU420,
+        "MJPEG": pykms.PixelFormat.BGR888,
     }
 
     _manager = DrmManager()
@@ -56,6 +56,9 @@ class DrmPreview(NullPreview):
     def __init__(self, x=0, y=0, width=640, height=480, transform=None):
         self.init_drm(x, y, width, height, transform)
         self.stop_count = 0
+        self.fb = pykms.DumbFramebuffer(self.card, width, height, "AB24")
+        self.mem = mmap.mmap(self.fb.fd(0), width * height * 3, mmap.MAP_SHARED, mmap.PROT_WRITE)
+        self.fd = self.fb.fd(0)
         super().__init__(width=width, height=height)
 
     def handle_request(self, picam2):
@@ -158,6 +161,17 @@ class DrmPreview(NullPreview):
 
         if completed_request is not None:
             fb = completed_request.request.buffers[stream]
+
+            if pixel_format == "MJPEG":
+                img = completed_request.make_array(picam2.display_stream_name).tobytes()
+                self.mem.seek(0)
+                self.mem.write(img)
+                fd = self.fd
+                stride = width * 3
+            else:
+                fd = fb.planes[0].fd
+                stride = cfg.stride
+
             if fb not in self.drmfbs:
                 if self.stop_count != picam2.stop_count:
                     if picam2.verbose_console:
@@ -165,10 +179,8 @@ class DrmPreview(NullPreview):
                     old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
                     self.drmfbs = {}
                     self.stop_count = picam2.stop_count
-
                 fmt = self.FMT_MAP[pixel_format]
-                fd = fb.planes[0].fd
-                stride = cfg.stride
+
                 if pixel_format in ("YUV420", "YVU420"):
                     h2 = height // 2
                     stride2 = stride // 2
