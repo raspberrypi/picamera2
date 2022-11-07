@@ -114,7 +114,7 @@ class Picamera2:
     WARNING = logging.WARNING
     ERROR = logging.ERROR
     CRITICAL = logging.CRITICAL
-    _cm = None
+    _cm = CameraManager()
 
     @staticmethod
     def set_logging(level=logging.WARN, output=sys.stderr, msg=None):
@@ -211,8 +211,6 @@ class Picamera2:
                 os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning_file.name
         else:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
-        if not Picamera2._cm:
-            Picamera2._cm = CameraManager()
         self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
         self.notifymeread = os.fdopen(self.notifyme_r, 'rb')
         self._cm.add(camera_num, self)
