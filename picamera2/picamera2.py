@@ -186,6 +186,19 @@ class Picamera2:
             return tuning[name]
         return next(algo for algo in tuning["algorithms"] if name in algo)[name]
 
+    @staticmethod
+    def global_camera_info() -> list:
+        """
+        Return Id string and Model name for all attached cameras, one dict per camera,
+        and ordered correctly by camera number. Also return the location and rotation
+        of the camera when known, as these may help distinguish which is which.
+        """
+        def describe_camera(cam):
+            info = {k.name: v for k, v in cam.properties.items() if k.name in ("Model", "Location", "Rotation")}
+            info["Id"] = cam.id
+            return info
+        return [describe_camera(cam) for cam in libcamera.CameraManager.singleton().cameras]
+
     def __init__(self, camera_num=0, verbose_console=None, tuning=None):
         """Initialise camera system and open the camera for use.
 
