@@ -46,7 +46,7 @@ class QPicamera2(QGraphicsView):
     def cleanup(self):
         del self.scene
         del self.overlay
-        del self.camera_notifier
+        self.camera_notifier.deleteLater()
 
     def signal_done(self, picamera2):
         self.done_signal.emit()

@@ -119,7 +119,7 @@ class QGlPicamera2(QWidget):
     def cleanup(self):
         with self.lock:
             self.running = False
-            del self.camera_notifier
+            self.camera_notifier.deleteLater()
             eglDestroySurface(self.egl.display, self.surface)
             self.surface = None
             # We may be hanging on to a request, return it to the camera system.
