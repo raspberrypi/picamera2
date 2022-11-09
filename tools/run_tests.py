@@ -4,6 +4,7 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 
 # Execute this script with no arguments to run all the tests listed in the
 # tests/test-list.txt file. It prints out whether each test passes, fails,
@@ -65,8 +66,16 @@ def print_subprocess_output(exc: subprocess.CalledProcessError):
         print(indent(exc.stderr.decode('utf-8')))
 
 
-def run_tests(tests):
+def run_tests(tests, xserver=True):
     """Run all the given tests. Return the number that fail."""
+    if not xserver:
+        vt = 1
+    else:
+        vt = 7
+    if os.system(f"sudo chvt {vt}") != 0:
+        print("FAILED to switch VT")
+        return len(tests)
+    time.sleep(3)
     num_failed = 0
     for test in tests:
         clean_directory()
@@ -103,32 +112,45 @@ def run_tests(tests):
     return num_failed
 
 
+def directoryexists(arg):
+    if not os.path.isdir(arg):
+        raise argparse.ArgumentTypeError(f"The directory {arg} doesn't exist")
+    else:
+        return arg
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='picamera2 automated tests')
-    parser.add_argument('--dir', '-d', action='store', default='/home/pi/picamera2_tests',
-                        help='Folder in which to run tests')
-    parser.add_argument('--picamera2-dir', '-p', action='store', default='/home/pi/picamera2',
-                        help='Location of picamera2 folder')
-    parser.add_argument('--test-list-file', '-t', action='store', default='tests/test_list.txt',
-                        help='File containing list of tests to run')
+    parser.add_argument('--dir', '-d', action='store', type=directoryexists,
+                        default='/home/pi/picamera2_tests', help='Folder in which to run tests')
+    parser.add_argument('--picamera2-dir', '-p', action='store', type=directoryexists,
+                        default='/home/pi/picamera2', help='Location of picamera2 folder')
+    parser.add_argument('--test-list-file', '-t', action='store', type=argparse.FileType('r', encoding='UTF-8'),
+                        default='tests/test_list.txt', help='File containing list of tests to run')
+    parser.add_argument('--test-list-file-drm', '-t2', action='store', type=argparse.FileType('r', encoding='UTF-8'),
+                        default='tests/test_list_drm.txt', help='File containing list of tests to run')
     args = parser.parse_args()
 
     dir = args.dir
     picamera2_dir = args.picamera2_dir
-    test_list_file = os.path.join(picamera2_dir, args.test_list_file)
+    test_list_file_x = os.path.join(picamera2_dir, args.test_list_file.name)
+    test_list_file_drm = os.path.join(picamera2_dir, args.test_list_file_drm.name)
+
     print("dir:", dir)
     print("Picamera2 dir:", picamera2_dir)
-    print("Test list file:", test_list_file)
+    print("Test list file X:", test_list_file_x)
+    print("Test list file DRM:", test_list_file_drm)
 
-    tests = load_test_list(test_list_file, picamera2_dir)
+    xtests = load_test_list(test_list_file_x, picamera2_dir)
+    drmtests = load_test_list(test_list_file_drm, picamera2_dir)
 
     if not os.path.exists(dir):
         os.makedirs(dir)
     os.chdir(dir)
 
-    print("Running", len(tests), "tests")
+    print("Running", len(xtests) + len(drmtests), "tests")
     print()
-    num_failed = run_tests(tests)
+    num_failed = run_tests(drmtests, xserver=False) + run_tests(xtests, xserver=True)
     print()
     if num_failed == 0:
         print("ALL TESTS PASSED!")

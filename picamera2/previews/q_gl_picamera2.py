@@ -73,7 +73,6 @@ class EglState:
         ]
 
         self.context = eglCreateContext(self.display, self.config, EGL_NO_CONTEXT, context_attribs)
-
         eglMakeCurrent(self.display, EGL_NO_SURFACE, EGL_NO_SURFACE, self.context)
 
 
@@ -98,6 +97,7 @@ class QGlPicamera2(QWidget):
         self.current_request = None
         self.own_current = False
         self.stop_count = 0
+        self.title_function = None
         self.egl = EglState()
         if picam2.verbose_console:
             print("EGL {} {}".format(
@@ -111,19 +111,21 @@ class QGlPicamera2(QWidget):
         self.picamera2 = picam2
         picam2.have_event_loop = True
 
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
-                                               QtCore.QSocketNotifier.Read,
-                                               self)
+        self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
+                                               QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
+        self.running = True
 
     def cleanup(self):
-        del self.camera_notifier
-        eglDestroySurface(self.egl.display, self.surface)
-        self.surface = None
-        # We may be hanging on to a request, return it to the camera system.
-        if self.current_request is not None and self.own_current:
-            self.current_request.release()
-        self.current_request = None
+        with self.lock:
+            self.running = False
+            self.camera_notifier.deleteLater()
+            eglDestroySurface(self.egl.display, self.surface)
+            self.surface = None
+            # We may be hanging on to a request, return it to the camera system.
+            if self.current_request is not None and self.own_current:
+                self.current_request.release()
+            self.current_request = None
 
     def signal_done(self, picamera2):
         self.done_signal.emit()
@@ -356,26 +358,33 @@ class QGlPicamera2(QWidget):
 
     @pyqtSlot()
     def handle_requests(self):
+        self.picamera2.notifymeread.read()
         request = self.picamera2.process_requests()
-        if request:
-            if self.picamera2.display_stream_name is not None:
-                with self.lock:
+        if not request:
+            return
+
+        if self.title_function is not None:
+            self.setWindowTitle(self.title_function(request.get_metadata()))
+        if self.picamera2.display_stream_name is not None:
+            with self.lock:
+                if self.running:
                     eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
                     self.repaint(request)
                     eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
-                    if self.current_request and self.own_current:
-                        self.current_request.release()
-                    self.current_request = request
-                # The pipeline will stall if there's only one buffer and we always hold on to
-                # the last one. When we can, however, holding on to them is still preferred.
-                config = self.picamera2.camera_config
-                if config is not None and config['buffer_count'] > 1:
-                    self.own_current = True
-                else:
-                    self.own_current = False
-                    request.release()
+                if self.current_request and self.own_current:
+                    self.current_request.release()
+                self.current_request = request
+            # The pipeline will stall if there's only one buffer and we always hold on to
+            # the last one. When we can, however, holding on to them is still preferred.
+            config = self.picamera2.camera_config
+            if config is not None and config['buffer_count'] > 1:
+                self.own_current = True
             else:
+                self.own_current = False
                 request.release()
+        else:
+            self.own_current = False
+            request.release()
 
     def recalculate_viewport(self):
         window_w = self.width()

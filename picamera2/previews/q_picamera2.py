@@ -36,16 +36,17 @@ class QPicamera2(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.enabled = True
+        self.title_function = None
 
         self.update_overlay_signal.connect(self.update_overlay)
-        self.camera_notifier = QSocketNotifier(self.picamera2.camera_manager.event_fd,
+        self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
                                                QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
 
     def cleanup(self):
         del self.scene
         del self.overlay
-        del self.camera_notifier
+        self.camera_notifier.deleteLater()
 
     def signal_done(self, picamera2):
         self.done_signal.emit()
@@ -143,22 +144,27 @@ class QPicamera2(QGraphicsView):
 
     @pyqtSlot()
     def handle_requests(self):
+        self.picamera2.notifymeread.read()
         request = self.picamera2.process_requests()
         if not request:
             return
-
+        if self.title_function is not None:
+            self.setWindowTitle(self.title_function(request.get_metadata()))
         camera_config = self.picamera2.camera_config
         if self.enabled and self.picamera2.display_stream_name is not None and camera_config is not None:
             stream_config = camera_config[self.picamera2.display_stream_name]
             img = request.make_array(self.picamera2.display_stream_name)
-            if stream_config["format"] == "YUV420":
+            if stream_config["format"] in ("YUV420", "YUYV"):
                 if cv2_available:
-                    img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
+                    if stream_config["format"] == "YUV420":
+                        img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
+                    else:
+                        img = cv2.cvtColor(img, cv2.COLOR_YUV2RGB_YUYV)
                     width = stream_config["size"][0]
                     if width != stream_config["stride"]:
                         img = img[:, :width, :]  # this will make it even more expensive!
                 else:
-                    raise RuntimeError("Qt preview cannot display YUV420 without cv2")
+                    raise RuntimeError("Qt preview cannot display YUV420/YUYV without cv2")
             img = np.ascontiguousarray(img[..., :3])
             shape = img.shape
             qim = QImage(img.data, shape[1], shape[0], QImage.Format_RGB888)

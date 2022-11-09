@@ -1,6 +1,10 @@
 """Null preview"""
 
+from logging import getLogger
 import threading
+
+
+_log = getLogger(__name__)
 
 
 class NullPreview:
@@ -15,12 +19,13 @@ class NullPreview:
         import selectors
 
         sel = selectors.DefaultSelector()
-        sel.register(picam2.camera_manager.event_fd, selectors.EVENT_READ, self.handle_request)
-        self.event.set()
+        sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
+        self._started.set()
 
-        while self.running:
+        while not self._abort.is_set():
             events = sel.select(0.2)
             for key, _ in events:
+                picam2.notifymeread.read()
                 callback = key.data
                 callback(picam2)
 
@@ -41,7 +46,8 @@ class NullPreview:
         # Ignore width and height as they are meaningless. We only accept them so as to
         # be a drop-in replacement for the Qt/DRM previews.
         self.size = (width, height)
-        self.event = threading.Event()
+        self._abort = threading.Event()
+        self._started = threading.Event()
         self.picam2 = None
 
     def start(self, picam2):
@@ -51,11 +57,12 @@ class NullPreview:
         :type picam2: Picamera2
         """
         self.picam2 = picam2
+        self._started.clear()
+        self._abort.clear()
         self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
         self.thread.setDaemon(True)
-        self.running = True
         self.thread.start()
-        self.event.wait()
+        self._started.wait()
 
     def set_overlay(self, overlay):
         """Sets overlay
@@ -71,12 +78,20 @@ class NullPreview:
         :param picam2: picamera2 object
         :type picam2: Picamera2
         """
-        completed_request = picam2.process_requests()
+        try:
+            completed_request = picam2.process_requests()
+        except Exception as e:
+            _log.exception("Exception during process_requests()", exc_info=e)
+            raise
+
         if completed_request:
             completed_request.release()
 
     def stop(self):
         """Stop preview"""
-        self.running = False
+        self._abort.set()
         self.thread.join()
         self.picam2 = None
+
+    def set_title_function(self, function):
+        pass

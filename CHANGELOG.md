@@ -6,6 +6,19 @@
 
 ### Changed
 
+## 0.3.6 Beta Release 5
+
+### Added
+
+* The `Picamera2.global_camera_info()` method will return information about all the attached cameras.
+* We have introduced the ability to control multiple Picamera2 objects (all opened for different cameras) within the same Python process. They behave independently and can each have their own preview window.
+* There is now limited support for USB webcams that deliver MJPEG or YUYV streams. Images can be displayed by the QT (not QTGL) preview.
+* Picamera2 objects have a title_fields property which can be set to a list of the metadata fields to display on the preview window title bar (for example `picam2.title_fields = ["ExposureTime", "AnalogueGain"]).
+
+### Changed
+
+* Resources are freed more reliably when Picamera2 objects are closed.
+
 ## 0.3.5 Beta Release 4
 
 ### Added

@@ -346,10 +346,11 @@ class StyleChecker(metaclass=ClassRegistry):
 
 
 class StyleIssue(object):
-    def __init__(self, line_number, line, msg):
+    def __init__(self, line_number, line, msg, offset=None):
         self.line_number = line_number
         self.line = line
         self.msg = msg
+        self.offset = offset
 
 
 class IncludeChecker(StyleChecker):
@@ -413,7 +414,7 @@ class Pep8Checker(StyleChecker):
 
             if line_number in line_numbers:
                 line = self.__content[line_number - 1]
-                issues.append(StyleIssue(line_number, line, msg))
+                issues.append(StyleIssue(line_number, line, msg, position))
 
         return issues
 
@@ -614,6 +615,8 @@ def check_file(top_level, commit, filename):
                   (Colours.fg(Colours.Yellow), issue.line_number, issue.msg))
             if issue.line is not None:
                 print('+%s%s' % (issue.line.rstrip(), Colours.reset()))
+                if issue.offset is not None:
+                    print(" " * (issue.offset) + "^")
 
     return len(formatted_diff) + len(issues)
 

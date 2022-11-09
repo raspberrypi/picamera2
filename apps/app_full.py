@@ -61,7 +61,10 @@ def post_callback(request):
 # Set up camera and application
 picam2 = Picamera2()
 picam2.post_callback = post_callback
-still_kwargs = {"lores": {}, "display": "lores", "encode": "lores", "buffer_count": 1}
+lores_size = picam2.sensor_resolution
+while lores_size[0] > 1600:
+    lores_size = (lores_size[0] // 2 & ~1, lores_size[1] // 2 & ~1)
+still_kwargs = {"lores": {"size": lores_size}, "display": "lores", "encode": "lores", "buffer_count": 1}
 picam2.still_configuration = picam2.create_still_configuration(
     **still_kwargs
 )
@@ -670,10 +673,10 @@ class AECTab(QWidget):
     def reset(self):
         self.aec_check.setChecked(True)
         self.awb_check.setChecked(True)
-        self.exposure_time.setValue(picam2.camera_controls["ExposureTime"][2])
-        self.analogue_gain.setValue(picam2.camera_controls["AnalogueGain"][2])
-        self.colour_gain_r.setValue(picam2.camera_controls["ColourGains"][2])
-        self.colour_gain_b.setValue(picam2.camera_controls["ColourGains"][2])
+        self.exposure_time.setValue(10000)
+        self.analogue_gain.setValue(1.0)
+        self.colour_gain_r.setValue(1.0)
+        self.colour_gain_b.setValue(1.0)
 
     @property
     def aec_dict(self):
@@ -787,15 +790,15 @@ class IMGTab(QWidget):
         }
 
     def reset(self):
-        self.ccm.setValue(picam2.camera_controls["ColourCorrectionMatrix"][2])
+        # self.ccm.setValue(picam2.camera_controls["ColourCorrectionMatrix"][2])
         self.saturation.setValue(picam2.camera_controls["Saturation"][2], emit=True)
         self.contrast.setValue(picam2.camera_controls["Contrast"][2], emit=True)
         self.sharpness.setValue(picam2.camera_controls["Sharpness"][2], emit=True)
         self.brightness.setValue(picam2.camera_controls["Brightness"][2], emit=True)
 
     def img_update(self):
-        self.ccm.setMinimum(picam2.camera_controls["ColourCorrectionMatrix"][0])
-        self.ccm.setMaximum(picam2.camera_controls["ColourCorrectionMatrix"][1])
+        # self.ccm.setMinimum(picam2.camera_controls["ColourCorrectionMatrix"][0])
+        # self.ccm.setMaximum(picam2.camera_controls["ColourCorrectionMatrix"][1])
         self.saturation.setMinimum(picam2.camera_controls["Saturation"][0])
         # self.saturation.setMaximum(picam2.camera_controls["Saturation"][1])
         self.saturation.setMaximum(6.0)
@@ -1220,5 +1223,6 @@ layout_h.addWidget(tabs)
 window.resize(1600, 600)
 window.setLayout(layout_h)
 
-window.show()
-app.exec()
+if __name__ == "__main__":
+    window.show()
+    app.exec()

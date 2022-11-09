@@ -1,14 +1,42 @@
 import mmap
 import threading
-from libcamera import PixelFormat, Transform
 
 import numpy as np
 import pykms
+from libcamera import PixelFormat, Transform
 
-import picamera2.picamera2
 from picamera2.previews.null_preview import *
 
-dd = None
+
+class DrmManager():
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.use_count = 0
+
+    def add(self, drm_preview):
+        with self.lock:
+            if self.use_count == 0:
+                self.card = pykms.Card()
+                self.resman = pykms.ResourceManager(self.card)
+                conn = self.resman.reserve_connector()
+                self.crtc = self.resman.reserve_crtc(conn)
+                print(self.card, self.resman, conn, self.crtc)
+            self.use_count += 1
+        drm_preview.card = self.card
+        drm_preview.resman = self.resman
+        drm_preview.crtc = self.crtc
+
+    def remove(self, drm_preview):
+        drm_preview.card = None
+        drm_preview.resman = None
+        drm_preview.crtc = None
+        with self.lock:
+            self.use_count -= 1
+            if self.use_count == 0:
+                self.crtc = None
+                self.resman = None
+                self.card = None
+
 
 class DrmPreview(NullPreview):
     FMT_MAP = {
@@ -20,38 +48,44 @@ class DrmPreview(NullPreview):
         "XBGR8888": pykms.PixelFormat.XBGR8888,
         "YUV420": pykms.PixelFormat.YUV420,
         "YVU420": pykms.PixelFormat.YVU420,
+        "MJPEG": pykms.PixelFormat.BGR888,
     }
+
+    _manager = DrmManager()
 
     def __init__(self, x=0, y=0, width=640, height=480, transform=None):
         self.init_drm(x, y, width, height, transform)
         self.stop_count = 0
+        self.fb = pykms.DumbFramebuffer(self.card, width, height, "AB24")
+        self.mem = mmap.mmap(self.fb.fd(0), width * height * 3, mmap.MAP_SHARED, mmap.PROT_WRITE)
+        self.fd = self.fb.fd(0)
         super().__init__(width=width, height=height)
 
     def handle_request(self, picam2):
         completed_request = picam2.process_requests()
-        if completed_request:
-            if picam2.display_stream_name is not None:
-                with self.lock:
-                    self.render_drm(picam2, completed_request)
-                    if self.current and self.own_current:
-                        self.current.release()
-                    self.current = completed_request
-                # The pipeline will stall if there's only one buffer and we always hold on to
-                # the last one. When we can, however, holding on to them is still preferred.
-                config = picam2.camera_config
-                if config is not None and config['buffer_count'] > 1:
-                    self.own_current = True
-                else:
-                    self.own_current = False
-                    completed_request.release()
+
+        if not completed_request:
+            return
+
+        if picam2.display_stream_name is not None:
+            with self.lock:
+                self.render_drm(picam2, completed_request)
+                if self.current and self.own_current:
+                    self.current.release()
+                self.current = completed_request
+            # The pipeline will stall if there's only one buffer and we always hold on to
+            # the last one. When we can, however, holding on to them is still preferred.
+            config = picam2.camera_config
+            if config is not None and config['buffer_count'] > 1:
+                self.own_current = True
             else:
+                self.own_current = False
                 completed_request.release()
+        else:
+            completed_request.release()
 
     def init_drm(self, x, y, width, height, transform):
-        self.card = pykms.Card()
-        self.resman = pykms.ResourceManager(self.card)
-        conn = self.resman.reserve_connector()
-        self.crtc = self.resman.reserve_crtc(conn)
+        DrmPreview._manager.add(self)
 
         self.plane = None
         self.drmfbs = {}
@@ -127,6 +161,17 @@ class DrmPreview(NullPreview):
 
         if completed_request is not None:
             fb = completed_request.request.buffers[stream]
+
+            if pixel_format == "MJPEG":
+                img = completed_request.make_array(picam2.display_stream_name).tobytes()
+                self.mem.seek(0)
+                self.mem.write(img)
+                fd = self.fd
+                stride = width * 3
+            else:
+                fd = fb.planes[0].fd
+                stride = cfg.stride
+
             if fb not in self.drmfbs:
                 if self.stop_count != picam2.stop_count:
                     if picam2.verbose_console:
@@ -134,10 +179,8 @@ class DrmPreview(NullPreview):
                     old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
                     self.drmfbs = {}
                     self.stop_count = picam2.stop_count
-
                 fmt = self.FMT_MAP[pixel_format]
-                fd = fb.planes[0].fd
-                stride = cfg.stride
+
                 if pixel_format in ("YUV420", "YVU420"):
                     h2 = height // 2
                     stride2 = stride // 2
@@ -181,6 +224,6 @@ class DrmPreview(NullPreview):
         self.drmfbs = {}
         self.overlay_new_fb = None
         self.overlay_fb = None
-        self.crtc = None
-        self.resman = None
-        self.card = None
+        self.plane = None
+        self.overlay_plane = None
+        DrmPreview._manager.remove(self)
