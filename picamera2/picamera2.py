@@ -1,12 +1,9 @@
 #!/usr/bin/python3
 """picamera2 main class"""
 
-from collections import defaultdict
 
-import atexit
 import json
 import os
-import selectors
 import tempfile
 import threading
 from enum import Enum
