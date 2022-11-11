@@ -121,20 +121,20 @@ def directoryexists(arg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='picamera2 automated tests')
-    parser.add_argument('--dir', '-d', action='store', type=directoryexists,
+    parser.add_argument('--dir', '-d', action='store',
                         default='/home/pi/picamera2_tests', help='Folder in which to run tests')
     parser.add_argument('--picamera2-dir', '-p', action='store', type=directoryexists,
                         default='/home/pi/picamera2', help='Location of picamera2 folder')
-    parser.add_argument('--test-list-file', '-t', action='store', type=argparse.FileType('r', encoding='UTF-8'),
+    parser.add_argument('--test-list-file', '-t', action='store',
                         default='tests/test_list.txt', help='File containing list of tests to run')
-    parser.add_argument('--test-list-file-drm', '-t2', action='store', type=argparse.FileType('r', encoding='UTF-8'),
+    parser.add_argument('--test-list-file-drm', '-t2', action='store',
                         default='tests/test_list_drm.txt', help='File containing list of tests to run')
     args = parser.parse_args()
 
     dir = args.dir
     picamera2_dir = args.picamera2_dir
-    test_list_file_x = os.path.join(picamera2_dir, args.test_list_file.name)
-    test_list_file_drm = os.path.join(picamera2_dir, args.test_list_file_drm.name)
+    test_list_file_x = os.path.join(picamera2_dir, args.test_list_file)
+    test_list_file_drm = os.path.join(picamera2_dir, args.test_list_file_drm)
 
     print("dir:", dir)
     print("Picamera2 dir:", picamera2_dir)
