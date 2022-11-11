@@ -1,4 +1,5 @@
 import io
+import logging
 import threading
 import time
 
@@ -10,6 +11,7 @@ from PIL import Image
 
 from .controls import Controls
 
+_log = logging.getLogger(__name__)
 
 class _MappedBuffer:
     def __init__(self, request, stream):
@@ -264,8 +266,8 @@ class Helpers:
             keywords |= {"exif": exif}
         img.save(file_output, **keywords)
         end_time = time.monotonic()
-        self.picam2.log.info(f"Saved {self} to file {file_output}.")
-        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Saved {self} to file {file_output}.")
+        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
     def save_dng(self, buffer, metadata, config, filename):
         """Save a DNG RAW image of the raw stream's buffer."""

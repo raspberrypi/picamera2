@@ -35,7 +35,7 @@ RAW = libcamera.StreamRole.Raw
 VIDEO = libcamera.StreamRole.VideoRecording
 VIEWFINDER = libcamera.StreamRole.Viewfinder
 
-_logger = logging.getLogger("picamera2")
+_log = logging.getLogger(__name__)
 
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
@@ -210,9 +210,8 @@ class Picamera2:
         :type tuning: str, optional
         :raises RuntimeError: Init didn't complete
         """
-        self.log = _logger
         if verbose_console is not None:
-            self.log.warn("verbose_console parameter is no longer used, use Picamera2.set_logging instead")
+            _log.warning("verbose_console parameter is no longer used, use Picamera2.set_logging instead")
         tuning_file = None
         if tuning is not None:
             if isinstance(tuning, str):
@@ -237,12 +236,12 @@ class Picamera2:
         self.helpers = Helpers(self)
         try:
             self._open_camera()
-            self.log.debug(f"{self.camera_manager}")
+            _log.debug(f"{self.camera_manager}")
             self.preview_configuration = self.create_preview_configuration()
             self.still_configuration = self.create_still_configuration()
             self.video_configuration = self.create_video_configuration()
         except Exception:
-            self.log.error("Camera __init__ sequence did not complete.")
+            _log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
         finally:
             if tuning_file is not None:
@@ -306,13 +305,13 @@ class Picamera2:
     @property
     def request_callback(self):
         """Now Deprecated"""
-        self.log.error("request_callback is deprecated, returning post_callback instead")
+        _log.error("request_callback is deprecated, returning post_callback instead")
         return self.post_callback
 
     @request_callback.setter
     def request_callback(self, value):
         """Now Deprecated"""
-        self.log.error("request_callback is deprecated, setting post_callback instead")
+        _log.error("request_callback is deprecated, setting post_callback instead")
         self.post_callback = value
 
     @property
@@ -383,7 +382,7 @@ class Picamera2:
 
     def __del__(self):
         """Without this libcamera will complain if we shut down without closing the camera."""
-        self.log.debug(f"Resources now free: {self}")
+        _log.debug(f"Resources now free: {self}")
         self.close()
 
     @staticmethod
@@ -413,7 +412,7 @@ class Picamera2:
         if self.camera_manager.cameras:
             self.camera = self._grab_camera(self.camera_idx)
         else:
-            self.log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
+            _log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
             raise RuntimeError("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
 
         if self.camera is not None:
@@ -430,10 +429,10 @@ class Picamera2:
             self.sensor_resolution = self.camera_properties_["PixelArraySize"]
             self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
 
-            self.log.info('Initialization successful.')
+            _log.info('Initialization successful.')
             return True
         else:
-            self.log.error("Initialization failed.")
+            _log.error("Initialization failed.")
             raise RuntimeError("Initialization failed.")
 
     def __identify_camera(self):
@@ -450,7 +449,7 @@ class Picamera2:
         if self._initialize_camera():
             if self.camera.acquire() >= 0:
                 self.is_open = True
-                self.log.info("Camera now open.")
+                _log.info("Camera now open.")
             else:
                 raise RuntimeError("Failed to acquire camera")
         else:
@@ -575,7 +574,7 @@ class Picamera2:
             self.allocator = None
             self.notifymeread.close()
             os.close(self.notifyme_w)
-            self.log.info('Camera closed successfully.')
+            _log.info('Camera closed successfully.')
 
     @staticmethod
     def _make_initial_stream_config(stream_config: dict, updates: dict, ignore_list=[]) -> dict:
@@ -921,17 +920,17 @@ class Picamera2:
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()
         self._update_camera_config(camera_config, libcamera_config)
-        self.log.debug(f"Requesting configuration: {camera_config}")
+        _log.debug(f"Requesting configuration: {camera_config}")
         if status == libcamera.CameraConfiguration.Status.Invalid:
             raise RuntimeError("Invalid camera configuration: {}".format(camera_config))
         elif status == libcamera.CameraConfiguration.Status.Adjusted:
-            self.log.info("Camera configuration has been adjusted!")
+            _log.info("Camera configuration has been adjusted!")
 
         # Configure libcamera.
         if self.camera.configure(libcamera_config):
             raise RuntimeError("Configuration failed: {}".format(camera_config))
-        self.log.info("Configuration successful!")
-        self.log.debug(f"Final configuration: {camera_config}")
+        _log.info("Configuration successful!")
+        _log.debug(f"Final configuration: {camera_config}")
 
         # Update the controls and properties list as some of the values may have changed.
         self.camera_ctrl_info = {}
@@ -945,7 +944,7 @@ class Picamera2:
         self.stream_map = {"main": libcamera_config.at(0).stream}
         self.stream_map["lores"] = libcamera_config.at(self.lores_index).stream if self.lores_index >= 0 else None
         self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
-        self.log.debug(f"Streams: {self.stream_map}")
+        _log.debug(f"Streams: {self.stream_map}")
 
         # These name the streams that we will display/encode.
         self.display_stream_name = camera_config['display']
@@ -963,10 +962,10 @@ class Picamera2:
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
-                self.log.critical("Failed to allocate buffers.")
+                _log.critical("Failed to allocate buffers.")
                 raise RuntimeError("Failed to allocate buffers.")
             msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
-            self.log.debug(msg)
+            _log.debug(msg)
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
@@ -1004,10 +1003,10 @@ class Picamera2:
         if self.camera.start(controls) >= 0:
             for request in self._make_requests():
                 self.camera.queue_request(request)
-            self.log.info("Camera started")
+            _log.info("Camera started")
             self.started = True
         else:
-            self.log.error("Camera did not start properly.")
+            _log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
 
     def start(self, config=None, show_preview=False) -> None:
@@ -1056,13 +1055,13 @@ class Picamera2:
             with self._requestslock:
                 self._requests = []
             self.completed_requests = []
-            self.log.info("Camera stopped")
+            _log.info("Camera stopped")
         return (True, None)
 
     def stop(self) -> None:
         """Stop the camera."""
         if not self.started:
-            self.log.debug("Camera was not started")
+            _log.debug("Camera was not started")
             return
         if self.asynchronous:
             self.dispatch_functions([self.stop_])
@@ -1113,7 +1112,7 @@ class Picamera2:
             # in the list to be tried again next time.
             if self.functions:
                 function = self.functions[0]
-                self.log.debug(f"Execute function: {function}")
+                _log.debug(f"Execute function: {function}")
                 try:
                     done, result = function()
                     if done:
