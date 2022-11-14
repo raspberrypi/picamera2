@@ -1,5 +1,6 @@
 """Provide V4L2 encoding functionality"""
 
+import ctypes
 import fcntl
 import mmap
 import queue
