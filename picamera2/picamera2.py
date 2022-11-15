@@ -618,7 +618,7 @@ class Picamera2:
 
     _raw_stream_ignore_list = ["bit_depth", "crop_limits", "exposure_limits", "fps", "unpacked"]
 
-    def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={}, display="main", encode="main") -> dict:
+    def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={}, display="main", encode="main", queue=True) -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -636,6 +636,7 @@ class Picamera2:
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
+                  "queue": queue,
                   "main": main,
                   "lores": lores,
                   "raw": raw,
@@ -643,7 +644,7 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
-    def create_still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={}, display=None, encode=None) -> dict:
+    def create_still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={}, display=None, encode=None, queue=True) -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -661,6 +662,7 @@ class Picamera2:
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
+                  "queue": queue,
                   "main": main,
                   "lores": lores,
                   "raw": raw,
@@ -668,7 +670,7 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
-    def create_video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}, display="main", encode="main") -> dict:
+    def create_video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}, display="main", encode="main", queue=True) -> dict:
         """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -695,6 +697,7 @@ class Picamera2:
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
+                  "queue": queue,
                   "main": main,
                   "lores": lores,
                   "raw": raw,
@@ -962,6 +965,15 @@ class Picamera2:
             # If no encode stream then remove the encoder
             self._encoder = None
 
+        # Decide whether we are going to keep hold of the last completed request, or
+        # whether capture requests will always wait for the next frame. If there's only
+        # one buffer, never hang on to the request because it would stall the pipeline
+        # instantly.
+        if camera_config['queue'] and camera_config['buffer_count'] > 1:
+            self._max_queue_len = 1
+        else:
+            self._max_queue_len = 0
+
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
@@ -1138,12 +1150,8 @@ class Picamera2:
                 stream = self.stream_map[self.encode_stream_name]
                 self._encoder.encode(stream, display_request)
 
-            # We can only hang on to a limited number of requests here, most should be recycled
-            # immediately back to libcamera. You could consider customising this number.
-            # When there's only one buffer in total, don't hang on to anything as it would stall
-            # the pipeline completely.
-            max_len = 0 if self.camera_config['buffer_count'] == 1 else 1
-            while len(self.completed_requests) > max_len:
+            # We hang on to the last completed request if we have been asked to.
+            while len(self.completed_requests) > self._max_queue_len:
                 self.completed_requests.pop(0).release()
 
         # If one of the functions we ran reconfigured the camera since this request came out,
