@@ -85,6 +85,7 @@ def run_tests(tests, xserver=True):
             output = output.decode('utf-8')
             output = output.split('\n')
             test_passed = True
+            test_skipped = False
             for line in output:
                 line = line.lower()
                 if "test pattern modes" in line:  # libcamera spits out a bogus error here
@@ -93,6 +94,8 @@ def run_tests(tests, xserver=True):
                     pass
                 elif "xdg_runtime_dir" in line:  # this one too when running on behalf of GitHub
                     pass
+                elif "skipped" in line:  # allow tests to report that they aren't doing anything
+                    test_skipped = True
                 elif "error" in line:
                     print("\tERROR")
                     print("\t", line)
@@ -100,7 +103,7 @@ def run_tests(tests, xserver=True):
                     num_failed = num_failed + 1
                     break
             if test_passed:
-                print("\tPASSED")
+                print("\tSKIPPED" if test_skipped else "\tPASSED")
         except subprocess.CalledProcessError as e:
             print("\tFAILED")
             print_subprocess_output(e)
