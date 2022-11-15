@@ -81,7 +81,7 @@ def run_tests(tests, xserver=True):
         clean_directory()
         print("Running ", test, "... ", sep='', end='', flush=True)
         try:
-            output = subprocess.check_output(['python3', test], timeout=30, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(['python3', test], timeout=60, stderr=subprocess.STDOUT)
             output = output.decode('utf-8')
             output = output.split('\n')
             test_passed = True
@@ -93,6 +93,8 @@ def run_tests(tests, xserver=True):
                 elif "qxcbconnection" in line:  # this can come out when running headless
                     pass
                 elif "xdg_runtime_dir" in line:  # this one too when running on behalf of GitHub
+                    pass
+                elif "unable to set controls" in line:  # currently provoked by multi camera tests
                     pass
                 elif "skipped" in line:  # allow tests to report that they aren't doing anything
                     test_skipped = True
