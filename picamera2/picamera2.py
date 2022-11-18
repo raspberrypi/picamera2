@@ -267,14 +267,13 @@ class Picamera2:
         self.stop_count = 0
         self.configure_count = 0
         self.frames = 0
-        self.functions = []
-        self._job = None
+        self._job_list = []
         self.options = {}
         self._encoder = None
         self.pre_callback = None
         self.post_callback = None
         self.completed_requests: List[CompletedRequest] = []
-        self.lock = threading.Lock()  # protects the functions and completed_requests fields
+        self.lock = threading.Lock()  # protects the _job_list and completed_requests fields
         self.have_event_loop = False
         self.camera_properties_ = {}
         self.controls = Controls(self)
@@ -1107,9 +1106,9 @@ class Picamera2:
         #   quickly" if an application asks for it, but the rest get recycled to libcamera to
         #   keep the camera system running.
         # * The lock here protects the completed_requests list (because if it's non-empty, an
-        #   application can pop a request from it asynchronously), and the functions list. If
-        #   we don't have a request immediately available, the application will queue some
-        #   "functions" for us to execute here in order to accomplish what it wanted.
+        #   application can pop a request from it asynchronously), and the _job_list. If
+        #   we don't have a request immediately available, the application will queue a
+        #   "job" for us to execute here in order to accomplish what it wanted.
 
         with self.lock:
             # These new requests all have one "use" recorded, which is the one for
@@ -1131,10 +1130,10 @@ class Picamera2:
 
             # See if we have a job to do. When executed, if it returns True then it's done and
             # we can discard it. Otherwise it remains here to be tried again next time.
-            if self._job:
-                _log.debug(f"Execute job: {self._job}")
-                if self._job.execute():
-                    self._job = None
+            if self._job_list:
+                _log.debug(f"Execute job: {self._job_list[0]}")
+                if self._job_list[0].execute():
+                    self._job_list.pop(0)
 
             if self.encode_stream_name in self.stream_map:
                 stream = self.stream_map[self.encode_stream_name]
@@ -1182,7 +1181,7 @@ class Picamera2:
             wait = signal_function is None
         with self.lock:
             job = Job(functions, signal_function)
-            self._job = job
+            self._job_list.append(job)
         return job.get_result() if wait else job
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
@@ -1200,13 +1199,13 @@ class Picamera2:
         if wait is None:
             wait = signal_function is None
         with self.lock:
-            if self._job:
-                raise RuntimeError("Failure to wait for previous operation to finish!")
             job = Job([function], signal_function)
-            self._job = job
-            if self.completed_requests:
+            # We can only run right now if we're the only job in the queue.
+            only_job = not self._job_list
+            self._job_list.append(job)
+            if only_job and self.completed_requests:
                 if job.execute():
-                    self._job = None
+                    self._job_list.pop(0)
         return job.get_result() if wait else job
 
     def capture_file(
