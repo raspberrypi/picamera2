@@ -81,7 +81,7 @@ def run_tests(tests, xserver=True):
         clean_directory()
         print("Running ", test, "... ", sep='', end='', flush=True)
         try:
-            output = subprocess.check_output(['python3', test], timeout=60, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(['python3', test], timeout=90, stderr=subprocess.STDOUT)
             output = output.decode('utf-8')
             output = output.split('\n')
             test_passed = True
