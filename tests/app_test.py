@@ -31,8 +31,8 @@ def on_button_clicked():
     picam2.switch_mode_and_capture_file(cfg, "test.jpg", signal_function=qpicamera2.signal_done)
 
 
-def capture_done():
-    picam2.wait()
+def capture_done(job):
+    picam2.wait(job)
     button.setEnabled(True)
 
 

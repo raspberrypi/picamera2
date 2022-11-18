@@ -24,7 +24,7 @@ class Job:
         self._future = Future()
         self._future.set_running_or_notify_cancel()
         if signal_function is not None:
-            self._future.add_done_callback(signal_function)
+            self._future.add_done_callback(lambda f: signal_function(self))
 
         # I wonder if there is any useful information we could collect, number
         # of frames it took for things to finish, maybe intermediate results...
