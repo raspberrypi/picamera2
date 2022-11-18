@@ -1112,17 +1112,21 @@ class Picamera2:
 
         with self.lock:
             # These new requests all have one "use" recorded, which is the one for
-            # being in this list.
+            # being in this list.  Increase by one, so it cant't get discarded in
+            # self.functions block.
+            for req in requests:
+                req.acquire()
             self.completed_requests += requests
 
             # This is the request we'll hand back to be displayed. This counts as a "use" too.
             display_request = self.completed_requests[-1]
             display_request.acquire()
 
-            # Some applications may (for example) want us to draw something onto these images before
-            # encoding or copying them for an application.
-            if display_request and self.pre_callback:
-                self.pre_callback(display_request)
+            if self.pre_callback:
+                for req in requests:
+                    # Some applications may (for example) want us to draw something onto these images before
+                    # encoding or copying them for an application.
+                    self.pre_callback(req)
 
             # See if any actions have been queued up for us to do here.
             # Each operation is regarded as completed when it returns True, otherwise it remains
@@ -1141,14 +1145,19 @@ class Picamera2:
                     self.functions = []
                     self._future.set_exception(e)
 
-            # Some applications may want to do something to the image after they've had a change
-            # to copy it, but before it goes to the video encoder.
-            if display_request and self.post_callback:
-                self.post_callback(display_request)
-
-            if self._encoder is not None:
+            if self.encode_stream_name in self.stream_map:
                 stream = self.stream_map[self.encode_stream_name]
-                self._encoder.encode(stream, display_request)
+
+            for req in requests:
+                # Some applications may want to do something to the image after they've had a change
+                # to copy it, but before it goes to the video encoder.
+                if self.post_callback:
+                    self.post_callback(req)
+
+                if self._encoder is not None:
+                    self._encoder.encode(stream, req)
+
+                req.release()
 
             # We hang on to the last completed request if we have been asked to.
             while len(self.completed_requests) > self._max_queue_len:
