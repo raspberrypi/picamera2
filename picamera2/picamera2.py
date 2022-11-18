@@ -27,6 +27,7 @@ from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
+from .job import Job
 from .request import CompletedRequest, Helpers
 from .sensor_format import SensorFormat
 
@@ -267,7 +268,7 @@ class Picamera2:
         self.configure_count = 0
         self.frames = 0
         self.functions = []
-        self._future = None
+        self._job = None
         self.options = {}
         self._encoder = None
         self.pre_callback = None
@@ -1128,22 +1129,12 @@ class Picamera2:
                     # encoding or copying them for an application.
                     self.pre_callback(req)
 
-            # See if any actions have been queued up for us to do here.
-            # Each operation is regarded as completed when it returns True, otherwise it remains
-            # in the list to be tried again next time.
-            if self.functions:
-                function = self.functions[0]
-                _log.debug(f"Execute function: {function}")
-                try:
-                    done, result = function()
-                    if done:
-                        self.functions = self.functions[1:]
-                        # Once we've done everything, signal the fact to the thread that requested this work.
-                        if not self.functions:
-                            self._future.set_result(result)
-                except Exception as e:
-                    self.functions = []
-                    self._future.set_exception(e)
+            # See if we have a job to do. When executed, if it returns True then it's done and
+            # we can discard it. Otherwise it remains here to be tried again next time.
+            if self._job:
+                _log.debug(f"Execute job: {self._job}")
+                if self._job.execute():
+                    self._job = None
 
             if self.encode_stream_name in self.stream_map:
                 stream = self.stream_map[self.encode_stream_name]
@@ -1173,22 +1164,7 @@ class Picamera2:
 
     def wait(self):
         """Wait for the event loop to finish an operation and signal us."""
-        try:
-            result = self._future.result()
-        except Exception as e:
-            raise
-        finally:
-            self._future = None
-        return result
-
-    def _dispatch_functions(self, functions, signal_function=None) -> None:
-        if self._future:
-            raise RuntimeError("Failure to wait for previous operation to finish!")
-        self._future = Future()
-        self._future.set_running_or_notify_cancel()
-        if signal_function is not None:
-            self._future.add_done_callback(signal_function)
-        self.functions = functions
+        return self._job.get_result()
 
     def dispatch_functions(self, functions, wait, signal_function=None) -> None:
         """The main thread should use this to dispatch a number of operations for the event
@@ -1201,9 +1177,10 @@ class Picamera2:
         if wait is None:
             wait = signal_function is None
         with self.lock:
-            self._dispatch_functions(functions, signal_function)
+            job = Job(functions, signal_function)
+            self._job = job
         if wait:
-            return self.wait()
+            return job.get_result()
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
         request = self.completed_requests.pop(0)
@@ -1220,21 +1197,15 @@ class Picamera2:
         if wait is None:
             wait = signal_function is None
         with self.lock:
-            if self._future:
+            if self._job:
                 raise RuntimeError("Failure to wait for previous operation to finish!")
-            self._dispatch_functions([function], signal_function)
+            job = Job([function], signal_function)
+            self._job = job
             if self.completed_requests:
-                try:
-                    done, result = function()
-                except Exception as e:
-                    self.functions = []
-                    self._future = None
-                    raise
-                if done:
-                    self.functions = []
-                    self._future.set_result(result)
+                if job.execute():
+                    self._job = None
         if wait:
-            return self.wait()
+            return job.get_result()
 
     def capture_file(
             self,
