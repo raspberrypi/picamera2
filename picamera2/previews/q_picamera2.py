@@ -14,7 +14,7 @@ except ImportError:
 
 
 class QPicamera2(QGraphicsView):
-    done_signal = pyqtSignal()
+    done_signal = pyqtSignal(object)
     update_overlay_signal = pyqtSignal(object)
 
     def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
@@ -48,8 +48,8 @@ class QPicamera2(QGraphicsView):
         del self.overlay
         self.camera_notifier.deleteLater()
 
-    def signal_done(self, picamera2):
-        self.done_signal.emit()
+    def signal_done(self, job):
+        self.done_signal.emit(job)
 
     def image_dimensions(self):
         # The dimensions of the camera images we're displaying.

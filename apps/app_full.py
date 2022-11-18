@@ -186,11 +186,11 @@ def on_mode_change(i):
         pic_tab.apply_settings()
 
 
-def capture_done():
+def capture_done(job):
     # Here's the request we captured. But we must always release it when we're done with it!
     if not pic_tab.hdr.isChecked():
         # Save the normal image
-        request = picam2.wait()
+        request = picam2.wait(job)
         if pic_tab.filetype.currentText() == "raw":
             request.save_dng(
                 f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}.dng"
@@ -207,7 +207,7 @@ def capture_done():
     else:
         # HDR Capture
         global hdr_imgs
-        request = picam2.wait()
+        request = picam2.wait(job)
         new_img = request.make_array("main")
         new_cv_img = cv2.cvtColor(new_img, cv2.COLOR_RGB2BGR)
         metadata = request.get_metadata()

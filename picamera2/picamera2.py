@@ -1162,9 +1162,13 @@ class Picamera2:
 
         return display_request
 
-    def wait(self):
-        """Wait for the event loop to finish an operation and signal us."""
-        return self._job.get_result()
+    def wait(self, job):
+        """Wait for the given job to finish (if necessary) and return its final result.
+        The job is obtained either by calling one of the Picamera2 methods asynchronously
+        (passing wait=False), or as a parameter to the signal_function that can be
+        supplied to those same methods.
+        """
+        return job.get_result()
 
     def dispatch_functions(self, functions, wait, signal_function=None) -> None:
         """The main thread should use this to dispatch a number of operations for the event
@@ -1179,8 +1183,7 @@ class Picamera2:
         with self.lock:
             job = Job(functions, signal_function)
             self._job = job
-        if wait:
-            return job.get_result()
+        return job.get_result() if wait else job
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
         request = self.completed_requests.pop(0)
@@ -1204,8 +1207,7 @@ class Picamera2:
             if self.completed_requests:
                 if job.execute():
                     self._job = None
-        if wait:
-            return job.get_result()
+        return job.get_result() if wait else job
 
     def capture_file(
             self,
