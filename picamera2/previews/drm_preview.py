@@ -226,4 +226,7 @@ class DrmPreview(NullPreview):
         self.overlay_fb = None
         self.plane = None
         self.overlay_plane = None
+        self.fd = None
+        self.mem = None
+        self.fb = None
         DrmPreview._manager.remove(self)
