@@ -20,7 +20,6 @@ class DrmManager():
                 self.resman = pykms.ResourceManager(self.card)
                 conn = self.resman.reserve_connector()
                 self.crtc = self.resman.reserve_crtc(conn)
-                print(self.card, self.resman, conn, self.crtc)
             self.use_count += 1
         drm_preview.card = self.card
         drm_preview.resman = self.resman
@@ -174,8 +173,6 @@ class DrmPreview(NullPreview):
 
             if fb not in self.drmfbs:
                 if self.stop_count != picam2.stop_count:
-                    if picam2.verbose_console:
-                        print("Garbage collecting", len(self.drmfbs), "dmabufs")
                     old_drmfbs = self.drmfbs  # hang on to these until after a new one is sent
                     self.drmfbs = {}
                     self.stop_count = picam2.stop_count
@@ -192,8 +189,6 @@ class DrmPreview(NullPreview):
                 else:
                     drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
                 self.drmfbs[fb] = drmfb
-                if picam2.verbose_console:
-                    print("Made drm fb", drmfb, "for request", completed_request.request)
 
             drmfb = self.drmfbs[fb]
             self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
