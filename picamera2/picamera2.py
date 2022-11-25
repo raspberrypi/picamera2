@@ -1415,7 +1415,7 @@ class Picamera2:
                      partial(capture_image_and_switch_back_, self, preview_config, name)]
         self.dispatch_functions(functions, wait, signal_function)
 
-    def start_encoder(self, encoder=None, quality=Quality.MEDIUM) -> None:
+    def start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM) -> None:
         """Start encoder
 
         :param encoder: Sets encoder or uses existing, defaults to None
@@ -1424,6 +1424,10 @@ class Picamera2:
         """
         if encoder is not None:
             self.encoder = encoder
+        if output is not None:
+            if isinstance(output, str):
+                output = FileOutput(output, pts=pts)
+            encoder.output = output
         streams = self.camera_configuration()
         if self.encoder is None:
             raise RuntimeError("No encoder specified")
@@ -1482,10 +1486,7 @@ class Picamera2:
             config = "video"
         if config is not None:
             self.configure(config)
-        if isinstance(output, str):
-            output = FileOutput(output, pts=pts)
-        encoder.output = output
-        self.start_encoder(encoder, quality)
+        self.start_encoder(encoder, output, pts=pts, quality=quality)
         self.start()
 
     def stop_recording(self) -> None:
@@ -1640,8 +1641,7 @@ class Picamera2:
                     output = FileOutput(output)
         if encoder is None:
             encoder = H264Encoder()
-        encoder.output = output
-        self.start_encoder(encoder, quality)
+        self.start_encoder(encoder, output, quality)
         self.start(show_preview=show_preview)
         if duration:
             time.sleep(duration)
