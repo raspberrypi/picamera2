@@ -33,10 +33,26 @@ class QtPreviewBase:
 
         @QtCore.pyqtSlot()
         def createpreview(parent, cam, previewretrieveq):
+            from PyQt5.QtGui import QGuiApplication
+            # This ensures the Qt app never quits when we click the X on the window. It means
+            # that after closing the last preview in this way, the Qt app is still running and
+            # you can create new previews.
+            QGuiApplication.setQuitOnLastWindowClosed(False)
+
             qpicamera2 = parent.make_picamera2_widget(cam, width=parent.width, height=parent.height,
                                                       transform=parent.transform)
             if parent.x is not None and parent.y is not None:
                 qpicamera2.move(parent.x, parent.y)
+
+            def closeEvent(parent, preview):
+                preview.cleanup()
+                atexit.unregister(parent.stop)
+                # Somehow the Picamera2 has to be told the preview has disappeared. We probably
+                # want a tidier way than doing this:
+                preview.picamera2.have_event_loop = False
+                preview.picamera2._preview = None
+
+            qpicamera2.closeEvent = lambda event: closeEvent(parent, qpicamera2)
             qpicamera2.setWindowTitle(parent.get_title())
             qpicamera2.show()
             atexit.register(parent.stop)
@@ -76,8 +92,8 @@ class QtPreviewBase:
         self.event.set()
         atexit.register(self.fin)
         app.exec()
-        atexit.unregister(self.fin)
         monitor.wait()
+        atexit.unregister(self.fin)
         del app
         # Again, all necessary to keep Qt quiet.
 
