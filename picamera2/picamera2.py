@@ -1445,12 +1445,12 @@ class Picamera2:
         self.encoder.framerate = 1000000 / min_frame_duration
         # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
         self.encoder._setup(quality)
-        self.encoder._start()
+        self.encoder.start()
 
     def stop_encoder(self) -> None:
         """Stops the encoder
         """
-        self.encoder._stop()
+        self.encoder.stop()
 
     @property
     def encoder(self) -> Optional[Encoder]:

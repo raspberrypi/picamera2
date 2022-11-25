@@ -32,7 +32,6 @@ class V4L2Encoder(Encoder):
         self.vd = None
 
     def _start(self):
-        super()._start()
         self.vd = open('/dev/video11', 'rb+', buffering=0)
 
         self.buf_available = queue.Queue()
@@ -127,7 +126,6 @@ class V4L2Encoder(Encoder):
         fcntl.ioctl(self.vd, VIDIOC_STREAMON, typev)
 
     def _stop(self):
-        super()._stop()
         self.thread.join()
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
         fcntl.ioctl(self.vd, VIDIOC_STREAMOFF, typev)
@@ -206,7 +204,7 @@ class V4L2Encoder(Encoder):
                         queue_item = self.buf_frame.get()
                         queue_item.release()
 
-    def encode(self, stream, request):
+    def _encode(self, stream, request):
         """Encodes a frame
 
         :param stream: Stream

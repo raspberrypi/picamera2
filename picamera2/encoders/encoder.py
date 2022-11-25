@@ -1,6 +1,8 @@
 """Encoder functionality"""
 
+import threading
 from enum import Enum
+
 from v4l2 import *
 
 from ..outputs import Output
@@ -28,6 +30,7 @@ class Encoder:
         self._format = None
         self._output = []
         self._running = False
+        self._lock = threading.Lock()
         self.firsttimestamp = None
 
     @property
@@ -168,22 +171,36 @@ class Encoder:
         :param request: Request
         :type request: request
         """
+        with self._lock:
+            self._encode(stream, request)
+
+    def _encode(self, stream, request):
         fb = request.request.buffers[stream]
         timestamp_us = self._timestamp(fb)
         with _MappedBuffer(request, request.picam2.encode_stream_name) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
+    def start(self):
+        with self._lock:
+            if self._running:
+                raise RuntimeError("Encoder already running")
+            self._running = True
+            for out in self._output:
+                out.start()
+            self._start()
+
     def _start(self):
-        if self._running:
-            raise RuntimeError("Encoder already running")
-        self._running = True
-        for out in self._output:
-            out.start()
+        pass
+
+    def stop(self):
+        with self._lock:
+            self._running = False
+            for out in self._output:
+                out.stop()
+            self._stop()
 
     def _stop(self):
-        self._running = False
-        for out in self._output:
-            out.stop()
+        pass
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
         """Writes a frame
