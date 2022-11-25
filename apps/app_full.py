@@ -144,8 +144,7 @@ def on_vid_button_clicked():
             output = FileOutput(
                 f"{vid_tab.filename.text() if vid_tab.filename.text() else 'test'}.{vid_tab.filetype.currentText()}"
             )
-        encoder.output = output
-        picam2.start_encoder(encoder, vid_tab.quality)
+        picam2.start_encoder(encoder, output, vid_tab.quality)
         rec_button.setText("Stop recording")
         recording = True
     else:

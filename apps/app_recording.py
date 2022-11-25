@@ -25,8 +25,8 @@ def on_button_clicked():
     global recording
     if not recording:
         encoder = H264Encoder(10000000)
-        encoder.output = FileOutput("test.h264")
-        picam2.start_encoder(encoder)
+        output = FileOutput("test.h264")
+        picam2.start_encoder(encoder, output)
         button.setText("Stop recording")
         recording = True
     else:
