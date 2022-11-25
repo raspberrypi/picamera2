@@ -30,6 +30,7 @@ class V4L2Encoder(Encoder):
         self._pixformat = pixformat
         self._controls = []
         self.vd = None
+        self.lock = threading.Lock()
 
     def _start(self):
         super()._start()
@@ -127,7 +128,9 @@ class V4L2Encoder(Encoder):
         fcntl.ioctl(self.vd, VIDIOC_STREAMON, typev)
 
     def _stop(self):
-        super()._stop()
+        with self.lock:
+            super()._stop()
+        # Now we know that encode() will never do anything again.
         self.thread.join()
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
         fcntl.ioctl(self.vd, VIDIOC_STREAMOFF, typev)
@@ -214,32 +217,35 @@ class V4L2Encoder(Encoder):
         """
         # Don't start encoding if we don't have an output handle
         # as the header seems only to be sent with the first frame
-        if self._output is None:
-            return
-        if self.vd is None or self.vd.closed:
-            return
-        cfg = stream.configuration
-        fb = request.request.buffers[stream]
-        fd = fb.planes[0].fd
-        request.acquire()
+        with self.lock:
+            if not self._running:
+                return
+            if self._output is None:
+                return
+            if self.vd is None or self.vd.closed:
+                return
+            cfg = stream.configuration
+            fb = request.request.buffers[stream]
+            fd = fb.planes[0].fd
+            request.acquire()
 
-        buf = v4l2_buffer()
-        # fb.metadata.timestamp is in nanoseconds, so convert to usecs
-        timestamp_us = self._timestamp(fb)
+            buf = v4l2_buffer()
+            # fb.metadata.timestamp is in nanoseconds, so convert to usecs
+            timestamp_us = self._timestamp(fb)
 
-        # Pass frame to video 4 linux, to encode
-        planes = v4l2_plane * VIDEO_MAX_PLANES
-        planes = planes()
-        buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
-        buf.index = self.buf_available.get()
-        buf.field = V4L2_FIELD_NONE
-        buf.memory = V4L2_MEMORY_DMABUF
-        buf.length = 1
-        buf.timestamp.secs = timestamp_us // 1000000
-        buf.timestamp.usecs = timestamp_us % 1000000
-        buf.m.planes = planes
-        buf.m.planes[0].m.fd = fd
-        buf.m.planes[0].bytesused = cfg.frame_size
-        buf.m.planes[0].length = cfg.frame_size
-        fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
-        self.buf_frame.put(request)
+            # Pass frame to video 4 linux, to encode
+            planes = v4l2_plane * VIDEO_MAX_PLANES
+            planes = planes()
+            buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
+            buf.index = self.buf_available.get()
+            buf.field = V4L2_FIELD_NONE
+            buf.memory = V4L2_MEMORY_DMABUF
+            buf.length = 1
+            buf.timestamp.secs = timestamp_us // 1000000
+            buf.timestamp.usecs = timestamp_us % 1000000
+            buf.m.planes = planes
+            buf.m.planes[0].m.fd = fd
+            buf.m.planes[0].bytesused = cfg.frame_size
+            buf.m.planes[0].length = cfg.frame_size
+            fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
+            self.buf_frame.put(request)
