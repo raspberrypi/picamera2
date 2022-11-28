@@ -2,11 +2,12 @@
 
 import threading
 from enum import Enum
+from typing import Optional
 
-from v4l2 import *
+from v4l2 import V4L2_PIX_FMT_BGR24, V4L2_PIX_FMT_YUV420, V4L2_PIX_FMT_BGR32, V4L2_PIX_FMT_RGBA32
 
 from ..outputs import Output
-from ..request import _MappedBuffer
+from ..request import _MappedBuffer, CompletedRequest
 
 
 class Quality(Enum):
@@ -22,6 +23,8 @@ class Quality(Enum):
 class Encoder:
     """Base class for encoders"""
 
+    _format : Optional[int]
+
     def __init__(self):
         """Initialises encoder"""
         self._width = 0
@@ -34,7 +37,7 @@ class Encoder:
         self.firsttimestamp = None
 
     @property
-    def width(self):
+    def width(self) -> int:
         """Gets width
 
         :return: Width of frames
@@ -43,7 +46,7 @@ class Encoder:
         return self._width
 
     @width.setter
-    def width(self, value):
+    def width(self, value) -> None:
         """Sets width
 
         :param value: Width
@@ -55,7 +58,7 @@ class Encoder:
         self._width = value
 
     @property
-    def height(self):
+    def height(self) -> int:
         """Gets height
 
         :return: Height of frames
@@ -64,7 +67,7 @@ class Encoder:
         return self._height
 
     @height.setter
-    def height(self, value):
+    def height(self, value) -> None:
         """Sets height
 
         :param value: Height
@@ -76,7 +79,7 @@ class Encoder:
         self._height = value
 
     @property
-    def stride(self):
+    def stride(self) -> int:
         """Gets stride
 
         :return: Stride
@@ -85,7 +88,7 @@ class Encoder:
         return self._stride
 
     @stride.setter
-    def stride(self, value):
+    def stride(self, value) -> None:
         """Sets stride
 
         :param value: Stride
@@ -97,7 +100,7 @@ class Encoder:
         self._stride = value
 
     @property
-    def format(self):
+    def format(self) -> Optional[int]:
         """Get current format
 
         :return: Current format
@@ -106,7 +109,7 @@ class Encoder:
         return self._format
 
     @format.setter
-    def format(self, value):
+    def format(self, value: str) -> None:
         """Sets input format to encoder
 
         :param value: Format
@@ -163,7 +166,7 @@ class Encoder:
             raise RuntimeError("Must pass Output")
         self._output = value
 
-    def encode(self, stream, request):
+    def encode(self, stream, request: CompletedRequest) -> None:
         """Encode a frame
 
         :param stream: Stream
@@ -174,13 +177,13 @@ class Encoder:
         with self._lock:
             self._encode(stream, request)
 
-    def _encode(self, stream, request):
+    def _encode(self, stream, request: CompletedRequest) -> None:
         fb = request.request.buffers[stream]
         timestamp_us = self._timestamp(fb)
         with _MappedBuffer(request, request.picam2.encode_stream_name) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
-    def start(self):
+    def start(self) -> None:
         with self._lock:
             if self._running:
                 raise RuntimeError("Encoder already running")
@@ -189,7 +192,7 @@ class Encoder:
                 out.start()
             self._start()
 
-    def _start(self):
+    def _start(self) -> None:
         pass
 
     def stop(self):
@@ -199,10 +202,10 @@ class Encoder:
                 out.stop()
             self._stop()
 
-    def _stop(self):
+    def _stop(self) -> None:
         pass
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None) -> None:
         """Writes a frame
 
         :param frame: Frame
@@ -213,10 +216,10 @@ class Encoder:
         for out in self._output:
             out.outputframe(frame, keyframe, timestamp)
 
-    def _setup(self, quality):
+    def _setup(self, quality: Quality) -> None:
         pass
 
-    def _timestamp(self, fb):
+    def _timestamp(self, fb) -> int:
         ts = int(fb.metadata.timestamp / 1000)
         if self.firsttimestamp is None:
             self.firsttimestamp = ts
