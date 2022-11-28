@@ -9,6 +9,7 @@ from pidng.camdefs import Picamera2Camera
 from pidng.core import PICAM2DNG
 from PIL import Image
 
+import picamera2.formats as formats
 from .controls import Controls
 
 _log = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ class MappedArray:
                 # efficiently. We leave any packing in there, however, as it would be easier
                 # to remove that after conversion to RGB (if that's what the caller does).
                 array = array.reshape((h * 3 // 2, stride))
-            elif self.__request.picam2.is_raw(fmt):
+            elif formats.is_raw(fmt):
                 array = array.reshape((h, stride))
             else:
                 raise RuntimeError("Format " + fmt + " not supported")
@@ -206,7 +207,7 @@ class Helpers:
             image = array.reshape(h, stride // 2, 2)
         elif fmt == "MJPEG":
             image = np.array(Image.open(io.BytesIO(array)))
-        elif self.picam2.is_raw(fmt):
+        elif formats.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
             raise RuntimeError("Format " + fmt + " not supported")
