@@ -2,22 +2,24 @@
 """picamera2 main class"""
 
 import json
+import logging
 import os
+import sys
+import selectors
 import tempfile
 import threading
-from enum import Enum
-from typing import List, Tuple, Any, Dict, Optional
 import time
+from enum import Enum
 from functools import partial
-import logging
-import sys
+from typing import Any, Dict, List, Optional, Tuple
 
 import libcamera
 import numpy as np
 from PIL import Image
 
-from picamera2.encoders import Encoder, Quality, H264Encoder, MJPEGEncoder
-from picamera2.outputs import FileOutput, FfmpegOutput
+import picamera2.formats as formats
+from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
+from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
 from .configuration import CameraConfiguration
@@ -72,7 +74,6 @@ class CameraManager:
             self.cms = None
 
     def listen(self):
-        import selectors
         sel = selectors.DefaultSelector()
         sel.register(self.cms.event_fd, selectors.EVENT_READ, self.handle_request)
 
@@ -469,7 +470,7 @@ class Picamera2:
 
         for pix in raw_formats.pixel_formats:
             name = str(pix)
-            if not self.is_raw(name):
+            if not formats.is_raw(name):
                 # Not a raw sensor so we can't deduce much about it. Quote the name and carry on.
                 self.sensor_modes_.append({"format": name})
                 continue
@@ -678,7 +679,7 @@ class Picamera2:
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
-            if self.is_RGB(main["format"]):
+            if formats.is_RGB(main["format"]):
                 # There's a bug down in some driver where it won't accept anything other than
                 # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
                 colour_space = libcamera.ColorSpace.Sycc()
@@ -717,11 +718,11 @@ class Picamera2:
         if type(format) is not str:
             raise RuntimeError("format in " + name + " stream should be a string")
         if name == "raw":
-            if not self.is_raw(format):
+            if not formats.is_raw(format):
                 raise RuntimeError("Unrecognised raw format " + format)
         else:
             # Allow "MJPEG" as we have some support for USB MJPEG-type cameras.
-            if not self.is_YUV(format) and not self.is_RGB(format) and format != 'MJPEG':
+            if not formats.is_YUV(format) and not formats.is_RGB(format) and format != 'MJPEG':
                 raise RuntimeError("Bad format " + format + " in stream " + name)
         size = stream_config["size"]
         if type(size) is not tuple or len(size) != 2:
@@ -748,7 +749,7 @@ class Picamera2:
             lores_w, lores_h = camera_config["lores"]["size"]
             if lores_w > main_w or lores_h > main_h:
                 raise RuntimeError("lores stream dimensions may not exceed main stream")
-            if not self.is_YUV(camera_config["lores"]["format"]):
+            if not formats.is_YUV(camera_config["lores"]["format"]):
                 raise RuntimeError("lores stream must be YUV")
         if camera_config["raw"] is not None:
             self.check_stream_config(camera_config["raw"], "raw")
@@ -817,29 +818,6 @@ class Picamera2:
             Picamera2.align_stream(config["lores"], optimal=optimal)
         # No point aligning the raw stream, it wouldn't mean anything.
 
-    @staticmethod
-    def is_YUV(fmt) -> bool:
-        return fmt in ("NV21", "NV12", "YUV420", "YVU420", "YVYU", "YUYV", "UYVY", "VYUY")
-
-    @staticmethod
-    def is_RGB(fmt) -> bool:
-        return fmt in ("BGR888", "RGB888", "XBGR8888", "XRGB8888")
-
-    @staticmethod
-    def is_Bayer(fmt) -> bool:
-        return fmt in ("SBGGR8", "SGBRG8", "SGRBG8", "SRGGB8",
-                       "SBGGR10", "SGBRG10", "SGRBG10", "SRGGB10",
-                       "SBGGR10_CSI2P", "SGBRG10_CSI2P", "SGRBG10_CSI2P", "SRGGB10_CSI2P",
-                       "SBGGR12", "SGBRG12", "SGRBG12", "SRGGB12",
-                       "SBGGR12_CSI2P", "SGBRG12_CSI2P", "SGRBG12_CSI2P", "SRGGB12_CSI2P")
-
-    @staticmethod
-    def is_mono(fmt) -> bool:
-        return fmt in ("R8", "R10", "R12", "R8_CSI2P", "R10_CSI2P", "R12_CSI2P")
-
-    @staticmethod
-    def is_raw(fmt) -> bool:
-        return Picamera2.is_Bayer(fmt) or Picamera2.is_mono(fmt)
 
     def _make_requests(self) -> List[libcamera.Request]:
         """Make libcamera request objects.
@@ -1181,7 +1159,7 @@ class Picamera2:
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
         request = self.completed_requests.pop(0)
-        if name == "raw" and self.is_raw(self.camera_config["raw"]["format"]):
+        if name == "raw" and formats.is_raw(self.camera_config["raw"]["format"]):
             request.save_dng(file_output)
         else:
             request.save(name, file_output, format=format)

@@ -7,7 +7,7 @@ from v4l2 import *
 
 from ..outputs import Output
 from ..request import _MappedBuffer
-
+import picamera2.formats as formats
 
 class Quality(Enum):
     """Enum type to describe the quality wanted from an encoder. This may be passed
@@ -123,12 +123,7 @@ class Encoder:
             self._format = V4L2_PIX_FMT_RGBA32
         else:
             if type(self) is Encoder:
-                """Currently allow any format that is
-                passed, when Encoder used directly.
-                We can't use Picamera2.is_raw(value) etc.
-                to validate formats here, as we get a circular import
-                when trying to import Picamera2
-                """
+                formats.assert_format_valid(value)
                 self._format = value
             else:
                 raise RuntimeError("Invalid format")
