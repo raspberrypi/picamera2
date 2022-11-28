@@ -77,7 +77,6 @@ class CameraManager:
             self.cms = None
 
     def listen(self):
-        import selectors
         sel = selectors.DefaultSelector()
         sel.register(self.cms.event_fd, selectors.EVENT_READ, self.handle_request)
 

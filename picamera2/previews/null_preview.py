@@ -2,7 +2,7 @@
 
 from logging import getLogger
 import threading
-
+import selectors
 
 _log = getLogger(__name__)
 
@@ -16,8 +16,6 @@ class NullPreview:
         :param picam2: picamera2 object
         :type picam2: Picamera2
         """
-        import selectors
-
         sel = selectors.DefaultSelector()
         sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
         self._started.set()
