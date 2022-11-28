@@ -1,18 +1,13 @@
 #!/usr/bin/python3
 """picamera2 main class"""
 
-from collections import defaultdict
-
-import atexit
 import json
 import os
-import selectors
 import tempfile
 import threading
 from enum import Enum
 from typing import List, Tuple, Any, Dict, Optional
 import time
-from concurrent.futures import Future
 from functools import partial
 import logging
 import sys
@@ -25,7 +20,7 @@ from picamera2.encoders import Encoder, Quality, H264Encoder, MJPEGEncoder
 from picamera2.outputs import FileOutput, FfmpegOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
-from .configuration import CameraConfiguration, StreamConfiguration
+from .configuration import CameraConfiguration
 from .controls import Controls
 from .job import Job
 from .request import CompletedRequest, Helpers
