@@ -1103,10 +1103,11 @@ class Picamera2:
 
             # See if we have a job to do. When executed, if it returns True then it's done and
             # we can discard it. Otherwise it remains here to be tried again next time.
+            finished_job = None
             if self._job_list:
                 _log.debug(f"Execute job: {self._job_list[0]}")
                 if self._job_list[0].execute():
-                    self._job_list.pop(0)
+                    finished_job = self._job_list.pop(0)
 
             if self.encode_stream_name in self.stream_map:
                 stream = self.stream_map[self.encode_stream_name]
@@ -1125,6 +1126,9 @@ class Picamera2:
             # We hang on to the last completed request if we have been asked to.
             while len(self.completed_requests) > self._max_queue_len:
                 self.completed_requests.pop(0).release()
+
+        if finished_job:
+            finished_job.signal()
 
         # If one of the functions we ran reconfigured the camera since this request came out,
         # then we don't want it going back to the application as the memory is not valid.
@@ -1171,6 +1175,7 @@ class Picamera2:
     def _execute_or_dispatch(self, function, wait, signal_function):
         if wait is None:
             wait = signal_function is None
+        finished_job = None
         with self.lock:
             job = Job([function], signal_function)
             # We can only run right now if we're the only job in the queue.
@@ -1178,7 +1183,9 @@ class Picamera2:
             self._job_list.append(job)
             if only_job and self.completed_requests:
                 if job.execute():
-                    self._job_list.pop(0)
+                    finished_job = self._job_list.pop(0)
+        if finished_job:
+            finished_job.signal()
         return job.get_result() if wait else job
 
     def capture_file(
