@@ -22,8 +22,8 @@ gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
 picam2.stop()
 controls = {"ExposureTime": exposure_normal, "AnalogueGain": gain}
 capture_config = picam2.create_preview_configuration(main={"size": (1024, 768),
-                                                    "format": "RGB888"},
-                                              controls=controls)
+                                                           "format": "RGB888"},
+                                                     controls=controls)
 picam2.configure(capture_config)
 picam2.start()
 normal = picam2.capture_array()

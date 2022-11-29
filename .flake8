@@ -1,6 +1,17 @@
 [flake8]
 docstring_style=sphinx
 max-line-length = 127
-ignore = D10, D205, D400, C812, D401, E800, Q000, S311, F403, F405, E402, PLW, PLC, PLR, PLE
+ignore = D10, D400, D401, E800, Q000, S311, PLW, PLC, PLR, PLE
 extend-ignore = W503, W504
 per-file-ignores = __init__.py:F401
+                   qt.py:F401
+                   gl_helpers.py:F401,F403,F405
+                   q_gl_picamera2.py:E402,F403,F405
+                   v4l2_encoder.py:F403,F405
+                   encoder.py:F403,F405
+                   drm_preview.py:F403,F405
+                   capture_video_raw.py:F403,F405
+                   picamera2.py:B006,B008
+                   configuration.py:B006
+                   metadata.py:B006
+                   controls.py:B006

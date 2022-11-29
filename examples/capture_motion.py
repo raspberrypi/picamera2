@@ -24,14 +24,14 @@ ltime = 0
 
 while True:
     cur = picam2.capture_buffer("lores")
-    cur = cur[:w*h].reshape(h, w)
+    cur = cur[:w * h].reshape(h, w)
     if prev is not None:
         # Measure pixels differences between current and
         # previous frame
         mse = np.square(np.subtract(cur, prev)).mean()
         if mse > 7:
             if not encoding:
-                encoder.output = FileOutput("{}.h264".format(int(time.time())))
+                encoder.output = FileOutput(f"{int(time.time())}.h264")
                 picam2.start_encoder()
                 encoding = True
                 print("New Motion", mse)

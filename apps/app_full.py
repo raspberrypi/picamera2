@@ -68,7 +68,7 @@ while lores_size[0] > 1600:
     lores_size = (lores_size[0] // 2 & ~1, lores_size[1] // 2 & ~1)
 still_kwargs = {"lores": {"size": lores_size}, "display": "lores", "encode": "lores", "buffer_count": 1}
 picam2.still_configuration = picam2.create_still_configuration(
-    **still_kwargs
+    **still_kwargs,
 )
 picam2.configure("still")
 # Read the sensor modes
@@ -499,7 +499,8 @@ class panTab(QWidget):
             alignment=Qt.AlignCenter)
         self.zoom_text = QLabel("Current Zoom Level: 1.0", alignment=Qt.AlignCenter)
         self.pan_display = panZoomDisplay()
-        self.pan_display.updated.connect(lambda: self.zoom_text.setText(f"Current Zoom Level: {self.pan_display.zoom_level:.1f}x"))
+        self.pan_display.updated.connect(lambda: self.zoom_text.setText(
+            f"Current Zoom Level: {self.pan_display.zoom_level:.1f}x"))
 
         self.layout.addRow(self.label)
         self.layout.addRow(self.zoom_text)
@@ -1072,7 +1073,7 @@ class picTab(QWidget):
         picam2.still_configuration = picam2.create_still_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
             **still_kwargs,
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
 
     def update_options(self):
@@ -1112,7 +1113,7 @@ class picTab(QWidget):
         picam2.still_configuration = picam2.create_still_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
             **still_kwargs,
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
         picam2.preview_configuration = picam2.create_preview_configuration(
             main={"size": (

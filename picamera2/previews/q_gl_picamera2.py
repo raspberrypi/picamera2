@@ -96,9 +96,8 @@ class QGlPicamera2(QWidget):
         self.title_function = None
         self.egl = EglState()
         if picam2.verbose_console:
-            print("EGL {} {}".format(
-                eglQueryString(self.egl.display, EGL_VENDOR).decode(),
-                eglQueryString(self.egl.display, EGL_VERSION).decode()))
+            print(f"EGL {eglQueryString(self.egl.display, EGL_VENDOR).decode()} "
+                  f"{eglQueryString(self.egl.display, EGL_VERSION).decode()}")
         self.init_gl()
 
         # set_overlay could be called before the first frame arrives, hence:
@@ -326,7 +325,8 @@ class QGlPicamera2(QWidget):
 
             if self.picamera2.verbose_console:
                 print("Make buffer for request", completed_request.request)
-            self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request, self.egl.max_texture_size)
+            self.buffers[completed_request.request] = self.Buffer(
+                self.egl.display, completed_request, self.egl.max_texture_size)
 
             # New buffers mean the image size may change so update the viewport just in case.
             update_viewport = True
@@ -391,7 +391,8 @@ class QGlPicamera2(QWidget):
         if not self.keep_ar or camera_config is None or camera_config['display'] is None:
             return 0, 0, window_w, window_h
 
-        image_w, image_h = (stream_map[camera_config['display']].configuration.size.width, stream_map[camera_config['display']].configuration.size.height)
+        image_w, image_h = (stream_map[camera_config['display']].configuration.size.width,
+                            stream_map[camera_config['display']].configuration.size.height)
         if image_w * window_h > window_w * image_h:
             w = window_w
             h = w * image_h // image_w

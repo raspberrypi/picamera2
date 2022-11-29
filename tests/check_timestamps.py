@@ -9,7 +9,8 @@ from picamera2.outputs import Output
 
 
 class TimestampCollector(Output):
-    "Output class that doesn't output anything but collects frame timestamps"
+    """Output class that doesn't output anything but collects frame timestamps"""
+
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if timestamp is not None:
             timestamps.append(timestamp)

@@ -33,7 +33,7 @@ images = []
 picam2.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0})
 picam2.start()
 
-for i in range(num_frames):
+for _ in range(num_frames):
     images.append(picam2.capture_array())
 
 # Add the images up, apply the gamma transform and we're done.

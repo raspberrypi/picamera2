@@ -31,7 +31,7 @@ for thread in threads:
 time.sleep(5)
 
 jobs = []
-for i in range(10):
+for _ in range(10):
     jobs.append(picam2.capture_metadata(wait=False))
     time.sleep(0.01)
 times = [job.get_result()["SensorTimestamp"] for job in jobs]
