@@ -1,6 +1,6 @@
 [flake8]
 docstring_style=sphinx
 max-line-length = 127
-ignore = D400, D401, Q000, S311, F405, E402, PLW, PLC, PLR
+ignore = D10, D205, D400, C812, D401, E800, Q000, S311, F405, E402, PLW, PLC, PLR, PLE
 extend-ignore = W503, W504
 per-file-ignores = __init__.py:F401
