@@ -1,17 +1,13 @@
 import os
-import sys
 import threading
 import time
 
-from libcamera import PixelFormat, Transform
-from PyQt5 import QtCore, QtWidgets
+from libcamera import Transform
 from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QWidget
 
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
-import OpenGL
-from OpenGL import GL as gl
 from OpenGL.EGL.EXT.image_dma_buf_import import *
 from OpenGL.EGL.KHR.image import *
 from OpenGL.EGL.VERSION.EGL_1_0 import *

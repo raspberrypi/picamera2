@@ -31,7 +31,6 @@ class Output:
         :param timestamp: Timestamp of frame
         :type timestamp: int
         """
-        pass
 
     def outputtimestamp(self, timestamp):
         """Output timestamp to file

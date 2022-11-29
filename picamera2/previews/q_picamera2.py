@@ -1,6 +1,5 @@
 import numpy as np
 from libcamera import Transform
-from PyQt5 import QtCore
 from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
                           pyqtSignal, pyqtSlot)
 from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform

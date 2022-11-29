@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import time
-from signal import pause
 
 import numpy as np
 

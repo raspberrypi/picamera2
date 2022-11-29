@@ -2,13 +2,14 @@
 
 # Usage: ./remove_background.py --model deeplapv3.tflite --background thing.png
 
-import tflite_runtime.interpreter as tflite
+import argparse
+
 import cv2
 import numpy as np
-import argparse
-from picamera2 import Picamera2, Preview
+import tflite_runtime.interpreter as tflite
 from PIL import Image
 
+from picamera2 import Picamera2, Preview
 
 normalSize = (640, 480)
 lowresSize = (320, 240)
