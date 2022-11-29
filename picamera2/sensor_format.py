@@ -32,7 +32,7 @@ class SensorFormat():
     def transform(self, transform: Transform):
         if self.mono:
             return
-        bayer_array = np.reshape([c for c in self.bayer_order], (2, 2))
+        bayer_array = np.reshape(list(self.bayer_order), (2, 2))
         if transform.hflip:
             bayer_array = np.flip(bayer_array, 1)
         if transform.vflip:

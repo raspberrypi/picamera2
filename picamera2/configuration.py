@@ -2,28 +2,31 @@ from .controls import Controls
 
 
 class Configuration:
-    """
-    A small wrapper class that can be used to turn our configuration dicts into real objects.
-    The constructor can make an empty object, or initialise from a dict. There is also the
-    make_dict() method which turns the object back into a dict.
-
-    Derived classes should define:
-
-    _ALLOWED_FIELDS: these are the only attributes that may be set, anything else will raise
-        an error. The idea is to help prevent typos.
-
-    _FIELD_CLASS_MAP: this allows you to turn a dict that we are given as a value (for some
-        field) into a Configuration object. For example if someone is setting a dict into a
-        field of a CameraConfiguration, you might want it to turn into a StreamConfiguration.
-
-        One of these fields can be set by doing (for example) camera_config.lores = {}, which
-        would be turned into a StreamConfiguration.
-
-    _FORWARD_FIELDS: allows certain attribute names to be forwarded to another contained
-        object. For example, if someone wants to set CameraConfiguration.size they probably
-        mean to set CameraConfiguration.main.size. So it's a kind of helpful shorthand.
-    """
     def __init__(self, d={}):
+        """A small wrapper class that can be used to turn our configuration dicts into real objects.
+
+        The constructor can make an empty object, or initialise from a dict. There is also the
+        make_dict() method which turns the object back into a dict.
+
+        Derived classes should define:
+
+        _ALLOWED_FIELDS: these are the only attributes that may be set, anything else will raise
+            an error. The idea is to help prevent typos.
+
+        _FIELD_CLASS_MAP: this allows you to turn a dict that we are given as a value (for some
+            field) into a Configuration object. For example if someone is setting a dict into a
+            field of a CameraConfiguration, you might want it to turn into a StreamConfiguration.
+
+            One of these fields can be set by doing (for example) camera_config.lores = {}, which
+            would be turned into a StreamConfiguration.
+
+        _FORWARD_FIELDS: allows certain attribute names to be forwarded to another contained
+            object. For example, if someone wants to set CameraConfiguration.size they probably
+            mean to set CameraConfiguration.main.size. So it's a kind of helpful shorthand.
+
+        :param d: Configuration, defaults to {}
+        :type d: dict, optional
+        """  # noqa
         if isinstance(d, Configuration):
             d = d.make_dict()
         for k in self._ALLOWED_FIELDS:
@@ -86,7 +89,8 @@ class StreamConfiguration(Configuration):
 
 
 class CameraConfiguration(Configuration):
-    _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space", "controls", "main", "lores", "raw", "queue")
+    _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space",
+                       "controls", "main", "lores", "raw", "queue")
     _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
 

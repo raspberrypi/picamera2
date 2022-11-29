@@ -9,10 +9,11 @@ from picamera2 import Picamera2
 
 class FrameServer:
     def __init__(self, picam2, stream='main'):
-        """A simple class that can serve up frames from one of the Picamera2's configured
-        streams to multiple other threads.
+        """A simple class that can serve up frames from one of the Picamera2's configured streams to multiple other threads.
+
         Pass in the Picamera2 object and the name of the stream for which you want
-        to serve up frames."""
+        to serve up frames.
+        """
         self._picam2 = picam2
         self._stream = stream
         self._array = None
@@ -31,9 +32,12 @@ class FrameServer:
         self._thread.start()
 
     def stop(self):
-        """To stop the FrameServer, first stop any client threads (that might be
+        """To stop the FrameServer
+
+        First stop any client threads (that might be
         blocked in wait_for_frame), then call this stop method. Don't stop the
-        Picamera2 object until the FrameServer has been stopped."""
+        Picamera2 object until the FrameServer has been stopped.
+        """
         self._running = False
         self._thread.join()
 
@@ -46,10 +50,12 @@ class FrameServer:
                 self._condition.notify_all()
 
     def wait_for_frame(self, previous=None):
-        """You may optionally pass in the previous frame that you got last time you
-        called this function. This will guarantee that you don't get duplicate frames
+        """You may optionally pass in the previous frame that you got last time you called this function.
+
+        This will guarantee that you don't get duplicate frames
         returned in the event of spurious wake-ups, and it may even return more
-        quickly in the case where a new frame has already arrived."""
+        quickly in the case where a new frame has already arrived.
+        """
         with self._condition:
             if previous is not None and self._array is not previous:
                 return self._array
@@ -64,7 +70,7 @@ class FrameServer:
 def thread1_func():
     global thread1_count
     while not thread_abort:
-        frame = server.wait_for_frame()
+        _ = server.wait_for_frame()
         thread1_count += 1
 
 

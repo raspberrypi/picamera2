@@ -40,7 +40,8 @@ def DrawRectangles(request):
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10),
+                            font, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def InferenceTensorFlow(image, model, label=None):

@@ -55,7 +55,8 @@ def DrawRectangles(request):
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10),
+                            font, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def InferenceTensorFlow(image, model, output, label=None):
@@ -134,7 +135,7 @@ def main():
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
     config = picam2.create_preview_configuration(main={"size": normalSize},
-                                          lores={"size": lowresSize, "format": "YUV420"})
+                                                 lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
@@ -145,7 +146,7 @@ def main():
     while True:
         buffer = picam2.capture_buffer("lores")
         grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-        result = InferenceTensorFlow(grey, args.model, output_file, label_file)
+        _ = InferenceTensorFlow(grey, args.model, output_file, label_file)
 
 
 if __name__ == '__main__':

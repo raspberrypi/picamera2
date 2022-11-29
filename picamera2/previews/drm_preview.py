@@ -206,8 +206,8 @@ class DrmPreview(NullPreview):
         if self.overlay_fb is not None:
             width, height = self.overlay_fb.width, self.overlay_fb.height
             self.crtc.set_plane(self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height)
-        overlay_old_fb = None  # The new one has been sent so it's safe to let this go now
-        old_drmfbs = None  # Can chuck these away now too
+        overlay_old_fb = None  # noqa  The new one has been sent so it's safe to let this go now
+        old_drmfbs = None  # noqa  Can chuck these away now too
 
     def stop(self):
         super().stop()

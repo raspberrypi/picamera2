@@ -24,7 +24,7 @@ picam2.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain"
 picam2.start()
 
 # The raw images can be added directly using 2-byte pixels.
-for i in range(num_frames):
+for _ in range(num_frames):
     images.append(picam2.capture_array("raw").view(np.uint16))
 metadata = picam2.capture_metadata()
 
