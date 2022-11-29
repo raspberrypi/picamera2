@@ -2,22 +2,23 @@
 """picamera2 main class"""
 
 import json
+import logging
 import os
+import selectors
+import sys
 import tempfile
 import threading
-from enum import Enum
-from typing import List, Tuple, Any, Dict, Optional
 import time
+from enum import Enum
 from functools import partial
-import logging
-import sys
+from typing import Any, Dict, List, Optional, Tuple
 
 import libcamera
 import numpy as np
 from PIL import Image
 
-from picamera2.encoders import Encoder, Quality, H264Encoder, MJPEGEncoder
-from picamera2.outputs import FileOutput, FfmpegOutput
+from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
+from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
 from .configuration import CameraConfiguration
@@ -72,7 +73,6 @@ class CameraManager:
             self.cms = None
 
     def listen(self):
-        import selectors
         sel = selectors.DefaultSelector()
         sel.register(self.cms.event_fd, selectors.EVENT_READ, self.handle_request)
 
