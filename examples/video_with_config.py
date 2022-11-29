@@ -2,9 +2,10 @@
 
 # Use the configuration structure method to do a full res capture.
 
+import time
+
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
-import time
 
 picam2 = Picamera2()
 

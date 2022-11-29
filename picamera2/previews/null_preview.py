@@ -1,8 +1,7 @@
 """Null preview"""
 
-from logging import getLogger
 import threading
-
+from logging import getLogger
 
 _log = getLogger(__name__)
 
@@ -70,7 +69,6 @@ class NullPreview:
         :param overlay: Overlay
         """
         # This only exists so as to have the same interface as other preview windows.
-        pass
 
     def handle_request(self, picam2):
         """Handle requests

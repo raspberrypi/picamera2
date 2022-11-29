@@ -3,15 +3,16 @@
 # Usage: ./compositing.py --model mobilenet_v2.tflite --label coco_labels.txt
 
 import argparse
-from picamera2 import Picamera2, Preview, MappedArray
+import select
+import sys
+import time
+
 import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from PIL import Image
-import time
-import select
-import sys
 
+from picamera2 import MappedArray, Picamera2, Preview
 
 normalSize = (640, 480)
 lowresSize = (320, 240)

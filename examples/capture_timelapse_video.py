@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-import time
 import subprocess
+import time
 
 from picamera2 import Picamera2
 from picamera2.encoders import MJPEGEncoder, Quality

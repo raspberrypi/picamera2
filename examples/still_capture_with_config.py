@@ -2,8 +2,9 @@
 
 # Use the configuration structure method to do a full res capture.
 
-from picamera2 import Picamera2
 import time
+
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
                              QPushButton, QVBoxLayout, QWidget)
 
 from picamera2 import Picamera2
-from picamera2.previews.qt import QGlPicamera2, QPicamera2
+from picamera2.previews.qt import QGlPicamera2
 
 
 def request_callback(request):

@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
+import time
+
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FileOutput
-import time
 
 picam2 = Picamera2()
 encoder = H264Encoder(10000000)

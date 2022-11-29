@@ -1,5 +1,6 @@
 from .controls import Controls
 
+
 class Configuration:
     """
     A small wrapper class that can be used to turn our configuration dicts into real objects.

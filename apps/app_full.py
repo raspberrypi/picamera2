@@ -1,24 +1,26 @@
 #!/usr/bin/python3
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
-                             QVBoxLayout, QWidget, QTabWidget, QSlider,
-                             QFormLayout, QSpinBox, QLineEdit, QCheckBox, QComboBox,
-                             QDoubleSpinBox)
 from PyQt5.QtGui import QPainter, QPalette
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,
+                             QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QSlider, QSpinBox,
+                             QTabWidget, QVBoxLayout, QWidget)
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews.qt import QGlPicamera2
+
 try:
     import cv2
     cv_present = True
 except ImportError:
     cv_present = False
     print("OpenCV not found - HDR not available")
-import numpy as np
 import threading
+
+import numpy as np
 
 
 def post_callback(request):
