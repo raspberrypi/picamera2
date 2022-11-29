@@ -24,8 +24,8 @@ class Job:
         self._functions = functions
         self._future = Future()
         self._future.set_running_or_notify_cancel()
-        if signal_function is not None:
-            self._future.add_done_callback(lambda f: signal_function(self))
+        self._signal_function = signal_function
+        self._result = None
 
         # I wonder if there is any useful information we could collect, number
         # of frames it took for things to finish, maybe intermediate results...
@@ -51,13 +51,21 @@ class Job:
 
                 # When no functions are left, the entire job is complete.
                 if not self._functions:
-                    self._future.set_result(result)
+                    self._result = result
 
         except Exception as e:
             self._future.set_exception(e)
             self._functions = []
 
         return not self._functions
+
+    def signal(self):
+        """Signal that the job is finished."""
+        assert not self._functions, "Job not finished!"
+
+        self._future.set_result(self._result)
+        if self._signal_function:
+            self._signal_function(self)
 
     def get_result(self):
         """This fetches the 'final result' of the job
