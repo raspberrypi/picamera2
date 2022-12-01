@@ -494,6 +494,10 @@ class Picamera2:
                 self.sensor_modes_.append(cam_mode)
         return self.sensor_modes_
 
+    def attach_preview(self, preview) -> None:
+        self._preview = preview
+        self.have_event_loop = True
+
     def start_preview(self, preview=False, **kwargs) -> None:
         """
         Start the given preview which drives the camera processing.
@@ -533,8 +537,11 @@ class Picamera2:
             pass
 
         preview.start(self)
-        self._preview = preview
-        self.have_event_loop = True
+        self.attach_preview(preview)
+
+    def detach_preview(self) -> None:
+        self._preview = None
+        self.have_event_loop = False
 
     def stop_preview(self) -> None:
         """Stop preview
@@ -546,8 +553,7 @@ class Picamera2:
 
         try:
             self._preview.stop()
-            self._preview = None
-            self.have_event_loop = False
+            self.detach_preview()
         except Exception:
             raise RuntimeError("Unable to stop preview.")
 
