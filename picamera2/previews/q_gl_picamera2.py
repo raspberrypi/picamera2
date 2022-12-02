@@ -130,6 +130,9 @@ class QGlPicamera2(QWidget):
             if self.preview_window is not None:
                 self.preview_window.qpicamera2 = None
 
+    def closeEvent(self, event):
+        self.cleanup()
+
     def signal_done(self, job):
         self.done_signal.emit(job)
 

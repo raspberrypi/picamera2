@@ -76,8 +76,8 @@ class QtPreviewBase:
         self.event.set()
         atexit.register(self.fin)
         app.exec()
-        atexit.unregister(self.fin)
         monitor.wait()
+        atexit.unregister(self.fin)
         del app
         # Again, all necessary to keep Qt quiet.
 
