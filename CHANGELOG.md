@@ -6,6 +6,29 @@
 
 ### Changed
 
+## 0.3.7 Beta Release 6
+
+### Added
+
+* Ability to control via the configuration "queue" parameter whether Picamera2 keeps hold of the last completed request or not. This means you may wait marginally longer for a capture in some use cases, but also that the system cannot give you the frame that arrived slightly before you requested it.
+
+### Changed
+
+* The `Picamera2.start_encoder` function prototype has been made very similar to `Picamera2.start_recording` for consistency. Most existing calls still work, but there are a few call patterns that may need updating. The new prototype is: `start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM)`
+* The `Picamera2.wait` function now requires an argument, which is the "job" that was returned to you when you made the asynchronous call, for example instead of
+```
+picam2.capture_file("test.jpg", wait=False)
+metadata = picam2.wait()
+```
+you would use
+```
+job = picam2.capture_file("test.jpg", wait=False)
+metadata = picam2.wait(job)
+```
+Please also refer to our updated Qt examples.
+* Some bug fixes when starting and stopping encoders.
+* Risk of video frame drops during transient busy periods reduced.
+
 ## 0.3.6 Beta Release 5
 
 ### Added

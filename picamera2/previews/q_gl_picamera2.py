@@ -77,7 +77,7 @@ class EglState:
 
 
 class QGlPicamera2(QWidget):
-    done_signal = pyqtSignal()
+    done_signal = pyqtSignal(object)
 
     def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
         super().__init__(parent=parent)
@@ -127,8 +127,8 @@ class QGlPicamera2(QWidget):
                 self.current_request.release()
             self.current_request = None
 
-    def signal_done(self, picamera2):
-        self.done_signal.emit()
+    def signal_done(self, job):
+        self.done_signal.emit(job)
 
     def paintEngine(self):
         return None

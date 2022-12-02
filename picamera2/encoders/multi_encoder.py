@@ -29,12 +29,10 @@ class MultiEncoder(Encoder):
         self.tasks = queue.Queue()
 
     def _start(self):
-        super()._start()
         self.thread = threading.Thread(target=self.output_thread, daemon=True)
         self.thread.start()
 
     def _stop(self):
-        super()._stop()
         self.tasks.put(None)
         self.thread.join()
 
@@ -61,7 +59,7 @@ class MultiEncoder(Encoder):
         request.release()
         return (buffer, timestamp_us)
 
-    def encode(self, stream, request):
+    def _encode(self, stream, request):
         """Encode frame using a thread
 
         :param stream: Stream

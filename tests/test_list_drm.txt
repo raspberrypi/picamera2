@@ -1,2 +1,3 @@
 examples/overlay_drm.py
 examples/preview_drm.py
+tests/drm_stop_restart.py

@@ -1,4 +1,5 @@
 import io
+import logging
 import threading
 import time
 
@@ -8,8 +9,10 @@ from pidng.camdefs import Picamera2Camera
 from pidng.core import PICAM2DNG
 from PIL import Image
 
+import picamera2.formats as formats
 from .controls import Controls
 
+_log = logging.getLogger(__name__)
 
 class _MappedBuffer:
     def __init__(self, request, stream):
@@ -76,7 +79,7 @@ class MappedArray:
                 # efficiently. We leave any packing in there, however, as it would be easier
                 # to remove that after conversion to RGB (if that's what the caller does).
                 array = array.reshape((h * 3 // 2, stride))
-            elif self.__request.picam2.is_raw(fmt):
+            elif formats.is_raw(fmt):
                 array = array.reshape((h, stride))
             else:
                 raise RuntimeError("Format " + fmt + " not supported")
@@ -204,7 +207,7 @@ class Helpers:
             image = array.reshape(h, stride // 2, 2)
         elif fmt == "MJPEG":
             image = np.array(Image.open(io.BytesIO(array)))
-        elif self.picam2.is_raw(fmt):
+        elif formats.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
             raise RuntimeError("Format " + fmt + " not supported")
@@ -264,8 +267,8 @@ class Helpers:
             keywords |= {"exif": exif}
         img.save(file_output, **keywords)
         end_time = time.monotonic()
-        self.picam2.log.info(f"Saved {self} to file {file_output}.")
-        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Saved {self} to file {file_output}.")
+        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
     def save_dng(self, buffer, metadata, config, filename):
         """Save a DNG RAW image of the raw stream's buffer."""
@@ -281,5 +284,5 @@ class Helpers:
         r.convert(raw, filename)
 
         end_time = time.monotonic()
-        self.picam2.log.info(f"Saved {self} to file {filename}.")
-        self.picam2.log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Saved {self} to file {filename}.")
+        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")

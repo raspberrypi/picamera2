@@ -81,10 +81,11 @@ def run_tests(tests, xserver=True):
         clean_directory()
         print("Running ", test, "... ", sep='', end='', flush=True)
         try:
-            output = subprocess.check_output(['python3', test], timeout=30, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(['python3', test], timeout=90, stderr=subprocess.STDOUT)
             output = output.decode('utf-8')
             output = output.split('\n')
             test_passed = True
+            test_skipped = False
             for line in output:
                 line = line.lower()
                 if "test pattern modes" in line:  # libcamera spits out a bogus error here
@@ -93,6 +94,10 @@ def run_tests(tests, xserver=True):
                     pass
                 elif "xdg_runtime_dir" in line:  # this one too when running on behalf of GitHub
                     pass
+                elif "unable to set controls" in line:  # currently provoked by multi camera tests
+                    pass
+                elif "skipped" in line:  # allow tests to report that they aren't doing anything
+                    test_skipped = True
                 elif "error" in line:
                     print("\tERROR")
                     print("\t", line)
@@ -100,7 +105,7 @@ def run_tests(tests, xserver=True):
                     num_failed = num_failed + 1
                     break
             if test_passed:
-                print("\tPASSED")
+                print("\tSKIPPED" if test_skipped else "\tPASSED")
         except subprocess.CalledProcessError as e:
             print("\tFAILED")
             print_subprocess_output(e)
@@ -121,20 +126,20 @@ def directoryexists(arg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='picamera2 automated tests')
-    parser.add_argument('--dir', '-d', action='store', type=directoryexists,
+    parser.add_argument('--dir', '-d', action='store',
                         default='/home/pi/picamera2_tests', help='Folder in which to run tests')
     parser.add_argument('--picamera2-dir', '-p', action='store', type=directoryexists,
                         default='/home/pi/picamera2', help='Location of picamera2 folder')
-    parser.add_argument('--test-list-file', '-t', action='store', type=argparse.FileType('r', encoding='UTF-8'),
+    parser.add_argument('--test-list-file', '-t', action='store',
                         default='tests/test_list.txt', help='File containing list of tests to run')
-    parser.add_argument('--test-list-file-drm', '-t2', action='store', type=argparse.FileType('r', encoding='UTF-8'),
+    parser.add_argument('--test-list-file-drm', '-t2', action='store',
                         default='tests/test_list_drm.txt', help='File containing list of tests to run')
     args = parser.parse_args()
 
     dir = args.dir
     picamera2_dir = args.picamera2_dir
-    test_list_file_x = os.path.join(picamera2_dir, args.test_list_file.name)
-    test_list_file_drm = os.path.join(picamera2_dir, args.test_list_file_drm.name)
+    test_list_file_x = os.path.join(picamera2_dir, args.test_list_file)
+    test_list_file_drm = os.path.join(picamera2_dir, args.test_list_file_drm)
 
     print("dir:", dir)
     print("Picamera2 dir:", picamera2_dir)

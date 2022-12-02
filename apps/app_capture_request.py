@@ -28,9 +28,9 @@ def on_button_clicked():
     picam2.capture_request(wait=False, signal_function=qpicamera2.signal_done)
 
 
-def capture_done():
+def capture_done(job):
     # Here's the request we captured. But we must always release it when we're done with it!
-    request = picam2.wait()
+    request = picam2.wait(job)
     print("Request:", request)
     request.release()
     button.setEnabled(True)
