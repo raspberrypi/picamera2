@@ -273,7 +273,7 @@ class Picamera2:
         self.post_callback = None
         self.completed_requests: List[CompletedRequest] = []
         self.lock = threading.Lock()  # protects the _job_list and completed_requests fields
-        self.have_event_loop = False
+        self._event_loop_running = False
         self.camera_properties_ = {}
         self.controls = Controls(self)
         self.sensor_modes_ = None
@@ -314,17 +314,6 @@ class Picamera2:
         """Now Deprecated"""
         _log.error("request_callback is deprecated, setting post_callback instead")
         self.post_callback = value
-
-    @property
-    def asynchronous(self) -> bool:
-        """True if there is threaded operation
-
-        :return: Thread operation state
-        :rtype: bool
-        """
-        return self._preview is not None and \
-            getattr(self._preview, "thread", None) is not None and \
-            self._preview.thread.is_alive()
 
     @property
     def camera_properties(self) -> dict:
@@ -496,7 +485,7 @@ class Picamera2:
 
     def attach_preview(self, preview) -> None:
         self._preview = preview
-        self.have_event_loop = True
+        self._event_loop_running = True
 
     def start_preview(self, preview=False, **kwargs) -> None:
         """
@@ -511,7 +500,7 @@ class Picamera2:
         When using the enum form, extra keyword arguments can be supplied that
         will be forwarded to the preview class constructor.
         """
-        if self.have_event_loop:
+        if self._event_loop_running:
             raise RuntimeError("An event loop is already running")
 
         if preview is True:
@@ -541,7 +530,7 @@ class Picamera2:
 
     def detach_preview(self) -> None:
         self._preview = None
-        self.have_event_loop = False
+        self._event_loop_running = False
 
     def stop_preview(self) -> None:
         """Stop preview
@@ -1039,7 +1028,7 @@ class Picamera2:
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         # By default we will create an event loop is there isn't one running already.
-        if show_preview is not None and not self.have_event_loop:
+        if show_preview is not None and not self._event_loop_running:
             self.start_preview(show_preview)
         self.start_()
 
@@ -1069,7 +1058,10 @@ class Picamera2:
         if not self.started:
             _log.debug("Camera was not started")
             return
-        if self.asynchronous:
+        # If the event loop is running in another thread, we need to send it a message
+        # to stop, otherwise we can stop directly. When running a proper Qt app, _preview
+        # is unset because we expect this code to be running the the Qt thread.
+        if self._preview is not None and self._event_loop_running:
             self.dispatch_functions([self.stop_], wait=True)
         else:
             self.stop_()
