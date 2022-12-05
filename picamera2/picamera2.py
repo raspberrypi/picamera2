@@ -27,6 +27,7 @@ from .controls import Controls
 from .job import Job
 from .request import CompletedRequest, Helpers
 from .sensor_format import SensorFormat
+from .utils import convert_from_libcamera_type
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
@@ -375,14 +376,6 @@ class Picamera2:
         _log.debug(f"Resources now free: {self}")
         self.close()
 
-    @staticmethod
-    def _convert_from_libcamera_type(value):
-        if isinstance(value, libcamera.Rectangle):
-            value = (value.x, value.y, value.width, value.height)
-        elif isinstance(value, libcamera.Size):
-            value = (value.width, value.height)
-        return value
-
     def _grab_camera(self, idx):
         if isinstance(idx, str):
             try:
@@ -416,7 +409,7 @@ class Picamera2:
 
         # Re-generate the properties list to someting easer to use.
         for k, v in self.camera.properties.items():
-            self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
+            self.camera_properties_[k.name] = convert_from_libcamera_type(v)
 
         # The next two lines could be placed elsewhere?
         self.sensor_resolution = self.camera_properties_["PixelArraySize"]
@@ -924,7 +917,7 @@ class Picamera2:
         for k, v in self.camera.controls.items():
             self.camera_ctrl_info[k.name] = (k, v)
         for k, v in self.camera.properties.items():
-            self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
+            self.camera_properties_[k.name] = convert_from_libcamera_type(v)
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}

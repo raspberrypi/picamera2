@@ -12,6 +12,7 @@ from PIL import Image
 import picamera2.formats as formats
 
 from .controls import Controls
+from .utils import convert_from_libcamera_type
 
 _log = logging.getLogger(__name__)
 
@@ -145,7 +146,7 @@ class CompletedRequest:
         """Fetch the metadata corresponding to this completed request."""
         metadata = {}
         for k, v in self.request.metadata.items():
-            metadata[k.name] = self.picam2._convert_from_libcamera_type(v)
+            metadata[k.name] = convert_from_libcamera_type(v)
         return metadata
 
     def make_array(self, name):
