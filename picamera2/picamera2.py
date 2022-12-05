@@ -1225,6 +1225,24 @@ class Picamera2:
                      partial(capture_and_switch_back_, self, file_output, preview_config, format)]
         return self.dispatch_functions(functions, wait, signal_function)
 
+    def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None):
+        """Switch the camera into a new (capture) mode and capture a request, then switch back.
+
+        Applications should use this with care because it may increase the risk of CMA heap
+        fragmentation. It may be preferable to use switch_mode_capture_request_and_stop and to
+        release the request before restarting the original camera mode.
+        """
+        preview_config = self.camera_config
+
+        def capture_and_switch_back_(self, preview_config):
+            _, result = self.capture_request_()
+            self.switch_mode_(preview_config)
+            return (True, result)
+
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(capture_and_switch_back_, self, preview_config)]
+        return self.dispatch_functions(functions, wait, signal_function)
+
     def capture_request_(self):
         # The "use" of this request is transferred from the completed_requests list to the caller.
         return (True, self.completed_requests.pop(0))
