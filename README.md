@@ -83,12 +83,13 @@ We are happy to receive pull requests (normally for the "next" branch) that will
 - Before submitting a pull request, please ensure that all the automated tests are passing. They can be run using the `tools/run_tests` script. Please use `tools/run_tests --help` for more information.
 - Any documentation should be updated accordingly. New examples and tests should be included wherever possible. Also consider making an entry in the change log.
 - The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
-- We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend putting
-```
-#!/bin/bash
+- We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend using our pre-commit hook, which can be installed by doing the following in the root of the repository:
 
-exec git diff --cached | ./tools/checkstyle.py --staged
 ```
-into your `.git/hooks/pre-commit` file. We note that there are some occasions when other formatting is actually better in which case please use that in spite of the style checker, but do note this in your pull request so that we understand.
+pip3 install pre-commit
+pre-commit install
+```
+
+This will install flake8 in a venv and will perform linting of changes prior to committing.
 
 Thank you!
