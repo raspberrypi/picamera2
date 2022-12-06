@@ -105,8 +105,6 @@ class QtPreviewBase:
             retq = Queue()
             QtPreviewBase.previewcreateq.put((Command.DELETE, retq, (self, self.qpicamera2)))
             retq.get()
-            del self.qpicamera2
-            self.qpicamera2 = None
 
     def fin(self):
         if QtPreviewBase.thread:
@@ -124,7 +122,7 @@ class QtPreviewBase:
 class QtPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QPicamera2
-        return QPicamera2(picam2, width=self.width, height=self.height, transform=self.transform)
+        return QPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):
         return "QtPreview"
@@ -133,7 +131,7 @@ class QtPreview(QtPreviewBase):
 class QtGlPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QGlPicamera2
-        return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform)
+        return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):
         return "QtGlPreview"

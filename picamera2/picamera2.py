@@ -536,8 +536,8 @@ class Picamera2:
             # Assume it's already a preview object.
             pass
 
+        # The preview windows call the attach_preview method.
         preview.start(self)
-        self.attach_preview(preview)
 
     def detach_preview(self) -> None:
         self._preview = None
@@ -552,8 +552,8 @@ class Picamera2:
             raise RuntimeError("No preview specified.")
 
         try:
+            # The preview windows call the detach_preview method.
             self._preview.stop()
-            self.detach_preview()
         except Exception:
             raise RuntimeError("Unable to stop preview.")
 
