@@ -152,42 +152,47 @@ class QPicamera2(QGraphicsView):
     def resizeEvent(self, event):
         self.fitInView()
 
+    def render_request(self, completed_request):
+        """Draw the camera image using Qt."""
+        if not self.enabled:
+            return
+
+        if self.title_function is not None:
+            self.setWindowTitle(self.title_function(completed_request.get_metadata()))
+
+        camera_config = completed_request.config
+        display_stream_name = camera_config['display']
+        stream_config = camera_config[display_stream_name]
+
+        img = completed_request.make_array(display_stream_name)
+        if stream_config["format"] in ("YUV420", "YUYV"):
+            if cv2_available:
+                if stream_config["format"] == "YUV420":
+                    img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
+                else:
+                    img = cv2.cvtColor(img, cv2.COLOR_YUV2RGB_YUYV)
+                width = stream_config["size"][0]
+                if width != stream_config["stride"]:
+                    img = img[:, :width, :]  # this will make it even more expensive!
+            else:
+                raise RuntimeError("Qt preview cannot display YUV420/YUYV without cv2")
+        img = np.ascontiguousarray(img[..., :3])
+        shape = img.shape
+        qim = QImage(img.data, shape[1], shape[0], QImage.Format_RGB888)
+        pix = QPixmap(qim)
+        # Add the pixmap to the scene if there wasn't one, or replace it if the images have
+        # changed size.
+        if self.pixmap is None or pix.rect() != self.last_rect:
+            if self.pixmap:
+                self.scene.removeItem(self.pixmap)
+            self.last_rect = pix.rect()
+            self.pixmap = self.scene.addPixmap(pix)
+            self.fitInView()
+        else:
+            # Update pixmap
+            self.pixmap.setPixmap(pix)
+
     @pyqtSlot()
     def handle_requests(self):
         self.picamera2.notifymeread.read()
-        request = self.picamera2.process_requests()
-        if not request:
-            return
-        if self.title_function is not None:
-            self.setWindowTitle(self.title_function(request.get_metadata()))
-        camera_config = self.picamera2.camera_config
-        if self.enabled and self.picamera2.display_stream_name is not None and camera_config is not None:
-            stream_config = camera_config[self.picamera2.display_stream_name]
-            img = request.make_array(self.picamera2.display_stream_name)
-            if stream_config["format"] in ("YUV420", "YUYV"):
-                if cv2_available:
-                    if stream_config["format"] == "YUV420":
-                        img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
-                    else:
-                        img = cv2.cvtColor(img, cv2.COLOR_YUV2RGB_YUYV)
-                    width = stream_config["size"][0]
-                    if width != stream_config["stride"]:
-                        img = img[:, :width, :]  # this will make it even more expensive!
-                else:
-                    raise RuntimeError("Qt preview cannot display YUV420/YUYV without cv2")
-            img = np.ascontiguousarray(img[..., :3])
-            shape = img.shape
-            qim = QImage(img.data, shape[1], shape[0], QImage.Format_RGB888)
-            pix = QPixmap(qim)
-            # Add the pixmap to the scene if there wasn't one, or replace it if the images have
-            # changed size.
-            if self.pixmap is None or pix.rect() != self.last_rect:
-                if self.pixmap:
-                    self.scene.removeItem(self.pixmap)
-                self.last_rect = pix.rect()
-                self.pixmap = self.scene.addPixmap(pix)
-                self.fitInView()
-            else:
-                # Update pixmap
-                self.pixmap.setPixmap(pix)
-        request.release()
+        self.picamera2.process_requests(self)

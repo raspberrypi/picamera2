@@ -60,28 +60,19 @@ class DrmPreview(NullPreview):
         self.fd = self.fb.fd(0)
         super().__init__(width=width, height=height)
 
+    def render_request(self, completed_request):
+        """Draw the camera image using DRM."""
+        with self.lock:
+            self.render_drm(self.picam2, completed_request)
+            if self.current and self.own_current:
+                self.current.release()
+            self.current = completed_request
+            self.own_current = (completed_request.config['buffer_count'] > 1)
+            if self.own_current:
+                self.current.acquire()
+
     def handle_request(self, picam2):
-        completed_request = picam2.process_requests()
-
-        if not completed_request:
-            return
-
-        if picam2.display_stream_name is not None:
-            with self.lock:
-                self.render_drm(picam2, completed_request)
-                if self.current and self.own_current:
-                    self.current.release()
-                self.current = completed_request
-            # The pipeline will stall if there's only one buffer and we always hold on to
-            # the last one. When we can, however, holding on to them is still preferred.
-            config = picam2.camera_config
-            if config is not None and config['buffer_count'] > 1:
-                self.own_current = True
-            else:
-                self.own_current = False
-                completed_request.release()
-        else:
-            completed_request.release()
+        picam2.process_requests(self)
 
     def init_drm(self, x, y, width, height, transform):
         DrmPreview._manager.add(self)
@@ -111,13 +102,17 @@ class DrmPreview(NullPreview):
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
 
-        with self.lock:
-            self.render_drm(self.picam2, self.current)
+        if self.picam2.display_stream_name is not None:
+            with self.lock:
+                self.render_drm(self.picam2, self.current)
 
     def render_drm(self, picam2, completed_request):
-        if picam2.display_stream_name is None:
-            return
-        stream = picam2.stream_map[picam2.display_stream_name]
+        if completed_request is not None:
+            display_stream_name = completed_request.config['display']
+            stream = completed_request.stream_map[display_stream_name]
+        else:
+            display_stream_name = picam2.display_stream_name
+            stream = picam2.stream_map[display_stream_name]
         cfg = stream.configuration
         pixel_format = str(cfg.pixel_format)
         width, height = (cfg.size.width, cfg.size.height)
@@ -162,7 +157,7 @@ class DrmPreview(NullPreview):
             fb = completed_request.request.buffers[stream]
 
             if pixel_format == "MJPEG":
-                img = completed_request.make_array(picam2.display_stream_name).tobytes()
+                img = completed_request.make_array(display_stream_name).tobytes()
                 self.mem.seek(0)
                 self.mem.write(img)
                 fd = self.fd

@@ -1063,7 +1063,7 @@ class Picamera2:
         """Set camera controls. These will be delivered with the next request that gets submitted."""
         self.controls.set_controls(controls)
 
-    def process_requests(self) -> None:
+    def process_requests(self, display) -> None:
         # This is the function that the event loop, which runs externally to us, must
         # call.
         requests = []
@@ -1127,16 +1127,15 @@ class Picamera2:
             while len(self.completed_requests) > self._max_queue_len:
                 self.completed_requests.pop(0).release()
 
-        if finished_job:
-            finished_job.signal()
-
         # If one of the functions we ran reconfigured the camera since this request came out,
         # then we don't want it going back to the application as the memory is not valid.
-        if display_request.configure_count != self.configure_count:
-            display_request.release()
-            display_request = None
+        if display_request.configure_count == self.configure_count and \
+           display_request.config['display'] is not None:
+            display.render_request(display_request)
+        display_request.release()
 
-        return display_request
+        if finished_job:
+            finished_job.signal()
 
     def wait(self, job):
         """Wait for the given job to finish (if necessary) and return its final result.
