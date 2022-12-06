@@ -75,7 +75,8 @@ class EglState:
 class QGlPicamera2(QWidget):
     done_signal = pyqtSignal(object)
 
-    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
+    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
+                 keep_ar=True, transform=None, preview_window=None):
         super().__init__(parent=parent)
         self.resize(width, height)
 
@@ -104,7 +105,8 @@ class QGlPicamera2(QWidget):
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
         self.picamera2 = picam2
-        picam2.have_event_loop = True
+        picam2.attach_preview(preview_window)
+        self.preview_window = preview_window
 
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
                                                QSocketNotifier.Read, self)
@@ -121,6 +123,12 @@ class QGlPicamera2(QWidget):
             if self.current_request is not None and self.own_current:
                 self.current_request.release()
             self.current_request = None
+            # We have to tell both the preview window and the Picamera2 object that we have
+            # disappeared.
+            if self.picamera2 is not None:
+                self.picamera2.detach_preview()
+            if self.preview_window is not None:
+                self.preview_window.qpicamera2 = None
 
     def signal_done(self, job):
         self.done_signal.emit(job)
