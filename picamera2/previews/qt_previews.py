@@ -53,6 +53,13 @@ class QtPreviewBase:
                 self.app = app
 
             def run(self):
+                from PyQt5.QtGui import QGuiApplication
+
+                # This ensures the Qt app never quits when we click the X on the window. It means
+                # that after closing the last preview in this way, the Qt app is still running and
+                # you can create new previews.
+                QGuiApplication.setQuitOnLastWindowClosed(False)
+
                 while True:
                     cmd, retq, tup = self.previewcreateq.get()
                     if cmd == Command.CREATE:
