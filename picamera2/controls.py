@@ -64,13 +64,20 @@ class Controls():
                 raise RuntimeError(f"Cannot update controls with {type(controls)} type")
 
     def get_libcamera_controls(self):
+        def list_or_tuple(thing):
+            return type(thing) in {list, tuple}
+
         libcamera_controls = {}
         with self._lock:
             for k in self._controls:
                 v = self.__dict__[k]
                 id = self._picam2.camera_ctrl_info[k][0]
                 if id.type == ControlType.Rectangle:
-                    v = Rectangle(*v)
+                    # We can get a list of Rectangles or a single one.
+                    if list_or_tuple(v) and v and list_or_tuple(v[0]):
+                        v = [Rectangle(*i) for i in v]
+                    else:
+                        v = Rectangle(*v)
                 elif id.type == ControlType.Size:
                     v = Size(*v)
                 libcamera_controls[id] = v

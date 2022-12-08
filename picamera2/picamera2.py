@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import libcamera
 import numpy as np
+from libcamera import controls
 from PIL import Image
 
 import picamera2.formats as formats
@@ -1665,3 +1666,22 @@ class Picamera2:
         if duration:
             time.sleep(duration)
             self.stop_recording()
+
+    def autofocus_cycle(self, wait=None, signal_function=None):
+        """Switch autofocus to auto mode and run an autofocus cycle.
+
+        Return True if the autofocus cycle focuses successuly, otherwise False.
+        """
+        self.set_controls({"AfMode": controls.AfModeEnum.Auto, "AfTrigger": controls.AfTriggerEnum.Start})
+
+        def wait_for_af_state(self, states):
+            af_state = self.completed_requests[0].get_metadata()['AfState']
+            self.completed_requests.pop(0).release()
+            return (af_state in states, af_state == controls.AfStateEnum.Focused)
+
+        # First wait for the scan to start. Once we've seen that, the AF cycle may:
+        # succeed, fail or could go back to Idle if it is cancelled.
+        functions = [partial(wait_for_af_state, self, {controls.AfStateEnum.Scanning}),
+                     partial(wait_for_af_state, self,
+                             {controls.AfStateEnum.Focused, controls.AfStateEnum.Failed, controls.AfStateEnum.Idle})]
+        return self.dispatch_functions(functions, wait, signal_function)
