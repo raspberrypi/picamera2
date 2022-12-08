@@ -823,11 +823,11 @@ class otherTab(QWidget):
         self.layout = QFormLayout()
         self.setLayout(self.layout)
 
-        global implemented_controls
+        global implemented_controls, ignore_controls
         all_controls = picam2.camera_controls.keys()
         other_controls = []
         for control in all_controls:
-            if control not in implemented_controls:
+            if control not in implemented_controls and control not in ignore_controls:
                 other_controls.append(control)
         self.fields = {}
         for control in other_controls:
@@ -1167,6 +1167,16 @@ implemented_controls = [
     "FrameDurationLimits"
 ]
 
+ignore_controls = {
+    # It is not helpful to try to drive AF with simple slider controls, so ignore them.
+    "AfMode",
+    "AfTrigger",
+    "AfSpeed",
+    "AfRange",
+    "AfWindows",
+    "AfPause",
+    "AfMetering",
+}
 
 # Main widgets
 window = QWidget()
