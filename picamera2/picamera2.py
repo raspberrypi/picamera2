@@ -1103,11 +1103,11 @@ class Picamera2:
 
             # See if we have a job to do. When executed, if it returns True then it's done and
             # we can discard it. Otherwise it remains here to be tried again next time.
-            finished_job = None
-            if self._job_list:
+            finished_jobs = []
+            while self._job_list and self.completed_requests:
                 _log.debug(f"Execute job: {self._job_list[0]}")
                 if self._job_list[0].execute():
-                    finished_job = self._job_list.pop(0)
+                    finished_jobs.append(self._job_list.pop(0))
 
             if self.encode_stream_name in self.stream_map:
                 stream = self.stream_map[self.encode_stream_name]
@@ -1134,8 +1134,8 @@ class Picamera2:
             display.render_request(display_request)
         display_request.release()
 
-        if finished_job:
-            finished_job.signal()
+        for job in finished_jobs:
+            job.signal()
 
     def wait(self, job):
         """Wait for the given job to finish (if necessary) and return its final result.
