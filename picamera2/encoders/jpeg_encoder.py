@@ -9,7 +9,12 @@ from picamera2.encoders.multi_encoder import MultiEncoder
 class JpegEncoder(MultiEncoder):
     """Uses functionality from MultiEncoder"""
 
-    def __init__(self, num_threads=4, q=None, colour_space='RGBX', colour_subsampling='420'):
+    FORMAT_TABLE = {"XBGR8888": "RGBX",
+                    "XRGB8888": "BGRX",
+                    "BGR888": "RGB",
+                    "RGB888": "BGR"}
+
+    def __init__(self, num_threads=4, q=None, colour_space=None, colour_subsampling='420'):
         """Initialises Jpeg encoder
 
         :param num_threads: Number of threads to use, defaults to 4
@@ -37,6 +42,8 @@ class JpegEncoder(MultiEncoder):
         :return: Jpeg image
         :rtype: bytes
         """
+        if self.colour_space is None:
+            self.colour_space = self.FORMAT_TABLE[request.config[name]["format"]]
         array = request.make_array(name)
         return simplejpeg.encode_jpeg(array, quality=self.q, colorspace=self.colour_space,
                                       colorsubsampling=self.colour_subsampling)
