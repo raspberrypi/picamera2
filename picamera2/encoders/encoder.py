@@ -127,11 +127,8 @@ class Encoder:
         elif value == "XRGB8888":
             self._format = V4L2_PIX_FMT_RGBA32
         else:
-            if type(self) is Encoder:
-                formats.assert_format_valid(value)
-                self._format = value
-            else:
-                raise RuntimeError("Invalid format")
+            formats.assert_format_valid(value)
+            self._format = value
 
     @property
     def output(self):
