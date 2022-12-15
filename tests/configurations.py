@@ -2,7 +2,6 @@
 
 from picamera2 import Picamera2, CameraConfiguration
 
-Picamera2.set_logging()
 picam2 = Picamera2()
 
 # We're going to set up some configuration structures, apply each one in

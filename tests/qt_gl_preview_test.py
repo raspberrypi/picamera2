@@ -9,7 +9,6 @@ from picamera2 import Picamera2, Preview
 preview_type = Preview.QTGL
 
 print("First preview...")
-Picamera2.set_logging()
 picam2 = Picamera2()
 picam2.configure(picam2.create_preview_configuration())
 picam2.start_preview(preview_type)

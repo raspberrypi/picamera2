@@ -7,7 +7,6 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FileOutput
 
-Picamera2.set_logging()
 picam2 = Picamera2()
 video_config = picam2.create_video_configuration({"size": (1920, 1080)})
 picam2.configure(video_config)

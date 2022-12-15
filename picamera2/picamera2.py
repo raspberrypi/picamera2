@@ -112,40 +112,7 @@ class CameraManager:
 class Picamera2:
     """Welcome to the PiCamera2 class."""
 
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
-    ERROR = logging.ERROR
-    CRITICAL = logging.CRITICAL
     _cm = CameraManager()
-
-    @staticmethod
-    def set_logging(level=logging.WARN, output=sys.stderr, msg=None):
-        """Configure logging for simple standalone use cases, for example:
-        Picamera2.set_logging(Picamera2.INFO)
-        Picamera2.set_logging(level=Picamera2.DEBUG, msg="%(levelname)s: %(message)s")
-
-        :param level: A logging level
-        :type level: int
-        :param output: An output stream for the messages
-        :type output: file-like object
-        :param msg: Logging message format
-        :type msg: str
-        """
-        # Users of this method probably want everything to get logged.
-        log = logging.getLogger("picamera2")
-        log.handlers.clear()
-
-        if level is not None:
-            log.setLevel(level)
-
-        if output is not None:
-            handler = logging.StreamHandler(output)
-            log.addHandler(handler)
-
-            if msg is None:
-                msg = "%(name)s %(levelname)s: %(message)s"
-            handler.setFormatter(logging.Formatter(msg))
 
     @staticmethod
     def load_tuning_file(tuning_file, dir=None):
@@ -214,21 +181,15 @@ class Picamera2:
             describe_camera(cam) for cam in libcamera.CameraManager.singleton().cameras
         ]
 
-    def __init__(self, camera_num=0, verbose_console=None, tuning=None):
+    def __init__(self, camera_num=0, tuning=None):
         """Initialise camera system and open the camera for use.
 
         :param camera_num: Camera index, defaults to 0
         :type camera_num: int, optional
-        :param verbose_console: Unused
-        :type verbose_console: int, optional
         :param tuning: Tuning filename, defaults to None
         :type tuning: str, optional
         :raises RuntimeError: Init didn't complete
         """
-        if verbose_console is not None:
-            _log.warning(
-                "verbose_console parameter is no longer used, use Picamera2.set_logging instead"
-            )
         tuning_file = None
         if tuning is not None:
             if isinstance(tuning, str):
@@ -246,9 +207,6 @@ class Picamera2:
         self.camera_idx = camera_num
         self._requestslock = threading.Lock()
         self._requests = []
-        if verbose_console is None:
-            verbose_console = int(os.environ.get("PICAMERA2_LOG_LEVEL", "0"))
-        self.verbose_console = verbose_console
         self._reset_flags()
         self.helpers = Helpers(self)
         try:

@@ -14,7 +14,6 @@ class TimestampCollector(Output):
             timestamps.append(timestamp)
 
 
-Picamera2.set_logging()
 picam2 = Picamera2()
 video_config = picam2.create_video_configuration()
 picam2.configure(video_config)

@@ -9,7 +9,6 @@ from libcamera import Transform
 import time
 from math import isclose
 
-Picamera2.set_logging()
 picam2 = Picamera2()
 
 

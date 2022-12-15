@@ -3,7 +3,6 @@ import time
 from picamera2 import Picamera2, Preview
 
 print("Preview re-initialized after start.")
-Picamera2.set_logging()
 picam2 = Picamera2()
 preview = picam2.create_preview_configuration()
 picam2.configure(preview)

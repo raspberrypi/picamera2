@@ -26,5 +26,4 @@ def main():
 
 
 if __name__ == "__main__":
-    Picamera2.set_logging()
     main()
