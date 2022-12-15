@@ -21,3 +21,13 @@ jobs:
         run: poetry run black --check .
       - name: isort
         run: poetry run isort --check-only .
+  test:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install packages
+        run: pip3 install poetry
+      - name: Poetry Install Deps
+        run: /home/docker/.local/bin/poetry install
+      - name: Test
+        run: /home/docker/.local/bin/poetry run pytest tests/test_collection.py
