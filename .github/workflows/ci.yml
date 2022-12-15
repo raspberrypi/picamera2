@@ -17,5 +17,7 @@ jobs:
           poetry-version: "1.1.12"
       - name: Install
         run: poetry install
-      - name: Lint
+      - name: Black
         run: poetry run black --check .
+      - name: isort
+        run: isort --check-only
