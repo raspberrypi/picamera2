@@ -4,7 +4,7 @@ import threading
 from libcamera import ControlType, Size, Rectangle
 
 
-class Controls():
+class Controls:
     def _framerates_to_durations_(framerates):
         if not isinstance(framerates, (tuple, list)):
             framerates = (framerates, framerates)
@@ -15,7 +15,13 @@ class Controls():
             return 1000000 / durations[0]
         return (1000000 / durations[1], 1000000 / durations[0])
 
-    _VIRTUAL_FIELDS_MAP_ = {"FrameRate": ("FrameDurationLimits", _framerates_to_durations_, _durations_to_framerates_)}
+    _VIRTUAL_FIELDS_MAP_ = {
+        "FrameRate": (
+            "FrameDurationLimits",
+            _framerates_to_durations_,
+            _durations_to_framerates_,
+        )
+    }
 
     def __init__(self, picam2, controls={}):
         self._picam2 = picam2
@@ -24,7 +30,7 @@ class Controls():
         self.set_controls(controls)
 
     def __setattr__(self, name, value):
-        if not name.startswith('_'):
+        if not name.startswith("_"):
             if name in Controls._VIRTUAL_FIELDS_MAP_:
                 real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
                 name = real_field[0]

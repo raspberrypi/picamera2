@@ -17,7 +17,9 @@ num_frames = 6
 picam2 = Picamera2()
 raw_format = SensorFormat(picam2.sensor_format)
 raw_format.packing = None
-config = picam2.create_still_configuration(raw={"format": raw_format.format}, buffer_count=2)
+config = picam2.create_still_configuration(
+    raw={"format": raw_format.format}, buffer_count=2
+)
 picam2.configure(config)
 images = []
 picam2.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0})
@@ -33,9 +35,9 @@ for image in images:
     accumulated += image
 
 # Fix the black level, and convert back to uint8 form for saving as a DNG.
-black_level = metadata["SensorBlackLevels"][0] / 2**(16 - raw_format.bit_depth)
+black_level = metadata["SensorBlackLevels"][0] / 2 ** (16 - raw_format.bit_depth)
 accumulated -= (num_frames - 1) * int(black_level)
-accumulated = accumulated.clip(0, 2 ** raw_format.bit_depth - 1).astype(np.uint16)
+accumulated = accumulated.clip(0, 2**raw_format.bit_depth - 1).astype(np.uint16)
 accumulated = accumulated.view(np.uint8)
 metadata["ExposureTime"] = exposure_time
 picam2.helpers.save_dng(accumulated, metadata, config["raw"], "accumulated.dng")

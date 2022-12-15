@@ -47,8 +47,11 @@ class FileOutput(Output):
                 self._fileoutput = file
             else:
                 raise RuntimeError("Must pass io.BufferedIOBase")
-            if hasattr(self._fileoutput, "raw") and isinstance(self._fileoutput.raw, socket.SocketIO) and \
-                    self._fileoutput.raw._sock.type == socket.SocketKind.SOCK_DGRAM:
+            if (
+                hasattr(self._fileoutput, "raw")
+                and isinstance(self._fileoutput.raw, socket.SocketIO)
+                and self._fileoutput.raw._sock.type == socket.SocketKind.SOCK_DGRAM
+            ):
                 self._split = True
 
     @property
@@ -109,7 +112,7 @@ class FileOutput(Output):
                 off = 0
                 while tosend > 0:
                     lenv = min(tosend, maxsize)
-                    self._fileoutput.write(frame[off:off + lenv])
+                    self._fileoutput.write(frame[off : off + lenv])
                     self._fileoutput.flush()
                     off += lenv
                     tosend -= lenv
@@ -117,7 +120,12 @@ class FileOutput(Output):
                 self._fileoutput.write(frame)
                 self._fileoutput.flush()
             self.outputtimestamp(timestamp)
-        except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError, ValueError) as e:
+        except (
+            ConnectionResetError,
+            ConnectionRefusedError,
+            BrokenPipeError,
+            ValueError,
+        ) as e:
             self.dead = True
             if self._connectiondead is not None:
                 self._connectiondead(e)

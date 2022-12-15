@@ -11,6 +11,6 @@ picam2.configure(video_config)
 picam2.start_preview()
 encoder = JpegEncoder(q=70)
 
-picam2.start_recording(encoder, 'test.mjpeg', pts='timestamp.txt')
+picam2.start_recording(encoder, "test.mjpeg", pts="timestamp.txt")
 time.sleep(10)
 picam2.stop_recording()

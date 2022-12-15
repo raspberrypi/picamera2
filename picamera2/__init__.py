@@ -9,12 +9,18 @@ import libcamera
 
 
 def libcamera_transforms_eq(t1, t2):
-    return t1.hflip == t2.hflip and t1.vflip == t2.vflip and t1.transpose == t2.transpose
+    return (
+        t1.hflip == t2.hflip and t1.vflip == t2.vflip and t1.transpose == t2.transpose
+    )
 
 
 def libcamera_colour_spaces_eq(c1, c2):
-    return c1.primaries == c2.primaries and c1.transferFunction == c2.transferFunction and \
-        c1.ycbcrEncoding == c2.ycbcrEncoding and c1.range == c2.range
+    return (
+        c1.primaries == c2.primaries
+        and c1.transferFunction == c2.transferFunction
+        and c1.ycbcrEncoding == c2.ycbcrEncoding
+        and c1.range == c2.range
+    )
 
 
 libcamera.Transform.__repr__ = libcamera.Transform.__str__

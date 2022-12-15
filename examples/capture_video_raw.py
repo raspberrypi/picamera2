@@ -10,12 +10,14 @@ from PIL import Image
 
 size = (2592, 1944)
 picam2 = Picamera2()
-video_config = picam2.create_video_configuration(raw={"format": 'SGBRG10', 'size': size})
+video_config = picam2.create_video_configuration(
+    raw={"format": "SGBRG10", "size": size}
+)
 picam2.configure(video_config)
 picam2.encode_stream_name = "raw"
 encoder = Encoder()
 
-picam2.start_recording(encoder, 'test.raw', pts='timestamp.txt')
+picam2.start_recording(encoder, "test.raw", pts="timestamp.txt")
 time.sleep(5)
 picam2.stop_recording()
 

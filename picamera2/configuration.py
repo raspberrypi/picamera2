@@ -1,5 +1,6 @@
 from .controls import Controls
 
+
 class Configuration:
     """
     A small wrapper class that can be used to turn our configuration dicts into real objects.
@@ -22,6 +23,7 @@ class Configuration:
         object. For example, if someone wants to set CameraConfiguration.size they probably
         mean to set CameraConfiguration.main.size. So it's a kind of helpful shorthand.
     """
+
     def __init__(self, d={}):
         if isinstance(d, Configuration):
             d = d.make_dict()
@@ -43,7 +45,11 @@ class Configuration:
 
     def __getattribute__(self, name):
         if name in super().__getattribute__("_FORWARD_FIELDS"):
-            return super().__getattribute__(self._FORWARD_FIELDS[name]).__getattribute__(name)
+            return (
+                super()
+                .__getattribute__(self._FORWARD_FIELDS[name])
+                .__getattribute__(name)
+            )
         else:
             return super().__getattribute__(name)
 
@@ -72,10 +78,15 @@ class Configuration:
             if self.format in ("YUV420", "YVU420"):
                 align = 64  # because the UV planes will have half this alignment
             elif self.format in ("XBGR8888", "XRGB8888"):
-                align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+                align = (
+                    16  # 4 channels per pixel gives us an automatic extra factor of 2
+                )
         else:
             align = 2
-        self.size = (self.size[0] - self.size[0] % align, self.size[1] - self.size[1] % 2)
+        self.size = (
+            self.size[0] - self.size[0] % align,
+            self.size[1] - self.size[1] % 2,
+        )
 
 
 class StreamConfiguration(Configuration):
@@ -85,8 +96,24 @@ class StreamConfiguration(Configuration):
 
 
 class CameraConfiguration(Configuration):
-    _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space", "controls", "main", "lores", "raw", "queue")
-    _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
+    _ALLOWED_FIELDS = (
+        "use_case",
+        "buffer_count",
+        "transform",
+        "display",
+        "encode",
+        "colour_space",
+        "controls",
+        "main",
+        "lores",
+        "raw",
+        "queue",
+    )
+    _FIELD_CLASS_MAP = {
+        "main": StreamConfiguration,
+        "lores": StreamConfiguration,
+        "raw": StreamConfiguration,
+    }
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
 
     def __init__(self, d={}, picam2=None):
@@ -96,7 +123,9 @@ class CameraConfiguration(Configuration):
 
     def enable_lores(self, onoff=True):
         if onoff:
-            self.lores = StreamConfiguration({"size": self.main.size, "format": "YUV420"})
+            self.lores = StreamConfiguration(
+                {"size": self.main.size, "format": "YUV420"}
+            )
         else:
             self.lores = None
 

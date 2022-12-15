@@ -24,7 +24,9 @@ contrast_algo["gamma_curve"] = [0, 0, 65535, 65535]
 # Create a gamma lookup table to apply at the end.
 gamma_x = np.array(gamma_curve[::2], dtype=float) * 255 / 65535
 gamma_y = np.array(gamma_curve[1::2], dtype=float) * 255 / 65535
-gamma_lut = np.interp(range(num_frames * 255 + 1), gamma_x, gamma_y, right=255).astype(np.uint8)
+gamma_lut = np.interp(range(num_frames * 255 + 1), gamma_x, gamma_y, right=255).astype(
+    np.uint8
+)
 
 picam2 = Picamera2(tuning=tuning)
 config = picam2.create_still_configuration({"format": "RGB888"}, buffer_count=2)

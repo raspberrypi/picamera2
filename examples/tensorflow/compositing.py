@@ -21,7 +21,7 @@ captured = []
 
 
 def ReadLabelFile(file_path):
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         lines = f.readlines()
     ret = {}
     for line in lines:
@@ -39,7 +39,16 @@ def DrawRectangles(request):
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(
+                    m.array,
+                    text,
+                    (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10),
+                    font,
+                    1,
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
 
 
 def InferenceTensorFlow(image, model, label=None):
@@ -55,10 +64,10 @@ def InferenceTensorFlow(image, model, label=None):
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
+    height = input_details[0]["shape"][1]
+    width = input_details[0]["shape"][2]
     floating_model = False
-    if input_details[0]['dtype'] == np.float32:
+    if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -70,14 +79,14 @@ def InferenceTensorFlow(image, model, label=None):
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.set_tensor(input_details[0]["index"], input_data)
 
     interpreter.invoke()
 
-    detected_boxes = interpreter.get_tensor(output_details[0]['index'])
-    detected_classes = interpreter.get_tensor(output_details[1]['index'])
-    detected_scores = interpreter.get_tensor(output_details[2]['index'])
-    num_boxes = interpreter.get_tensor(output_details[3]['index'])
+    detected_boxes = interpreter.get_tensor(output_details[0]["index"])
+    detected_classes = interpreter.get_tensor(output_details[1]["index"])
+    detected_scores = interpreter.get_tensor(output_details[2]["index"])
+    num_boxes = interpreter.get_tensor(output_details[3]["index"])
 
     rectangles = []
     for i in range(int(num_boxes)):
@@ -92,10 +101,10 @@ def InferenceTensorFlow(image, model, label=None):
             box = [xmin, ymin, xmax, ymax]
             rectangles.append(box)
             if labels:
-                print(labels[classId], 'score = ', score)
+                print(labels[classId], "score = ", score)
                 rectangles[-1].append(labels[classId])
             else:
-                print('score = ', score)
+                print("score = ", score)
 
 
 def capture_image_and_masks(picam2: Picamera2, model, label_file):
@@ -108,7 +117,7 @@ def capture_image_and_masks(picam2: Picamera2, model, label_file):
     image = request.make_image("main")
     lores = request.make_buffer("lores")
     stride = picam2.stream_configuration("lores")["stride"]
-    grey = lores[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+    grey = lores[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
     InferenceTensorFlow(grey, model, label_file)
     for rect in rectangles:
         print(image.size)
@@ -129,17 +138,17 @@ def capture_image_and_masks(picam2: Picamera2, model, label_file):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', help='Path of the detection model.', required=True)
-    parser.add_argument('--label', help='Path of the labels file.')
-    parser.add_argument('--output', help='File path of the output image.')
+    parser.add_argument("--model", help="Path of the detection model.", required=True)
+    parser.add_argument("--label", help="Path of the labels file.")
+    parser.add_argument("--output", help="File path of the output image.")
     args = parser.parse_args()
 
-    if (args.output):
+    if args.output:
         output_file = args.output
     else:
-        output_file = 'out.png'
+        output_file = "out.png"
 
-    if (args.label):
+    if args.label:
         label_file = args.label
     else:
         label_file = None
@@ -147,8 +156,8 @@ def main():
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
     config = picam2.create_preview_configuration(
-        main={"size": normalSize},
-        lores={"size": lowresSize, "format": "YUV420"})
+        main={"size": normalSize}, lores={"size": lowresSize, "format": "YUV420"}
+    )
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
@@ -160,7 +169,7 @@ def main():
         print("Starting capture, press enter to capture objects")
         while True:
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+            grey = buffer[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
             InferenceTensorFlow(grey, args.model, label_file)
             # Check if enter has been pressed
             i, o, e = select.select([sys.stdin], [], [], 0.1)
@@ -189,5 +198,5 @@ def main():
         base_image.save(output_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

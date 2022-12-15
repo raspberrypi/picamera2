@@ -8,6 +8,7 @@ from picamera2.outputs import Output
 
 class TimestampCollector(Output):
     "Output class that doesn't output anything but collects frame timestamps"
+
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if timestamp is not None:
             timestamps.append(timestamp)
@@ -30,7 +31,16 @@ picam2.stop_recording()
 diffs = np.array([next - now for now, next in zip(timestamps, timestamps[1:])])
 median = np.median(diffs)
 tol = median / 10
-hist, _ = np.histogram(diffs, bins=[0, median - tol, median + tol, 2 * median + tol, max(3 * median, diffs.max())])
+hist, _ = np.histogram(
+    diffs,
+    bins=[
+        0,
+        median - tol,
+        median + tol,
+        2 * median + tol,
+        max(3 * median, diffs.max()),
+    ],
+)
 print("[Early, expected, late, very late] =", hist)
 
 if abs(median - 33333) > tol:

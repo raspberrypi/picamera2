@@ -9,9 +9,11 @@ from ..outputs import Output
 from ..request import _MappedBuffer
 import picamera2.formats as formats
 
+
 class Quality(Enum):
     """Enum type to describe the quality wanted from an encoder. This may be passed
     if a specific value (such as bitrate) has not been set."""
+
     VERY_LOW = 0
     LOW = 1
     MEDIUM = 2

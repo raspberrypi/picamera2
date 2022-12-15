@@ -1,5 +1,4 @@
-
-class Metadata():
+class Metadata:
     def __init__(self, metadata={}):
         self.__dict__ = metadata.copy()
 

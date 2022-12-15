@@ -1,18 +1,32 @@
 #!/usr/bin/python3
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
-                             QVBoxLayout, QWidget, QTabWidget, QSlider,
-                             QFormLayout, QSpinBox, QLineEdit, QCheckBox, QComboBox,
-                             QDoubleSpinBox)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+    QTabWidget,
+    QSlider,
+    QFormLayout,
+    QSpinBox,
+    QLineEdit,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+)
 from PyQt5.QtGui import QPainter, QPalette
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews.qt import QGlPicamera2
+
 try:
     import cv2
+
     cv_present = True
 except ImportError:
     cv_present = False
@@ -25,7 +39,9 @@ def post_callback(request):
     # Read the metadata we get back from every request
     metadata = request.get_metadata()
     # Put Awb to the end, as they only flash up sometimes
-    sorted_metadata = sorted(metadata.items(), key=lambda x: x[0] if "Awb" not in x[0] else f"Z{x[0]}")
+    sorted_metadata = sorted(
+        metadata.items(), key=lambda x: x[0] if "Awb" not in x[0] else f"Z{x[0]}"
+    )
     # And print everything nicely
     pretty_metadata = []
     for k, v in sorted_metadata:
@@ -36,7 +52,7 @@ def post_callback(request):
                 matrix = np.around(np.reshape(v, (-1, 3)), decimals=2)
                 row = f"{k}:\n{matrix}"
             else:
-                row_data = [f'{x:.2f}' if type(x) is float else f'{x}' for x in v]
+                row_data = [f"{x:.2f}" if type(x) is float else f"{x}" for x in v]
                 row = f"{k}: ({', '.join(row_data)})"
         except TypeError:
             if type(v) is float:
@@ -44,7 +60,7 @@ def post_callback(request):
             else:
                 row = f"{k}: {v}"
         pretty_metadata.append(row)
-    info_tab.setText('\n'.join(pretty_metadata))
+    info_tab.setText("\n".join(pretty_metadata))
 
     # Set values from the metadata
     if not aec_tab.exposure_time.isEnabled():
@@ -64,10 +80,13 @@ picam2.post_callback = post_callback
 lores_size = picam2.sensor_resolution
 while lores_size[0] > 1600:
     lores_size = (lores_size[0] // 2 & ~1, lores_size[1] // 2 & ~1)
-still_kwargs = {"lores": {"size": lores_size}, "display": "lores", "encode": "lores", "buffer_count": 1}
-picam2.still_configuration = picam2.create_still_configuration(
-    **still_kwargs
-)
+still_kwargs = {
+    "lores": {"size": lores_size},
+    "display": "lores",
+    "encode": "lores",
+    "buffer_count": 1,
+}
+picam2.still_configuration = picam2.create_still_configuration(**still_kwargs)
 picam2.configure("still")
 # Read the sensor modes
 _ = picam2.sensor_modes
@@ -98,9 +117,13 @@ def update_controls():
 
     # Check still within bounds
     new_scaler_crop[1] = max(new_scaler_crop[1], full_img[1])
-    new_scaler_crop[1] = min(new_scaler_crop[1], full_img[1] + full_img[3] - new_scaler_crop[3])
+    new_scaler_crop[1] = min(
+        new_scaler_crop[1], full_img[1] + full_img[3] - new_scaler_crop[3]
+    )
     new_scaler_crop[0] = max(new_scaler_crop[0], full_img[0])
-    new_scaler_crop[0] = min(new_scaler_crop[0], full_img[0] + full_img[2] - new_scaler_crop[2])
+    new_scaler_crop[0] = min(
+        new_scaler_crop[0], full_img[0] + full_img[2] - new_scaler_crop[2]
+    )
 
     scaler_crop = tuple(new_scaler_crop)
 
@@ -196,7 +219,8 @@ def capture_done(job):
             )
         else:
             request.save(
-                "main", f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}.{pic_tab.filetype.currentText()}"
+                "main",
+                f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}.{pic_tab.filetype.currentText()}",
             )
         request.release()
         rec_button.setEnabled(True)
@@ -223,14 +247,25 @@ def capture_done(job):
                 above = max_e - e_log
                 print("Desired exposure too long, reducing", e_log + 1, max_e, above)
             # list(set()) to ensure uniqueness
-            hdr_imgs["exposures"] = {"all": list(set(np.logspace(
-                e_log - below, e_log + above, pic_tab.num_hdr.value(),
-                base=2.0, dtype=np.integer
-            )))}
+            hdr_imgs["exposures"] = {
+                "all": list(
+                    set(
+                        np.logspace(
+                            e_log - below,
+                            e_log + above,
+                            pic_tab.num_hdr.value(),
+                            base=2.0,
+                            dtype=np.integer,
+                        )
+                    )
+                )
+            }
             # Remove any 0 exposures
             if 0 in hdr_imgs["exposures"]["all"]:
                 i = hdr_imgs["exposures"]["all"].index(0)
-                hdr_imgs["exposures"]["all"][i] = picam2.camera_controls["ExposureTime"][0]
+                hdr_imgs["exposures"]["all"][i] = picam2.camera_controls[
+                    "ExposureTime"
+                ][0]
             hdr_imgs["exposures"]["all"].sort()
             hdr_imgs["exposures"]["left"] = hdr_imgs["exposures"]["all"].copy()
             hdr_imgs["exposures"]["number"] = 0
@@ -240,11 +275,13 @@ def capture_done(job):
             # Save first image
             cv2.imwrite(
                 f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}_base.{pic_tab.filetype.currentText()}",
-                new_cv_img
+                new_cv_img,
             )
         else:
             # Find which exposure time has been captured
-            nearest_exposure = min(hdr_imgs["exposures"]["all"], key=lambda x: abs(x - new_exposure))
+            nearest_exposure = min(
+                hdr_imgs["exposures"]["all"], key=lambda x: abs(x - new_exposure)
+            )
             if nearest_exposure == hdr_imgs["exposures"]["left"][0]:
                 # This is an image we want
                 hdr_imgs[new_exposure] = new_cv_img
@@ -253,9 +290,16 @@ def capture_done(job):
                 print("Taken", hdr_imgs["exposures"]["number"], "images")
             else:
                 # Ignore this image
-                print("Waiting for exposure switch from", new_exposure, "to", hdr_imgs["exposures"]["left"][0])
+                print(
+                    "Waiting for exposure switch from",
+                    new_exposure,
+                    "to",
+                    hdr_imgs["exposures"]["left"][0],
+                )
         if hdr_imgs["exposures"]["number"] == len(hdr_imgs["exposures"]["all"]):
-            print(f"All {len(hdr_imgs) - 1} HDR exposures captured, dispatching thread to process them")
+            print(
+                f"All {len(hdr_imgs) - 1} HDR exposures captured, dispatching thread to process them"
+            )
             print("Captured exposures", list(hdr_imgs.keys())[1:])
             print("Desired exposures", hdr_imgs["exposures"]["all"])
             thread = threading.Thread(target=process_hdr, daemon=True)
@@ -291,10 +335,10 @@ def process_hdr():
     pic_tab.hdr_label.setText("HDR (Processing)")
 
     mean_image = np.average(np.array(img_list), axis=0)
-    mean_8bit = mean_image.astype('uint8')
+    mean_8bit = mean_image.astype("uint8")
     cv2.imwrite(
         f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}_mean.{pic_tab.filetype.currentText()}",
-        mean_8bit
+        mean_8bit,
     )
     del mean_image, mean_8bit
     print("Mean Done")
@@ -302,10 +346,10 @@ def process_hdr():
     merge_debevec = cv2.createMergeDebevec()
     hdr_debevec = merge_debevec.process(img_list, times=exposures.copy())
     res_debevec = tonemap.process(hdr_debevec.copy())
-    res_debevec_8bit = np.clip(res_debevec * 255, 0, 255).astype('uint8')
+    res_debevec_8bit = np.clip(res_debevec * 255, 0, 255).astype("uint8")
     cv2.imwrite(
         f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}_debevec.{pic_tab.filetype.currentText()}",
-        res_debevec_8bit
+        res_debevec_8bit,
     )
     del merge_debevec, hdr_debevec, res_debevec, res_debevec_8bit
     print("Debevec Done")
@@ -313,20 +357,20 @@ def process_hdr():
     merge_robertson = cv2.createMergeRobertson()
     hdr_robertson = merge_robertson.process(img_list, times=exposures.copy())
     res_robertson = tonemap.process(hdr_robertson.copy())
-    res_robertson_8bit = np.clip(res_robertson * 255, 0, 255).astype('uint8')
+    res_robertson_8bit = np.clip(res_robertson * 255, 0, 255).astype("uint8")
     cv2.imwrite(
         f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}_robertson.{pic_tab.filetype.currentText()}",
-        res_robertson_8bit
+        res_robertson_8bit,
     )
     del merge_robertson, hdr_robertson, res_robertson, res_robertson_8bit
     print("Robertson Done")
 
     merge_mertens = cv2.createMergeMertens()
     res_mertens = merge_mertens.process(img_list)
-    res_mertens_8bit = np.clip(res_mertens * 255, 0, 255).astype('uint8')
+    res_mertens_8bit = np.clip(res_mertens * 255, 0, 255).astype("uint8")
     cv2.imwrite(
         f"{pic_tab.filename.text() if pic_tab.filename.text() else 'test'}_mertens.{pic_tab.filetype.currentText()}",
-        res_mertens_8bit
+        res_mertens_8bit,
     )
     del merge_mertens, res_mertens, res_mertens_8bit
     print("Mertens Done")
@@ -381,7 +425,9 @@ class logControlSlider(QWidget):
         else:
             center = self.points // 2
             scaling = center / np.log2(self.maximum)
-            return round(2**((val - center) / scaling), int(-np.log10(self.precision)))
+            return round(
+                2 ** ((val - center) / scaling), int(-np.log10(self.precision))
+            )
 
     def updateValue(self):
         self.blockAllSignals(True)
@@ -490,14 +536,21 @@ class panTab(QWidget):
         self.layout = QFormLayout()
         self.setLayout(self.layout)
 
-        self.label = QLabel((
-            "Pan and Zoom Controls\n"
-            "To zoom in/out, scroll up/down in the display below\n"
-            "To pan, click and drag in the display below"),
-            alignment=Qt.AlignCenter)
+        self.label = QLabel(
+            (
+                "Pan and Zoom Controls\n"
+                "To zoom in/out, scroll up/down in the display below\n"
+                "To pan, click and drag in the display below"
+            ),
+            alignment=Qt.AlignCenter,
+        )
         self.zoom_text = QLabel("Current Zoom Level: 1.0", alignment=Qt.AlignCenter)
         self.pan_display = panZoomDisplay()
-        self.pan_display.updated.connect(lambda: self.zoom_text.setText(f"Current Zoom Level: {self.pan_display.zoom_level:.1f}x"))
+        self.pan_display.updated.connect(
+            lambda: self.zoom_text.setText(
+                f"Current Zoom Level: {self.pan_display.zoom_level:.1f}x"
+            )
+        )
 
         self.layout.addRow(self.label)
         self.layout.addRow(self.zoom_text)
@@ -559,9 +612,13 @@ class panZoomDisplay(QWidget):
 
         # Check still within bounds
         new_scaler_crop[1] = max(new_scaler_crop[1], full_img[1])
-        new_scaler_crop[1] = min(new_scaler_crop[1], full_img[1] + full_img[3] - new_scaler_crop[3])
+        new_scaler_crop[1] = min(
+            new_scaler_crop[1], full_img[1] + full_img[3] - new_scaler_crop[3]
+        )
         new_scaler_crop[0] = max(new_scaler_crop[0], full_img[0])
-        new_scaler_crop[0] = min(new_scaler_crop[0], full_img[0] + full_img[2] - new_scaler_crop[2])
+        new_scaler_crop[0] = min(
+            new_scaler_crop[0], full_img[0] + full_img[2] - new_scaler_crop[2]
+        )
         scaler_crop = tuple(new_scaler_crop)
         picam2.controls.ScalerCrop = scaler_crop
         self.update()
@@ -579,7 +636,10 @@ class panZoomDisplay(QWidget):
             self.zoom_level = self.max_zoom
         factor = 1.0 / self.zoom_level
         full_img = picam2.camera_properties["ScalerCropMaximum"]
-        current_center = (scaler_crop[0] + scaler_crop[2] // 2, scaler_crop[1] + scaler_crop[3] // 2)
+        current_center = (
+            scaler_crop[0] + scaler_crop[2] // 2,
+            scaler_crop[1] + scaler_crop[3] // 2,
+        )
         w = int(factor * full_img[2])
         h = int(factor * full_img[3])
         x = current_center[0] - w // 2
@@ -587,9 +647,13 @@ class panZoomDisplay(QWidget):
         new_scaler_crop = [x, y, w, h]
         # Check still within bounds
         new_scaler_crop[1] = max(new_scaler_crop[1], full_img[1])
-        new_scaler_crop[1] = min(new_scaler_crop[1], full_img[1] + full_img[3] - new_scaler_crop[3])
+        new_scaler_crop[1] = min(
+            new_scaler_crop[1], full_img[1] + full_img[3] - new_scaler_crop[3]
+        )
         new_scaler_crop[0] = max(new_scaler_crop[0], full_img[0])
-        new_scaler_crop[0] = min(new_scaler_crop[0], full_img[0] + full_img[2] - new_scaler_crop[2])
+        new_scaler_crop[0] = min(
+            new_scaler_crop[0], full_img[0] + full_img[2] - new_scaler_crop[2]
+        )
         scaler_crop = tuple(new_scaler_crop)
         picam2.controls.ScalerCrop = scaler_crop
         self.update()
@@ -630,17 +694,28 @@ class AECTab(QWidget):
         self.aec_apply = QPushButton("Apply Manual Values")
         self.aec_apply.setEnabled(False)
         self.aec_apply.clicked.connect(self.aec_manual_update)
-        self.exposure_time.valueChanged.connect(lambda: self.aec_apply.setEnabled(self.exposure_time.isEnabled()))
-        self.analogue_gain.valueChanged.connect(lambda: self.aec_apply.setEnabled(self.exposure_time.isEnabled()))
+        self.exposure_time.valueChanged.connect(
+            lambda: self.aec_apply.setEnabled(self.exposure_time.isEnabled())
+        )
+        self.analogue_gain.valueChanged.connect(
+            lambda: self.aec_apply.setEnabled(self.exposure_time.isEnabled())
+        )
 
         self.awb_check = QCheckBox("AWB")
         self.awb_check.setChecked(True)
         self.awb_check.stateChanged.connect(self.awb_update)
         self.awb_mode = QComboBox()
-        self.awb_mode.addItems([
-            "Auto", "Incandescent", "Tungsten", "Fluorescent",
-            "Indoor", "Daylight", "Cloudy"
-        ])
+        self.awb_mode.addItems(
+            [
+                "Auto",
+                "Incandescent",
+                "Tungsten",
+                "Fluorescent",
+                "Indoor",
+                "Daylight",
+                "Cloudy",
+            ]
+        )
         self.awb_mode.currentIndexChanged.connect(self.awb_update)
         self.colour_gain_r = QDoubleSpinBox()
         self.colour_gain_r.setSingleStep(0.1)
@@ -686,7 +761,7 @@ class AECTab(QWidget):
             "AeExposureMode": self.aec_exposure.currentIndex(),
             "ExposureValue": self.exposure_val.value(),
             "ExposureTime": self.exposure_time.value(),
-            "AnalogueGain": self.analogue_gain.value()
+            "AnalogueGain": self.analogue_gain.value(),
         }
         if self.aec_check.isChecked():
             del ret["ExposureTime"]
@@ -699,7 +774,9 @@ class AECTab(QWidget):
         self.exposure_time.setMinimum(picam2.camera_controls["ExposureTime"][0])
         self.exposure_time.setMaximum(picam2.camera_controls["ExposureTime"][1])
         self.analogue_gain.setMinimum(picam2.camera_controls["AnalogueGain"][0])
-        self.analogue_label.setText(f"Analogue up to {picam2.camera_controls['AnalogueGain'][1]:.2f}, then digital beyond")
+        self.analogue_label.setText(
+            f"Analogue up to {picam2.camera_controls['AnalogueGain'][1]:.2f}, then digital beyond"
+        )
 
         self.aec_meter.setEnabled(self.aec_check.isChecked())
         self.aec_constraint.setEnabled(self.aec_check.isChecked())
@@ -722,7 +799,7 @@ class AECTab(QWidget):
         ret = {
             "AwbEnable": self.awb_check.isChecked(),
             "AwbMode": self.awb_mode.currentIndex(),
-            "ColourGains": [self.colour_gain_r.value(), self.colour_gain_b.value()]
+            "ColourGains": [self.colour_gain_r.value(), self.colour_gain_b.value()],
         }
         if self.awb_check.isChecked():
             del ret["ColourGains"]
@@ -873,7 +950,12 @@ class vidTab(QWidget):
         self.resolution_h.setMaximum(min(picam2.sensor_resolution[1], 1080))
         self.raw_format = QComboBox()
         self.raw_format.addItem("Default")
-        self.raw_format.addItems([f'{x["format"].format} {x["size"]}, {x["fps"]:.0f}fps' for x in picam2.sensor_modes])
+        self.raw_format.addItems(
+            [
+                f'{x["format"].format} {x["size"]}, {x["fps"]:.0f}fps'
+                for x in picam2.sensor_modes
+            ]
+        )
         self.apply_button = QPushButton("Apply")
         self.apply_button.clicked.connect(self.apply_settings)
 
@@ -905,7 +987,7 @@ class vidTab(QWidget):
             "Low": Quality.LOW,
             "Medium": Quality.MEDIUM,
             "High": Quality.HIGH,
-            "Very High": Quality.VERY_HIGH
+            "Very High": Quality.VERY_HIGH,
         }
         return qualities[self.quality_box.currentText()]
 
@@ -923,13 +1005,13 @@ class vidTab(QWidget):
     @frametime.setter
     def frametime(self, value):
         self.frametime_ = value
-        self.actual_framerate.setText(f"Actual Framerate: {1e6 / self.frametime:.1f}fps")
+        self.actual_framerate.setText(
+            f"Actual Framerate: {1e6 / self.frametime:.1f}fps"
+        )
 
     @property
     def vid_dict(self):
-        return {
-            "FrameRate": self.framerate.value()
-        }
+        return {"FrameRate": self.framerate.value()}
 
     def vid_update(self):
         if self.isVisible():
@@ -944,13 +1026,13 @@ class vidTab(QWidget):
         self.resolution_w.setValue(1280)
         picam2.video_configuration = picam2.create_video_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
 
     def apply_settings(self):
         picam2.video_configuration = picam2.create_video_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
         switch_config("video")
 
@@ -966,20 +1048,30 @@ class picTab(QWidget):
         self.filetype.addItems(["jpg", "png", "bmp", "gif", "raw"])
         self.resolution_w = QSpinBox()
         self.resolution_w.setMaximum(picam2.sensor_resolution[0])
-        self.resolution_w.valueChanged.connect(lambda: self.apply_button.setEnabled(True))
+        self.resolution_w.valueChanged.connect(
+            lambda: self.apply_button.setEnabled(True)
+        )
         self.resolution_h = QSpinBox()
         self.resolution_h.setMaximum(picam2.sensor_resolution[1])
-        self.resolution_h.valueChanged.connect(lambda: self.apply_button.setEnabled(True))
+        self.resolution_h.valueChanged.connect(
+            lambda: self.apply_button.setEnabled(True)
+        )
         self.raw_format = QComboBox()
         self.raw_format.addItem("Default")
-        self.raw_format.addItems([f'{x["format"].format} {x["size"]}' for x in picam2.sensor_modes])
+        self.raw_format.addItems(
+            [f'{x["format"].format} {x["size"]}' for x in picam2.sensor_modes]
+        )
         self.raw_format.currentIndexChanged.connect(self.update_options)
         self.preview_format = QComboBox()
-        self.preview_format.currentIndexChanged.connect(lambda: self.apply_button.setEnabled(True))
+        self.preview_format.currentIndexChanged.connect(
+            lambda: self.apply_button.setEnabled(True)
+        )
         self.preview_check = QCheckBox()
         self.preview_check.setChecked(True)
         self.preview_check.stateChanged.connect(self.apply_settings)
-        self.preview_warning = QLabel("WARNING: Preview and Capture modes have different fields of view")
+        self.preview_warning = QLabel(
+            "WARNING: Preview and Capture modes have different fields of view"
+        )
         self.preview_warning.setWordWrap(True)
         self.preview_warning.hide()
         self.hdr_label = QLabel("HDR")
@@ -1070,7 +1162,7 @@ class picTab(QWidget):
         picam2.still_configuration = picam2.create_still_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
             **still_kwargs,
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
 
     def update_options(self):
@@ -1088,7 +1180,9 @@ class picTab(QWidget):
         if preview_index < 0:
             preview_index = 0
         if self.sensor_mode:
-            crop_limits = picam2.sensor_modes[self.raw_format.currentIndex() - 1]["crop_limits"]
+            crop_limits = picam2.sensor_modes[self.raw_format.currentIndex() - 1][
+                "crop_limits"
+            ]
         else:
             crop_limits = (0, 0, *picam2.sensor_resolution)
         self.preview_format.clear()
@@ -1110,13 +1204,19 @@ class picTab(QWidget):
         picam2.still_configuration = picam2.create_still_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
             **still_kwargs,
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
         picam2.preview_configuration = picam2.create_preview_configuration(
-            main={"size": (
-                qpicamera2.width(), int(qpicamera2.width() * (self.resolution_h.value() / self.resolution_w.value()))
-            )},
-            raw=self.preview_mode
+            main={
+                "size": (
+                    qpicamera2.width(),
+                    int(
+                        qpicamera2.width()
+                        * (self.resolution_h.value() / self.resolution_w.value())
+                    ),
+                )
+            },
+            raw=self.preview_mode,
         )
         self.preview_format.setEnabled(self.preview_check.isChecked())
 
@@ -1161,14 +1261,16 @@ implemented_controls = [
     "AnalogueGain",
     "ColourGains",
     "ScalerCrop",
-    "FrameDurationLimits"
+    "FrameDurationLimits",
 ]
 
 
 # Main widgets
 window = QWidget()
 bg_colour = window.palette().color(QPalette.Background).getRgb()[:3]
-qpicamera2 = QGlPicamera2(picam2, width=800, height=600, keep_ar=True, bg_colour=bg_colour)
+qpicamera2 = QGlPicamera2(
+    picam2, width=800, height=600, keep_ar=True, bg_colour=bg_colour
+)
 rec_button = QPushButton("Take Photo")
 rec_button.clicked.connect(on_rec_button_clicked)
 qpicamera2.done_signal.connect(capture_done)

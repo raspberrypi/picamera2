@@ -1,13 +1,13 @@
 import numpy as np
 from libcamera import Transform
 from PyQt5 import QtCore
-from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
-                          pyqtSignal, pyqtSlot)
+from PyQt5.QtCore import QRect, QRectF, QSize, QSocketNotifier, Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView
 
 try:
     import cv2
+
     cv2_available = True
 except ImportError:
     cv2_available = False
@@ -17,7 +17,16 @@ class QPicamera2(QGraphicsView):
     done_signal = pyqtSignal(object)
     update_overlay_signal = pyqtSignal(object)
 
-    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
+    def __init__(
+        self,
+        picam2,
+        parent=None,
+        width=640,
+        height=480,
+        bg_colour=(20, 20, 20),
+        keep_ar=True,
+        transform=None,
+    ):
         super().__init__(parent=parent)
         self.picamera2 = picam2
         picam2.have_event_loop = True
@@ -39,8 +48,9 @@ class QPicamera2(QGraphicsView):
         self.title_function = None
 
         self.update_overlay_signal.connect(self.update_overlay)
-        self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                               QSocketNotifier.Read, self)
+        self.camera_notifier = QSocketNotifier(
+            self.picamera2.notifyme_r, QSocketNotifier.Read, self
+        )
         self.camera_notifier.activated.connect(self.handle_requests)
 
     def cleanup(self):
@@ -54,10 +64,16 @@ class QPicamera2(QGraphicsView):
     def image_dimensions(self):
         # The dimensions of the camera images we're displaying.
         camera_config = self.picamera2.camera_config
-        if camera_config is not None and camera_config['display'] is not None:
+        if camera_config is not None and camera_config["display"] is not None:
             # This works even before we receive any camera images.
-            size = (self.picamera2.stream_map[camera_config['display']].configuration.size.width,
-                    self.picamera2.stream_map[camera_config['display']].configuration.size.height)
+            size = (
+                self.picamera2.stream_map[
+                    camera_config["display"]
+                ].configuration.size.width,
+                self.picamera2.stream_map[
+                    camera_config["display"]
+                ].configuration.size.height,
+            )
         elif self.image_size is not None:
             # If the camera is unconfigured, stick with the last size (if available).
             size = self.image_size
@@ -75,7 +91,7 @@ class QPicamera2(QGraphicsView):
 
         new_pixmap = None
         if overlay is not None:
-            overlay = np.copy(overlay, order='C')
+            overlay = np.copy(overlay, order="C")
             shape = overlay.shape
             qim = QImage(overlay.data, shape[1], shape[0], QImage.Format_RGBA8888)
             new_pixmap = QPixmap(qim)
@@ -151,7 +167,11 @@ class QPicamera2(QGraphicsView):
         if self.title_function is not None:
             self.setWindowTitle(self.title_function(request.get_metadata()))
         camera_config = self.picamera2.camera_config
-        if self.enabled and self.picamera2.display_stream_name is not None and camera_config is not None:
+        if (
+            self.enabled
+            and self.picamera2.display_stream_name is not None
+            and camera_config is not None
+        ):
             stream_config = camera_config[self.picamera2.display_stream_name]
             img = request.make_array(self.picamera2.display_stream_name)
             if stream_config["format"] in ("YUV420", "YUYV"):
@@ -162,9 +182,13 @@ class QPicamera2(QGraphicsView):
                         img = cv2.cvtColor(img, cv2.COLOR_YUV2RGB_YUYV)
                     width = stream_config["size"][0]
                     if width != stream_config["stride"]:
-                        img = img[:, :width, :]  # this will make it even more expensive!
+                        img = img[
+                            :, :width, :
+                        ]  # this will make it even more expensive!
                 else:
-                    raise RuntimeError("Qt preview cannot display YUV420/YUYV without cv2")
+                    raise RuntimeError(
+                        "Qt preview cannot display YUV420/YUYV without cv2"
+                    )
             img = np.ascontiguousarray(img[..., :3])
             shape = img.shape
             qim = QImage(img.data, shape[1], shape[0], QImage.Format_RGB888)

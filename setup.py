@@ -10,18 +10,18 @@ with open("README.md") as readme:
     long_description = readme.read()
 
 setup(
-    name='picamera2',
-    version='0.3.7',
-    description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
+    name="picamera2",
+    version="0.3.7",
+    description="The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library",
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    author='Raspberry Pi & Raspberry Pi Foundation',
-    author_email='picamera2@raspberrypi.com',
-    url='https://github.com/RaspberryPi/picamera2',
+    long_description_content_type="text/markdown",
+    author="Raspberry Pi & Raspberry Pi Foundation",
+    author_email="picamera2@raspberrypi.com",
+    url="https://github.com/RaspberryPi/picamera2",
     project_urls={
-        'Bug Tracker': 'https://github.com/RaspberryPi/picamera2/issues',
+        "Bug Tracker": "https://github.com/RaspberryPi/picamera2/issues",
     },
-    license='BSD 2-Clause',
+    license="BSD 2-Clause",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -30,8 +30,22 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
     ],
-    packages=['picamera2', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews'],
-    python_requires='>=3.9',
-    licence='BSD 2-Clause License',
-    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3', 'python-prctl'],
-    extras_require={"gui": ['pyopengl', 'PyQt5']})
+    packages=[
+        "picamera2",
+        "picamera2.encoders",
+        "picamera2.outputs",
+        "picamera2.previews",
+    ],
+    python_requires=">=3.9",
+    licence="BSD 2-Clause License",
+    install_requires=[
+        "numpy",
+        "PiDNG",
+        "piexif",
+        "pillow",
+        "simplejpeg",
+        "v4l2-python3",
+        "python-prctl",
+    ],
+    extras_require={"gui": ["pyopengl", "PyQt5"]},
+)

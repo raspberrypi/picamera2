@@ -5,15 +5,23 @@
 # when the capture, that is running asynchronously, is finished.
 
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
-                             QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from picamera2 import Picamera2
 from picamera2.previews.qt import QGlPicamera2
 
 
 def post_callback(request):
-    label.setText(''.join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items()))
+    label.setText(
+        "".join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items())
+    )
 
 
 picam2 = Picamera2()
@@ -26,7 +34,9 @@ app = QApplication([])
 def on_button_clicked():
     button.setEnabled(False)
     cfg = picam2.create_still_configuration()
-    picam2.switch_mode_and_capture_file(cfg, "test.jpg", signal_function=qpicamera2.signal_done)
+    picam2.switch_mode_and_capture_file(
+        cfg, "test.jpg", signal_function=qpicamera2.signal_done
+    )
 
 
 def capture_done(job):

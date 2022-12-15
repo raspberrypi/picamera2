@@ -22,14 +22,18 @@ class MJPEGEncoder(V4L2Encoder):
     def _setup(self, quality):
         if self._requested_bitrate is None:
             # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 6,
-                             Quality.LOW: 12,
-                             Quality.MEDIUM: 18,
-                             Quality.HIGH: 27,
-                             Quality.VERY_HIGH: 45}
+            BITRATE_TABLE = {
+                Quality.VERY_LOW: 6,
+                Quality.LOW: 12,
+                Quality.MEDIUM: 18,
+                Quality.HIGH: 27,
+                Quality.VERY_HIGH: 45,
+            }
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * self.framerate
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self._bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
+            self._bitrate = int(
+                reference_bitrate * sqrt(actual_complexity / reference_complexity)
+            )
         else:
             self._bitrate = self._requested_bitrate

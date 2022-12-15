@@ -23,7 +23,7 @@ segmenter = None
 
 
 def ReadLabelFile(file_path):
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         lines = f.readlines()
     ret = {}
     for line in lines:
@@ -45,12 +45,12 @@ def InferenceTensorFlow(image, model, colours, label=None):
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
-    o_height = output_details[0]['shape'][1]
-    o_width = output_details[0]['shape'][2]
+    height = input_details[0]["shape"][1]
+    width = input_details[0]["shape"][2]
+    o_height = output_details[0]["shape"][1]
+    o_width = output_details[0]["shape"][2]
     floating_model = False
-    if input_details[0]['dtype'] == np.float32:
+    if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -61,11 +61,11 @@ def InferenceTensorFlow(image, model, colours, label=None):
     if floating_model:
         input_data = np.float32(input_data / 255)
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.set_tensor(input_details[0]["index"], input_data)
 
     interpreter.invoke()
 
-    output = interpreter.get_tensor(output_details[0]['index'])[0]
+    output = interpreter.get_tensor(output_details[0]["index"])[0]
 
     mask = np.argmax(output, axis=-1)
     found_indices = np.unique(mask)
@@ -77,8 +77,7 @@ def InferenceTensorFlow(image, model, colours, label=None):
         output_shape = [o_width, o_height, 4]
         colour = [(0, 0, 0, 0), colours[i]]
         overlay = (mask == i).astype(np.uint8)
-        overlay = np.array(colour)[overlay].reshape(
-            output_shape).astype(np.uint8)
+        overlay = np.array(colour)[overlay].reshape(output_shape).astype(np.uint8)
         overlay = cv2.resize(overlay, normalSize)
         if labels is not None:
             new_masks[labels[i]] = overlay
@@ -97,7 +96,7 @@ def capture_image_and_masks(picam2: Picamera2, model, colour_file, label_file):
     image = request.make_image("main")
     lores = request.make_buffer("lores")
     stride = picam2.stream_configuration("lores")["stride"]
-    grey = lores[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+    grey = lores[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
 
     InferenceTensorFlow(grey, model, colour_file, label_file)
     for k, v in masks.items():
@@ -115,16 +114,18 @@ def capture_image_and_masks(picam2: Picamera2, model, colour_file, label_file):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', help='Path of the segmentation model.', required=True)
-    parser.add_argument('--label', help='Path of the labels file.')
-    parser.add_argument('--colours', help='File path of the label colours.')
-    parser.add_argument('--output', help='File path of the output image.')
+    parser.add_argument(
+        "--model", help="Path of the segmentation model.", required=True
+    )
+    parser.add_argument("--label", help="Path of the labels file.")
+    parser.add_argument("--colours", help="File path of the label colours.")
+    parser.add_argument("--output", help="File path of the output image.")
     args = parser.parse_args()
 
     if args.output:
         output_file = args.output
     else:
-        output_file = 'out.png'
+        output_file = "out.png"
 
     if args.label:
         label_file = args.label
@@ -138,8 +139,9 @@ def main():
 
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
-    config = picam2.create_preview_configuration(main={"size": normalSize},
-                                                 lores={"size": lowresSize, "format": "YUV420"})
+    config = picam2.create_preview_configuration(
+        main={"size": normalSize}, lores={"size": lowresSize, "format": "YUV420"}
+    )
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
@@ -149,7 +151,7 @@ def main():
     try:
         while True:
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+            grey = buffer[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
             InferenceTensorFlow(grey, args.model, colour_file, label_file)
             overlay = np.zeros((normalSize[1], normalSize[0], 4), dtype=np.uint8)
             global masks
@@ -187,5 +189,5 @@ def main():
         base_image.save(output_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

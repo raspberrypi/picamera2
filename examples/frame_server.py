@@ -8,7 +8,7 @@ from threading import Condition, Thread
 
 
 class FrameServer:
-    def __init__(self, picam2, stream='main'):
+    def __init__(self, picam2, stream="main"):
         """A simple class that can serve up frames from one of the Picamera2's configured
         streams to multiple other threads.
         Pass in the Picamera2 object and the name of the stream for which you want
@@ -60,6 +60,7 @@ class FrameServer:
 
 
 # Below here is just demo code that uses the class:
+
 
 def thread1_func():
     global thread1_count

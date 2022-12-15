@@ -52,12 +52,18 @@ class EglState:
         eglBindAPI(EGL_OPENGL_ES_API)
 
         config_attribs = [
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_RED_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_BLUE_SIZE, 8,
-            EGL_ALPHA_SIZE, 0,
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+            EGL_SURFACE_TYPE,
+            EGL_WINDOW_BIT,
+            EGL_RED_SIZE,
+            8,
+            EGL_GREEN_SIZE,
+            8,
+            EGL_BLUE_SIZE,
+            8,
+            EGL_ALPHA_SIZE,
+            0,
+            EGL_RENDERABLE_TYPE,
+            EGL_OPENGL_ES2_BIT,
             EGL_NONE,
         ]
 
@@ -68,18 +74,30 @@ class EglState:
 
     def create_context(self):
         context_attribs = [
-            EGL_CONTEXT_CLIENT_VERSION, 2,
+            EGL_CONTEXT_CLIENT_VERSION,
+            2,
             EGL_NONE,
         ]
 
-        self.context = eglCreateContext(self.display, self.config, EGL_NO_CONTEXT, context_attribs)
+        self.context = eglCreateContext(
+            self.display, self.config, EGL_NO_CONTEXT, context_attribs
+        )
         eglMakeCurrent(self.display, EGL_NO_SURFACE, EGL_NO_SURFACE, self.context)
 
 
 class QGlPicamera2(QWidget):
     done_signal = pyqtSignal(object)
 
-    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
+    def __init__(
+        self,
+        picam2,
+        parent=None,
+        width=640,
+        height=480,
+        bg_colour=(20, 20, 20),
+        keep_ar=True,
+        transform=None,
+    ):
         super().__init__(parent=parent)
         self.resize(width, height)
 
@@ -100,9 +118,12 @@ class QGlPicamera2(QWidget):
         self.title_function = None
         self.egl = EglState()
         if picam2.verbose_console:
-            print("EGL {} {}".format(
-                eglQueryString(self.egl.display, EGL_VENDOR).decode(),
-                eglQueryString(self.egl.display, EGL_VERSION).decode()))
+            print(
+                "EGL {} {}".format(
+                    eglQueryString(self.egl.display, EGL_VENDOR).decode(),
+                    eglQueryString(self.egl.display, EGL_VERSION).decode(),
+                )
+            )
         self.init_gl()
 
         # set_overlay could be called before the first frame arrives, hence:
@@ -111,8 +132,9 @@ class QGlPicamera2(QWidget):
         self.picamera2 = picam2
         picam2.have_event_loop = True
 
-        self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                               QSocketNotifier.Read, self)
+        self.camera_notifier = QSocketNotifier(
+            self.picamera2.notifyme_r, QSocketNotifier.Read, self
+        )
         self.camera_notifier.activated.connect(self.handle_requests)
         self.running = True
 
@@ -135,8 +157,9 @@ class QGlPicamera2(QWidget):
 
     def create_surface(self):
         native_surface = c_void_p(self.winId().__int__())
-        surface = eglCreateWindowSurface(self.egl.display, self.egl.config,
-                                         native_surface, None)
+        surface = eglCreateWindowSurface(
+            self.egl.display, self.egl.config, native_surface, None
+        )
 
         self.surface = surface
 
@@ -195,19 +218,14 @@ class QGlPicamera2(QWidget):
 
         self.program_image = shaders.compileProgram(
             shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
-            shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
+            shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER),
         )
         self.program_overlay = shaders.compileProgram(
             shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
-            shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER)
+            shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER),
         )
 
-        vertPositions = [
-            0.0, 0.0,
-            1.0, 0.0,
-            1.0, 1.0,
-            0.0, 1.0
-        ]
+        vertPositions = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
 
         inputAttrib = glGetAttribLocation(self.program_image, "aPosition")
         glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
@@ -241,52 +259,76 @@ class QGlPicamera2(QWidget):
             cfg = stream.configuration
             pixel_format = str(cfg.pixel_format)
             if pixel_format not in self.FMT_MAP:
-                raise RuntimeError(f"Format {pixel_format} not supported by QGlPicamera2 preview")
+                raise RuntimeError(
+                    f"Format {pixel_format} not supported by QGlPicamera2 preview"
+                )
             fmt = str_to_fourcc(self.FMT_MAP[pixel_format])
             w, h = (cfg.size.width, cfg.size.height)
             if w > max_texture_size or h > max_texture_size:
-                raise RuntimeError(f"Maximum supported preview image size is {max_texture_size}")
+                raise RuntimeError(
+                    f"Maximum supported preview image size is {max_texture_size}"
+                )
             if pixel_format in ("YUV420", "YVU420"):
                 h2 = h // 2
                 stride2 = cfg.stride // 2
                 attribs = [
-                    EGL_WIDTH, w,
-                    EGL_HEIGHT, h,
-                    EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                    EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                    EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                    EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                    EGL_DMA_BUF_PLANE1_FD_EXT, fb.planes[0].fd,
-                    EGL_DMA_BUF_PLANE1_OFFSET_EXT, h * cfg.stride,
-                    EGL_DMA_BUF_PLANE1_PITCH_EXT, stride2,
-                    EGL_DMA_BUF_PLANE2_FD_EXT, fb.planes[0].fd,
-                    EGL_DMA_BUF_PLANE2_OFFSET_EXT, h * cfg.stride + h2 * stride2,
-                    EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
+                    EGL_WIDTH,
+                    w,
+                    EGL_HEIGHT,
+                    h,
+                    EGL_LINUX_DRM_FOURCC_EXT,
+                    fmt,
+                    EGL_DMA_BUF_PLANE0_FD_EXT,
+                    fb.planes[0].fd,
+                    EGL_DMA_BUF_PLANE0_OFFSET_EXT,
+                    0,
+                    EGL_DMA_BUF_PLANE0_PITCH_EXT,
+                    cfg.stride,
+                    EGL_DMA_BUF_PLANE1_FD_EXT,
+                    fb.planes[0].fd,
+                    EGL_DMA_BUF_PLANE1_OFFSET_EXT,
+                    h * cfg.stride,
+                    EGL_DMA_BUF_PLANE1_PITCH_EXT,
+                    stride2,
+                    EGL_DMA_BUF_PLANE2_FD_EXT,
+                    fb.planes[0].fd,
+                    EGL_DMA_BUF_PLANE2_OFFSET_EXT,
+                    h * cfg.stride + h2 * stride2,
+                    EGL_DMA_BUF_PLANE2_PITCH_EXT,
+                    stride2,
                     EGL_NONE,
                 ]
             else:
                 attribs = [
-                    EGL_WIDTH, w,
-                    EGL_HEIGHT, h,
-                    EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                    EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                    EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                    EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
+                    EGL_WIDTH,
+                    w,
+                    EGL_HEIGHT,
+                    h,
+                    EGL_LINUX_DRM_FOURCC_EXT,
+                    fmt,
+                    EGL_DMA_BUF_PLANE0_FD_EXT,
+                    fb.planes[0].fd,
+                    EGL_DMA_BUF_PLANE0_OFFSET_EXT,
+                    0,
+                    EGL_DMA_BUF_PLANE0_PITCH_EXT,
+                    cfg.stride,
                     EGL_NONE,
                 ]
 
-            image = eglCreateImageKHR(display,
-                                      EGL_NO_CONTEXT,
-                                      EGL_LINUX_DMA_BUF_EXT,
-                                      None,
-                                      attribs)
+            image = eglCreateImageKHR(
+                display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, None, attribs
+            )
 
             self.texture = glGenTextures(1)
             glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.texture)
             glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-            glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-            glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+            glTexParameteri(
+                GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE
+            )
+            glTexParameteri(
+                GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE
+            )
             glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image)
 
             eglDestroyImageKHR(display, image)
@@ -296,7 +338,9 @@ class QGlPicamera2(QWidget):
             raise RuntimeError("Camera must be configured before setting overlay")
 
         with self.lock:
-            eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+            eglMakeCurrent(
+                self.egl.display, self.surface, self.surface, self.egl.context
+            )
 
             if overlay is None:
                 self.overlay_present = False
@@ -311,11 +355,23 @@ class QGlPicamera2(QWidget):
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                 (height, width, channels) = overlay.shape
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, overlay)
+                glTexImage2D(
+                    GL_TEXTURE_2D,
+                    0,
+                    GL_RGBA,
+                    width,
+                    height,
+                    0,
+                    GL_RGBA,
+                    GL_UNSIGNED_BYTE,
+                    overlay,
+                )
                 self.overlay_present = True
                 self.repaint(self.current_request)
 
-            eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+            eglMakeCurrent(
+                self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT
+            )
 
     def repaint(self, completed_request, update_viewport=False):
         # The context should be set up and cleared by the caller.
@@ -330,7 +386,9 @@ class QGlPicamera2(QWidget):
 
             if self.picamera2.verbose_console:
                 print("Make buffer for request", completed_request.request)
-            self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request, self.egl.max_texture_size)
+            self.buffers[completed_request.request] = self.Buffer(
+                self.egl.display, completed_request, self.egl.max_texture_size
+            )
 
             # New buffers mean the image size may change so update the viewport just in case.
             update_viewport = True
@@ -368,16 +426,20 @@ class QGlPicamera2(QWidget):
         if self.picamera2.display_stream_name is not None:
             with self.lock:
                 if self.running:
-                    eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+                    eglMakeCurrent(
+                        self.egl.display, self.surface, self.surface, self.egl.context
+                    )
                     self.repaint(request)
-                    eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+                    eglMakeCurrent(
+                        self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT
+                    )
                 if self.current_request and self.own_current:
                     self.current_request.release()
                 self.current_request = request
             # The pipeline will stall if there's only one buffer and we always hold on to
             # the last one. When we can, however, holding on to them is still preferred.
             config = self.picamera2.camera_config
-            if config is not None and config['buffer_count'] > 1:
+            if config is not None and config["buffer_count"] > 1:
                 self.own_current = True
             else:
                 self.own_current = False
@@ -392,10 +454,17 @@ class QGlPicamera2(QWidget):
 
         stream_map = self.picamera2.stream_map
         camera_config = self.picamera2.camera_config
-        if not self.keep_ar or camera_config is None or camera_config['display'] is None:
+        if (
+            not self.keep_ar
+            or camera_config is None
+            or camera_config["display"] is None
+        ):
             return 0, 0, window_w, window_h
 
-        image_w, image_h = (stream_map[camera_config['display']].configuration.size.width, stream_map[camera_config['display']].configuration.size.height)
+        image_w, image_h = (
+            stream_map[camera_config["display"]].configuration.size.width,
+            stream_map[camera_config["display"]].configuration.size.height,
+        )
         if image_w * window_h > window_w * image_h:
             w = window_w
             h = w * image_h // image_w
@@ -408,9 +477,13 @@ class QGlPicamera2(QWidget):
 
     def resizeEvent(self, event):
         with self.lock:
-            eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+            eglMakeCurrent(
+                self.egl.display, self.surface, self.surface, self.egl.context
+            )
             self.repaint(self.current_request, update_viewport=True)
-            eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+            eglMakeCurrent(
+                self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT
+            )
 
     def show(self):
         super().show()

@@ -51,3 +51,5 @@ docs/_build/
 .idea
 /.spyproject
 .spyproject
+
+.vscode/

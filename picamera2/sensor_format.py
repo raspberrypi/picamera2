@@ -3,7 +3,7 @@ from libcamera import Transform
 import numpy as np
 
 
-class SensorFormat():
+class SensorFormat:
     def __init__(self, fmt_string):
         if "_" in fmt_string:
             pixels, self.packing = fmt_string.split("_")

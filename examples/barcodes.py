@@ -19,7 +19,15 @@ def draw_barcodes(request):
             if b.polygon:
                 x = min([p.x for p in b.polygon])
                 y = min([p.y for p in b.polygon]) - 30
-                cv2.putText(m.array, b.data.decode('utf-8'), (x, y), font, scale, colour, thickness)
+                cv2.putText(
+                    m.array,
+                    b.data.decode("utf-8"),
+                    (x, y),
+                    font,
+                    scale,
+                    colour,
+                    thickness,
+                )
 
 
 picam2 = Picamera2()

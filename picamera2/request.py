@@ -14,6 +14,7 @@ from .controls import Controls
 
 _log = logging.getLogger(__name__)
 
+
 class _MappedBuffer:
     def __init__(self, request, stream):
         stream = request.picam2.stream_map[stream]
@@ -31,9 +32,11 @@ class _MappedBuffer:
             # the compressed image size for MJPEG cameras.
             buflen = buflen + p_metadata.bytes_used
             if fd != p.fd:
-                raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
+                raise RuntimeError("_MappedBuffer: Cannot map non-contiguous buffer!")
 
-        self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+        self.__mm = mmap.mmap(
+            fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE
+        )
         return self.__mm
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -66,12 +69,12 @@ class MappedArray:
             if fmt in ("BGR888", "RGB888"):
                 if stride != w * 3:
                     array = array.reshape((h, stride))
-                    array = array[:, :w * 3]
+                    array = array[:, : w * 3]
                 array = array.reshape((h, w, 3))
             elif fmt in ("XBGR8888", "XRGB8888"):
                 if stride != w * 4:
                     array = array.reshape((h, stride))
-                    array = array[:, :w * 4]
+                    array = array[:, : w * 4]
                 array = array.reshape((h, w, 4))
             elif fmt in ("YUV420", "YVU420"):
                 # Returning YUV420 as an image of 50% greater height (the extra bit continaing
@@ -156,15 +159,21 @@ class CompletedRequest:
 
     def make_image(self, name, width=None, height=None):
         """Make a PIL image from the named stream's buffer."""
-        return self.picam2.helpers.make_image(self.make_buffer(name), self.config[name], width, height)
+        return self.picam2.helpers.make_image(
+            self.make_buffer(name), self.config[name], width, height
+        )
 
     def save(self, name, file_output, format=None):
         """Save a JPEG or PNG image of the named stream's buffer."""
-        return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output, format)
+        return self.picam2.helpers.save(
+            self.make_image(name), self.get_metadata(), file_output, format
+        )
 
     def save_dng(self, filename, name="raw"):
         """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.config[name], filename)
+        return self.picam2.helpers.save_dng(
+            self.make_buffer(name), self.get_metadata(), self.config[name], filename
+        )
 
 
 class Helpers:
@@ -188,12 +197,12 @@ class Helpers:
         if fmt in ("BGR888", "RGB888"):
             if stride != w * 3:
                 array = array.reshape((h, stride))
-                array = np.asarray(array[:, :w * 3], order='C')
+                array = np.asarray(array[:, : w * 3], order="C")
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
             if stride != w * 4:
                 array = array.reshape((h, stride))
-                array = np.asarray(array[:, :w * 4], order='C')
+                array = np.asarray(array[:, : w * 4], order="C")
             image = array.reshape((h, w, 4))
         elif fmt in ("YUV420", "YVU420"):
             # Returning YUV420 as an image of 50% greater height (the extra bit continaing
@@ -220,11 +229,18 @@ class Helpers:
             return Image.open(io.BytesIO(buffer))
         else:
             rgb = self.make_array(buffer, config)
-        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
+        mode_lookup = {
+            "RGB888": "BGR",
+            "BGR888": "RGB",
+            "XBGR8888": "RGBA",
+            "XRGB8888": "BGRX",
+        }
         if fmt not in mode_lookup:
             raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
         mode = mode_lookup[fmt]
-        pil_img = Image.frombuffer("RGB", (rgb.shape[1], rgb.shape[0]), rgb, "raw", mode, 0, 1)
+        pil_img = Image.frombuffer(
+            "RGB", (rgb.shape[1], rgb.shape[0]), rgb, "raw", mode, 0, 1
+        )
         if width is None:
             width = rgb.shape[1]
         if height is None:
@@ -238,32 +254,40 @@ class Helpers:
         """Save a JPEG or PNG image of the named stream's buffer."""
         # This is probably a hideously expensive way to do a capture.
         start_time = time.monotonic()
-        exif = b''
+        exif = b""
         if isinstance(format, str):
             format_str = format.lower()
         elif isinstance(file_output, str):
-            format_str = file_output.split('.')[-1].lower()
+            format_str = file_output.split(".")[-1].lower()
         else:
             raise RuntimeError("Cannot detemine format to save")
-        if format_str in ('jpg', 'jpeg'):
+        if format_str in ("jpg", "jpeg"):
             if img.mode == "RGBA":
                 # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
                 # doesn't like RGBA to we have to bodge that to RGBX.
                 img.mode = "RGBX"
             # Make up some extra EXIF data.
             if "AnalogueGain" in metadata and "DigitalGain" in metadata:
-                zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
-                            piexif.ImageIFD.Model: self.picam2.camera.id,
-                            piexif.ImageIFD.Software: "Picamera2"}
+                zero_ifd = {
+                    piexif.ImageIFD.Make: "Raspberry Pi",
+                    piexif.ImageIFD.Model: self.picam2.camera.id,
+                    piexif.ImageIFD.Software: "Picamera2",
+                }
                 total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
-                exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
-                            piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
+                exif_ifd = {
+                    piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                    piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100),
+                }
                 exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
         # compress_level=1 saves pngs much faster, and still gets most of the compression.
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
-        keywords = {"compress_level": png_compress_level, "quality": jpeg_quality, "format": format}
-        if exif != b'':
+        keywords = {
+            "compress_level": png_compress_level,
+            "quality": jpeg_quality,
+            "format": format,
+        }
+        if exif != b"":
             keywords |= {"exif": exif}
         img.save(file_output, **keywords)
         end_time = time.monotonic()

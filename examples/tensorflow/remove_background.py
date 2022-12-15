@@ -25,12 +25,12 @@ def InferenceTensorFlow(image, model):
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
-    o_height = output_details[0]['shape'][1]
-    o_width = output_details[0]['shape'][2]
+    height = input_details[0]["shape"][1]
+    width = input_details[0]["shape"][2]
+    o_height = output_details[0]["shape"][1]
+    o_width = output_details[0]["shape"][2]
     floating_model = False
-    if input_details[0]['dtype'] == np.float32:
+    if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -41,17 +41,16 @@ def InferenceTensorFlow(image, model):
     if floating_model:
         input_data = np.float32(input_data / 255)
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.set_tensor(input_details[0]["index"], input_data)
 
     interpreter.invoke()
 
-    output = interpreter.get_tensor(output_details[0]['index'])[0]
+    output = interpreter.get_tensor(output_details[0]["index"])[0]
 
     mask = np.argmax(output, axis=-1)
     output_shape = (o_width, o_height)
     overlay = (mask == 0).astype(np.uint8)
-    overlay = np.array([0, 255])[overlay].reshape(
-        output_shape).astype(np.uint8)
+    overlay = np.array([0, 255])[overlay].reshape(output_shape).astype(np.uint8)
     overlay = cv2.resize(overlay, normalSize)
     background_mask = Image.fromarray(overlay)
 
@@ -59,14 +58,17 @@ def InferenceTensorFlow(image, model):
 def main():
     global background_img
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', help='Path of the segmentation model.', required=True)
-    parser.add_argument('--background', help='Path of the background image.')
+    parser.add_argument(
+        "--model", help="Path of the segmentation model.", required=True
+    )
+    parser.add_argument("--background", help="Path of the background image.")
     args = parser.parse_args()
 
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
-    config = picam2.create_preview_configuration(main={"size": normalSize},
-                                                 lores={"size": lowresSize, "format": "YUV420"})
+    config = picam2.create_preview_configuration(
+        main={"size": normalSize}, lores={"size": lowresSize, "format": "YUV420"}
+    )
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
@@ -82,7 +84,7 @@ def main():
 
     while True:
         buffer = picam2.capture_buffer("lores")
-        grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+        grey = buffer[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
         InferenceTensorFlow(grey, args.model)
         base_img = np.zeros((normalSize[1], normalSize[0], 3), dtype=np.uint8)
         base_img = Image.fromarray(base_img)
@@ -93,5 +95,5 @@ def main():
         picam2.set_overlay(overlay)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -26,7 +26,9 @@ def check(raw_config, fps):
     assert picam2.camera_configuration()["raw"]["size"] == raw_config["size"]
     set_format = SensorFormat(picam2.camera_configuration()["raw"]["format"])
     set_format.transform(Transform(rotation=picam2.camera_properties["Rotation"]))
-    assert set_format.format == raw_config["format"], f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
+    assert (
+        set_format.format == raw_config["format"]
+    ), f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
     picam2.set_controls({"FrameRate": fps})
     picam2.start(show_preview=True)
     time.sleep(1)

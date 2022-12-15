@@ -1,9 +1,22 @@
-from ctypes import (CFUNCTYPE, POINTER, c_bool, c_char_p, c_int, c_void_p,
-                    cdll, pointer, util)
+from ctypes import (
+    CFUNCTYPE,
+    POINTER,
+    c_bool,
+    c_char_p,
+    c_int,
+    c_void_p,
+    cdll,
+    pointer,
+    util,
+)
 
 from OpenGL import GL as gl
-from OpenGL.EGL.VERSION.EGL_1_0 import (EGL_EXTENSIONS, EGLNativeDisplayType,
-                                        eglGetProcAddress, eglQueryString)
+from OpenGL.EGL.VERSION.EGL_1_0 import (
+    EGL_EXTENSIONS,
+    EGLNativeDisplayType,
+    eglGetProcAddress,
+    eglQueryString,
+)
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 from OpenGL.raw.GLES2 import _types as _cs
@@ -29,7 +42,7 @@ glEGLImageTargetTexture2DOES = getglEGLImageTargetTexture2DOES()
 
 
 def str_to_fourcc(str):
-    assert(len(str) == 4)
+    assert len(str) == 4
     fourcc = 0
     for i, v in enumerate([ord(c) for c in str]):
         fourcc |= v << (i * 8)

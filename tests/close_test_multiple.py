@@ -16,13 +16,13 @@ def run_camera(idx):
     camera.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     if len(Picamera2.global_camera_info()) <= 1:
         print("SKIPPED (one camera)")
         quit()
 
-    multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method("spawn")
 
     print("Test two processes")
     procs = []

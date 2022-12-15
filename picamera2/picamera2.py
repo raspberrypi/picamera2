@@ -35,6 +35,7 @@ VIEWFINDER = libcamera.StreamRole.Viewfinder
 
 _log = logging.getLogger(__name__)
 
+
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
 
@@ -95,10 +96,15 @@ class CameraManager:
         with self._lock:
             cams = set()
             for req in self.cms.get_ready_requests():
-                if req.status == libcamera.Request.Status.Complete and req.cookie != flushid:
+                if (
+                    req.status == libcamera.Request.Status.Complete
+                    and req.cookie != flushid
+                ):
                     cams.add(req.cookie)
                     with self.cameras[req.cookie]._requestslock:
-                        self.cameras[req.cookie]._requests += [CompletedRequest(req, self.cameras[req.cookie])]
+                        self.cameras[req.cookie]._requests += [
+                            CompletedRequest(req, self.cameras[req.cookie])
+                        ]
             for c in cams:
                 os.write(self.cameras[c].notifyme_w, b"\x00")
 
@@ -159,13 +165,15 @@ class Picamera2:
         if dir is not None:
             dirs = [dir]
         else:
-            dirs = ["/home/pi/libcamera/src/ipa/raspberrypi/data",
-                    "/usr/local/share/libcamera/ipa/raspberrypi",
-                    "/usr/share/libcamera/ipa/raspberrypi"]
+            dirs = [
+                "/home/pi/libcamera/src/ipa/raspberrypi/data",
+                "/usr/local/share/libcamera/ipa/raspberrypi",
+                "/usr/share/libcamera/ipa/raspberrypi",
+            ]
         for dir in dirs:
             file = os.path.join(dir, tuning_file)
             if os.path.isfile(file):
-                with open(file, 'r') as fp:
+                with open(file, "r") as fp:
                     return json.load(fp)
         raise RuntimeError("Tuning file not found")
 
@@ -192,11 +200,19 @@ class Picamera2:
         and ordered correctly by camera number. Also return the location and rotation
         of the camera when known, as these may help distinguish which is which.
         """
+
         def describe_camera(cam):
-            info = {k.name: v for k, v in cam.properties.items() if k.name in ("Model", "Location", "Rotation")}
+            info = {
+                k.name: v
+                for k, v in cam.properties.items()
+                if k.name in ("Model", "Location", "Rotation")
+            }
             info["Id"] = cam.id
             return info
-        return [describe_camera(cam) for cam in libcamera.CameraManager.singleton().cameras]
+
+        return [
+            describe_camera(cam) for cam in libcamera.CameraManager.singleton().cameras
+        ]
 
     def __init__(self, camera_num=0, verbose_console=None, tuning=None):
         """Initialise camera system and open the camera for use.
@@ -210,26 +226,28 @@ class Picamera2:
         :raises RuntimeError: Init didn't complete
         """
         if verbose_console is not None:
-            _log.warning("verbose_console parameter is no longer used, use Picamera2.set_logging instead")
+            _log.warning(
+                "verbose_console parameter is no longer used, use Picamera2.set_logging instead"
+            )
         tuning_file = None
         if tuning is not None:
             if isinstance(tuning, str):
                 os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning
             else:
-                tuning_file = tempfile.NamedTemporaryFile('w')
+                tuning_file = tempfile.NamedTemporaryFile("w")
                 json.dump(tuning, tuning_file)
                 tuning_file.flush()  # but leave it open as closing it will delete it
                 os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning_file.name
         else:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
         self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
-        self.notifymeread = os.fdopen(self.notifyme_r, 'rb')
+        self.notifymeread = os.fdopen(self.notifyme_r, "rb")
         self._cm.add(camera_num, self)
         self.camera_idx = camera_num
         self._requestslock = threading.Lock()
         self._requests = []
         if verbose_console is None:
-            verbose_console = int(os.environ.get('PICAMERA2_LOG_LEVEL', '0'))
+            verbose_console = int(os.environ.get("PICAMERA2_LOG_LEVEL", "0"))
         self.verbose_console = verbose_console
         self._reset_flags()
         self.helpers = Helpers(self)
@@ -269,7 +287,9 @@ class Picamera2:
         self.pre_callback = None
         self.post_callback = None
         self.completed_requests: List[CompletedRequest] = []
-        self.lock = threading.Lock()  # protects the _job_list and completed_requests fields
+        self.lock = (
+            threading.Lock()
+        )  # protects the _job_list and completed_requests fields
         self.have_event_loop = False
         self.camera_properties_ = {}
         self.controls = Controls(self)
@@ -319,9 +339,11 @@ class Picamera2:
         :return: Thread operation state
         :rtype: bool
         """
-        return self._preview is not None and \
-            getattr(self._preview, "thread", None) is not None and \
-            self._preview.thread.is_alive()
+        return (
+            self._preview is not None
+            and getattr(self._preview, "thread", None) is not None
+            and self._preview.thread.is_alive()
+        )
 
     @property
     def camera_properties(self) -> dict:
@@ -334,7 +356,10 @@ class Picamera2:
 
     @property
     def camera_controls(self) -> dict:
-        return {k: (v[1].min, v[1].max, v[1].default) for k, v in self.camera_ctrl_info.items()}
+        return {
+            k: (v[1].min, v[1].max, v[1].default)
+            for k, v in self.camera_ctrl_info.items()
+        }
 
     @property
     def title_fields(self):
@@ -351,7 +376,10 @@ class Picamera2:
                     return tuple(tidy(i) for i in item)
                 else:
                     return item
-            return "".join("{} {} ".format(f, tidy(metadata.get(f, "INVALID"))) for f in fields)
+
+            return "".join(
+                "{} {} ".format(f, tidy(metadata.get(f, "INVALID"))) for f in fields
+            )
 
         self._title_fields = fields
         function = None if fields is None else (lambda md: make_title(fields, md))
@@ -408,8 +436,12 @@ class Picamera2:
         :rtype: bool
         """
         if not self.camera_manager.cameras:
-            _log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
-            raise RuntimeError("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
+            _log.error(
+                "Camera(s) not found (Do not forget to disable legacy camera with raspi-config)."
+            )
+            raise RuntimeError(
+                "Camera(s) not found (Do not forget to disable legacy camera with raspi-config)."
+            )
 
         self.camera = self._grab_camera(self.camera_idx)
 
@@ -428,9 +460,11 @@ class Picamera2:
 
         # The next two lines could be placed elsewhere?
         self.sensor_resolution = self.camera_properties_["PixelArraySize"]
-        self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
+        self.sensor_format = str(
+            self.camera.generate_configuration([RAW]).at(0).pixel_format
+        )
 
-        _log.info('Initialization successful.')
+        _log.info("Initialization successful.")
         return True
 
     def __identify_camera(self):
@@ -482,12 +516,16 @@ class Picamera2:
             for size in raw_formats.sizes(pix):
                 cam_mode = all_format.copy()
                 cam_mode["size"] = (size.width, size.height)
-                temp_config = self.create_preview_configuration(raw={"format": str(pix), "size": cam_mode["size"]})
+                temp_config = self.create_preview_configuration(
+                    raw={"format": str(pix), "size": cam_mode["size"]}
+                )
                 self.configure(temp_config)
                 frameDurationMin = self.camera_controls["FrameDurationLimits"][0]
                 cam_mode["fps"] = round(1e6 / frameDurationMin, 2)
                 cam_mode["crop_limits"] = self.camera_properties["ScalerCropMaximum"]
-                cam_mode["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
+                cam_mode["exposure_limits"] = tuple(
+                    [i for i in self.camera_controls["ExposureTime"] if i != 0]
+                )
                 self.sensor_modes_.append(cam_mode)
         return self.sensor_modes_
 
@@ -510,20 +548,22 @@ class Picamera2:
         if preview is True:
             # Crude attempt at "autodetection" but which will mostly (?) work. We will
             # probably find situations that need fixing, VNC perhaps.
-            display = os.getenv('DISPLAY')
+            display = os.getenv("DISPLAY")
             if display is None:
                 preview = Preview.DRM
-            elif display.startswith(':'):
+            elif display.startswith(":"):
                 preview = Preview.QTGL
             else:
                 preview = Preview.QT
         if not preview:  # i.e. None or False
             preview = NullPreview()
         elif isinstance(preview, Preview):
-            preview_table = {Preview.NULL: NullPreview,
-                             Preview.DRM: DrmPreview,
-                             Preview.QT: QtPreview,
-                             Preview.QTGL: QtGlPreview}
+            preview_table = {
+                Preview.NULL: NullPreview,
+                Preview.DRM: DrmPreview,
+                Preview.QT: QtPreview,
+                Preview.QTGL: QtGlPreview,
+            }
             preview = preview_table[preview](**kwargs)
         else:
             # Assume it's already a preview object.
@@ -576,10 +616,12 @@ class Picamera2:
         self.allocator = None
         self.notifymeread.close()
         os.close(self.notifyme_w)
-        _log.info('Camera closed successfully.')
+        _log.info("Camera closed successfully.")
 
     @staticmethod
-    def _make_initial_stream_config(stream_config: dict, updates: dict, ignore_list=[]) -> dict:
+    def _make_initial_stream_config(
+        stream_config: dict, updates: dict, ignore_list=[]
+    ) -> dict:
         """Take an initial stream_config and add any user updates.
 
         :param stream_config: Stream configuration
@@ -601,7 +643,9 @@ class Picamera2:
             elif key in ignore_list:
                 pass  # allows us to pass items from the sensor_modes as a raw stream
             else:
-                raise ValueError(f"Bad key '{key}': valid stream configuration keys are {valid}")
+                raise ValueError(
+                    f"Bad key '{key}': valid stream configuration keys are {valid}"
+                )
         return stream_config
 
     @staticmethod
@@ -610,73 +654,149 @@ class Picamera2:
             raise RuntimeError(f"Display stream {display} was not defined")
         if encode is not None and config.get(encode, None) is None:
             raise RuntimeError(f"Encode stream {encode} was not defined")
-        config['display'] = display
-        config['encode'] = encode
+        config["display"] = display
+        config["encode"] = encode
 
-    _raw_stream_ignore_list = ["bit_depth", "crop_limits", "exposure_limits", "fps", "unpacked"]
+    _raw_stream_ignore_list = [
+        "bit_depth",
+        "crop_limits",
+        "exposure_limits",
+        "fps",
+        "unpacked",
+    ]
 
-    def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={}, display="main", encode="main", queue=True) -> dict:
+    def create_preview_configuration(
+        self,
+        main={},
+        lores=None,
+        raw=None,
+        transform=libcamera.Transform(),
+        colour_space=libcamera.ColorSpace.Sycc(),
+        buffer_count=4,
+        controls={},
+        display="main",
+        encode="main",
+        queue=True,
+    ) -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
+        main = self._make_initial_stream_config(
+            {"format": "XBGR8888", "size": (640, 480)}, main
+        )
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config(
+            {"format": "YUV420", "size": main["size"]}, lores
+        )
         if lores is not None:
             self.align_stream(lores, optimal=False)
-        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw, self._raw_stream_ignore_list)
+        raw = self._make_initial_stream_config(
+            {"format": self.sensor_format, "size": main["size"]},
+            raw,
+            self._raw_stream_ignore_list,
+        )
         # Let the framerate vary from 12fps to as fast as possible.
-        if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
-            controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
-                        "FrameDurationLimits": (100, 83333)} | controls
-        config = {"use_case": "preview",
-                  "transform": transform,
-                  "colour_space": colour_space,
-                  "buffer_count": buffer_count,
-                  "queue": queue,
-                  "main": main,
-                  "lores": lores,
-                  "raw": raw,
-                  "controls": controls}
+        if (
+            "NoiseReductionMode" in self.camera_controls
+            and "FrameDurationLimits" in self.camera_controls
+        ):
+            controls = {
+                "NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
+                "FrameDurationLimits": (100, 83333),
+            } | controls
+        config = {
+            "use_case": "preview",
+            "transform": transform,
+            "colour_space": colour_space,
+            "buffer_count": buffer_count,
+            "queue": queue,
+            "main": main,
+            "lores": lores,
+            "raw": raw,
+            "controls": controls,
+        }
         self._add_display_and_encode(config, display, encode)
         return config
 
-    def create_still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={}, display=None, encode=None, queue=True) -> dict:
+    def create_still_configuration(
+        self,
+        main={},
+        lores=None,
+        raw=None,
+        transform=libcamera.Transform(),
+        colour_space=libcamera.ColorSpace.Sycc(),
+        buffer_count=1,
+        controls={},
+        display=None,
+        encode=None,
+        queue=True,
+    ) -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
+        main = self._make_initial_stream_config(
+            {"format": "BGR888", "size": self.sensor_resolution}, main
+        )
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config(
+            {"format": "YUV420", "size": main["size"]}, lores
+        )
         if lores is not None:
             self.align_stream(lores, optimal=False)
-        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
+        raw = self._make_initial_stream_config(
+            {"format": self.sensor_format, "size": main["size"]}, raw
+        )
         # Let the framerate span the entire possible range of the sensor.
-        if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
-            controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
-                        "FrameDurationLimits": (100, 1000000 * 1000)} | controls
-        config = {"use_case": "still",
-                  "transform": transform,
-                  "colour_space": colour_space,
-                  "buffer_count": buffer_count,
-                  "queue": queue,
-                  "main": main,
-                  "lores": lores,
-                  "raw": raw,
-                  "controls": controls}
+        if (
+            "NoiseReductionMode" in self.camera_controls
+            and "FrameDurationLimits" in self.camera_controls
+        ):
+            controls = {
+                "NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
+                "FrameDurationLimits": (100, 1000000 * 1000),
+            } | controls
+        config = {
+            "use_case": "still",
+            "transform": transform,
+            "colour_space": colour_space,
+            "buffer_count": buffer_count,
+            "queue": queue,
+            "main": main,
+            "lores": lores,
+            "raw": raw,
+            "controls": controls,
+        }
         self._add_display_and_encode(config, display, encode)
         return config
 
-    def create_video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(), colour_space=None, buffer_count=6, controls={}, display="main", encode="main", queue=True) -> dict:
+    def create_video_configuration(
+        self,
+        main={},
+        lores=None,
+        raw=None,
+        transform=libcamera.Transform(),
+        colour_space=None,
+        buffer_count=6,
+        controls={},
+        display="main",
+        encode="main",
+        queue=True,
+    ) -> dict:
         """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
-        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
+        main = self._make_initial_stream_config(
+            {"format": "XBGR8888", "size": (1280, 720)}, main
+        )
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config(
+            {"format": "YUV420", "size": main["size"]}, lores
+        )
         if lores is not None:
             self.align_stream(lores, optimal=False)
-        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
+        raw = self._make_initial_stream_config(
+            {"format": self.sensor_format, "size": main["size"]}, raw
+        )
         if colour_space is None:
             # Choose default colour space according to the video resolution.
             if formats.is_RGB(main["format"]):
@@ -687,18 +807,25 @@ class Picamera2:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
-        if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
-            controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
-                        "FrameDurationLimits": (33333, 33333)} | controls
-        config = {"use_case": "video",
-                  "transform": transform,
-                  "colour_space": colour_space,
-                  "buffer_count": buffer_count,
-                  "queue": queue,
-                  "main": main,
-                  "lores": lores,
-                  "raw": raw,
-                  "controls": controls}
+        if (
+            "NoiseReductionMode" in self.camera_controls
+            and "FrameDurationLimits" in self.camera_controls
+        ):
+            controls = {
+                "NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
+                "FrameDurationLimits": (33333, 33333),
+            } | controls
+        config = {
+            "use_case": "video",
+            "transform": transform,
+            "colour_space": colour_space,
+            "buffer_count": buffer_count,
+            "queue": queue,
+            "main": main,
+            "lores": lores,
+            "raw": raw,
+            "controls": controls,
+        }
         self._add_display_and_encode(config, display, encode)
         return config
 
@@ -722,7 +849,11 @@ class Picamera2:
                 raise RuntimeError("Unrecognised raw format " + format)
         else:
             # Allow "MJPEG" as we have some support for USB MJPEG-type cameras.
-            if not formats.is_YUV(format) and not formats.is_RGB(format) and format != 'MJPEG':
+            if (
+                not formats.is_YUV(format)
+                and not formats.is_RGB(format)
+                and format != "MJPEG"
+            ):
                 raise RuntimeError("Bad format " + format + " in stream " + name)
         size = stream_config["size"]
         if type(size) is not tuple or len(size) != 2:
@@ -737,7 +868,9 @@ class Picamera2:
                 raise RuntimeError(f"'{name}' key expected in camera configuration")
 
         # Check the entire camera configuration for errors.
-        if not isinstance(camera_config["colour_space"], libcamera._libcamera.ColorSpace):
+        if not isinstance(
+            camera_config["colour_space"], libcamera._libcamera.ColorSpace
+        ):
             raise RuntimeError("Colour space has incorrect type")
         if not isinstance(camera_config["transform"], libcamera._libcamera.Transform):
             raise RuntimeError("Transform has incorrect type")
@@ -755,10 +888,16 @@ class Picamera2:
             self.check_stream_config(camera_config["raw"], "raw")
 
     @staticmethod
-    def _update_libcamera_stream_config(libcamera_stream_config, stream_config, buffer_count) -> None:
+    def _update_libcamera_stream_config(
+        libcamera_stream_config, stream_config, buffer_count
+    ) -> None:
         # Update the libcamera stream config with ours.
-        libcamera_stream_config.size = libcamera.Size(stream_config["size"][0], stream_config["size"][1])
-        libcamera_stream_config.pixel_format = libcamera.PixelFormat(stream_config["format"])
+        libcamera_stream_config.size = libcamera.Size(
+            stream_config["size"][0], stream_config["size"][1]
+        )
+        libcamera_stream_config.pixel_format = libcamera.PixelFormat(
+            stream_config["format"]
+        )
         libcamera_stream_config.buffer_count = buffer_count
 
     def _make_libcamera_config(self, camera_config):
@@ -785,13 +924,23 @@ class Picamera2:
         libcamera_config = self.camera.generate_configuration(roles)
         libcamera_config.transform = camera_config["transform"]
         buffer_count = camera_config["buffer_count"]
-        self._update_libcamera_stream_config(libcamera_config.at(self.main_index), camera_config["main"], buffer_count)
+        self._update_libcamera_stream_config(
+            libcamera_config.at(self.main_index), camera_config["main"], buffer_count
+        )
         libcamera_config.at(self.main_index).color_space = camera_config["colour_space"]
         if self.lores_index >= 0:
-            self._update_libcamera_stream_config(libcamera_config.at(self.lores_index), camera_config["lores"], buffer_count)
-            libcamera_config.at(self.lores_index).color_space = camera_config["colour_space"]
+            self._update_libcamera_stream_config(
+                libcamera_config.at(self.lores_index),
+                camera_config["lores"],
+                buffer_count,
+            )
+            libcamera_config.at(self.lores_index).color_space = camera_config[
+                "colour_space"
+            ]
         if self.raw_index >= 0:
-            self._update_libcamera_stream_config(libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count)
+            self._update_libcamera_stream_config(
+                libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count
+            )
             libcamera_config.at(self.raw_index).color_space = libcamera.ColorSpace.Raw()
 
         return libcamera_config
@@ -805,7 +954,9 @@ class Picamera2:
             if stream_config["format"] in ("YUV420", "YVU420"):
                 align = 64  # because the UV planes will have half this alignment
             elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
-                align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+                align = (
+                    16  # 4 channels per pixel gives us an automatic extra factor of 2
+                )
         else:
             align = 2
         size = stream_config["size"]
@@ -818,7 +969,6 @@ class Picamera2:
             Picamera2.align_stream(config["lores"], optimal=optimal)
         # No point aligning the raw stream, it wouldn't mean anything.
 
-
     def _make_requests(self) -> List[libcamera.Request]:
         """Make libcamera request objects.
 
@@ -828,7 +978,9 @@ class Picamera2:
         :return: requests
         :rtype: List[libcamera.Request]
         """
-        num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
+        num_requests = min(
+            [len(self.allocator.buffers(stream)) for stream in self.streams]
+        )
         requests = []
         for i in range(num_requests):
             request = self.camera.create_request(self.camera_idx)
@@ -844,7 +996,10 @@ class Picamera2:
     def _update_stream_config(self, stream_config, libcamera_stream_config) -> None:
         # Update our stream config from libcamera's.
         stream_config["format"] = str(libcamera_stream_config.pixel_format)
-        stream_config["size"] = (libcamera_stream_config.size.width, libcamera_stream_config.size.height)
+        stream_config["size"] = (
+            libcamera_stream_config.size.width,
+            libcamera_stream_config.size.height,
+        )
         stream_config["stride"] = libcamera_stream_config.stride
         stream_config["framesize"] = libcamera_stream_config.frame_size
 
@@ -860,9 +1015,13 @@ class Picamera2:
         camera_config["colour_space"] = libcamera_config.at(0).color_space
         self._update_stream_config(camera_config["main"], libcamera_config.at(0))
         if self.lores_index >= 0:
-            self._update_stream_config(camera_config["lores"], libcamera_config.at(self.lores_index))
+            self._update_stream_config(
+                camera_config["lores"], libcamera_config.at(self.lores_index)
+            )
         if self.raw_index >= 0:
-            self._update_stream_config(camera_config["raw"], libcamera_config.at(self.raw_index))
+            self._update_stream_config(
+                camera_config["raw"], libcamera_config.at(self.raw_index)
+            )
 
     def configure_(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration.
@@ -924,17 +1083,33 @@ class Picamera2:
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
-        self.stream_map["lores"] = libcamera_config.at(self.lores_index).stream if self.lores_index >= 0 else None
-        self.stream_map["raw"] = libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
+        self.stream_map["lores"] = (
+            libcamera_config.at(self.lores_index).stream
+            if self.lores_index >= 0
+            else None
+        )
+        self.stream_map["raw"] = (
+            libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
+        )
         _log.debug(f"Streams: {self.stream_map}")
 
         # These name the streams that we will display/encode.
-        self.display_stream_name = camera_config['display']
-        if self.display_stream_name is not None and self.display_stream_name not in camera_config:
-            raise RuntimeError(f"Display stream {self.display_stream_name} was not defined")
-        self.encode_stream_name = camera_config['encode']
-        if self.encode_stream_name is not None and self.encode_stream_name not in camera_config:
-            raise RuntimeError(f"Encode stream {self.encode_stream_name} was not defined")
+        self.display_stream_name = camera_config["display"]
+        if (
+            self.display_stream_name is not None
+            and self.display_stream_name not in camera_config
+        ):
+            raise RuntimeError(
+                f"Display stream {self.display_stream_name} was not defined"
+            )
+        self.encode_stream_name = camera_config["encode"]
+        if (
+            self.encode_stream_name is not None
+            and self.encode_stream_name not in camera_config
+        ):
+            raise RuntimeError(
+                f"Encode stream {self.encode_stream_name} was not defined"
+            )
         elif self.encode_stream_name is None:
             # If no encode stream then remove the encoder
             self._encoder = None
@@ -943,7 +1118,7 @@ class Picamera2:
         # whether capture requests will always wait for the next frame. If there's only
         # one buffer, never hang on to the request because it would stall the pipeline
         # instantly.
-        if camera_config['queue'] and camera_config['buffer_count'] > 1:
+        if camera_config["queue"] and camera_config["buffer_count"] > 1:
             self._max_queue_len = 1
         else:
             self._max_queue_len = 0
@@ -968,7 +1143,7 @@ class Picamera2:
         else:
             self.video_configuration.update(camera_config)
         # Set the controls directly so as to overwrite whatever is there.
-        self.controls.set_controls(self.camera_config['controls'])
+        self.controls.set_controls(self.camera_config["controls"])
         self.configure_count += 1
 
     def configure(self, camera_config="preview") -> None:
@@ -1182,18 +1357,22 @@ class Picamera2:
         return job.get_result() if wait else job
 
     def capture_file(
-            self,
-            file_output,
-            name: str = "main",
-            format=None,
-            wait=None,
-            signal_function=None) -> dict:
+        self,
+        file_output,
+        name: str = "main",
+        format=None,
+        wait=None,
+        signal_function=None,
+    ) -> dict:
         """Capture an image to a file in the current camera mode.
 
         Return the metadata for the frame captured.
         """
-        return self._execute_or_dispatch(partial(self.capture_file_, file_output, name, format=format),
-                                         wait, signal_function)
+        return self._execute_or_dispatch(
+            partial(self.capture_file_, file_output, name, format=format),
+            wait,
+            signal_function,
+        )
 
     def switch_mode_(self, camera_config):
         self.stop_()
@@ -1206,7 +1385,15 @@ class Picamera2:
         functions = [partial(self.switch_mode_, camera_config)]
         return self.dispatch_functions(functions, wait, signal_function)
 
-    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait=None, signal_function=None):
+    def switch_mode_and_capture_file(
+        self,
+        camera_config,
+        file_output,
+        name="main",
+        format=None,
+        wait=None,
+        signal_function=None,
+    ):
         """Switch the camera into a new (capture) mode, capture an image to file, then return
         back to the initial camera mode.
         """
@@ -1217,8 +1404,12 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_and_switch_back_, self, file_output, preview_config, format)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(
+                capture_and_switch_back_, self, file_output, preview_config, format
+            ),
+        ]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_request_(self):
@@ -1232,7 +1423,9 @@ class Picamera2:
         function = self.capture_request_
         return self._execute_or_dispatch(function, wait, signal_function)
 
-    def switch_mode_capture_request_and_stop(self, camera_config, wait=None, signal_function=None):
+    def switch_mode_capture_request_and_stop(
+        self, camera_config, wait=None, signal_function=None
+    ):
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
 
         def capture_request_and_stop_(self):
@@ -1240,8 +1433,10 @@ class Picamera2:
             self.stop_()
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_request_and_stop_, self)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(capture_request_and_stop_, self),
+        ]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_metadata_(self):
@@ -1263,7 +1458,9 @@ class Picamera2:
 
     def capture_buffer(self, name="main", wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame in the named stream."""
-        return self._execute_or_dispatch(partial(self.capture_buffer_, name), wait, signal_function)
+        return self._execute_or_dispatch(
+            partial(self.capture_buffer_, name), wait, signal_function
+        )
 
     def capture_buffers_and_metadata_(self, names) -> Tuple[List[np.ndarray], dict]:
         request = self.completed_requests.pop(0)
@@ -1273,9 +1470,13 @@ class Picamera2:
 
     def capture_buffers(self, names=["main"], wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame for each of the named streams."""
-        return self._execute_or_dispatch(partial(self.capture_buffers_and_metadata_, names), wait, signal_function)
+        return self._execute_or_dispatch(
+            partial(self.capture_buffers_and_metadata_, names), wait, signal_function
+        )
 
-    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None):
+    def switch_mode_and_capture_buffer(
+        self, camera_config, name="main", wait=None, signal_function=None
+    ):
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
         back to the initial camera mode.
         """
@@ -1286,11 +1487,15 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_buffer_and_switch_back_, self, preview_config, name)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(capture_buffer_and_switch_back_, self, preview_config, name),
+        ]
         return self.dispatch_functions(functions, wait, signal_function)
 
-    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait=None, signal_function=None):
+    def switch_mode_and_capture_buffers(
+        self, camera_config, names=["main"], wait=None, signal_function=None
+    ):
         """Switch the camera into a new (capture) mode, capture the first buffers, then return
         back to the initial camera mode.
         """
@@ -1301,8 +1506,10 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_buffers_and_switch_back_, self, preview_config, names)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(capture_buffers_and_switch_back_, self, preview_config, names),
+        ]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_array_(self, name):
@@ -1313,9 +1520,13 @@ class Picamera2:
 
     def capture_array(self, name="main", wait=None, signal_function=None):
         """Make a 2d image from the next frame in the named stream."""
-        return self._execute_or_dispatch(partial(self.capture_array_, name), wait, signal_function)
+        return self._execute_or_dispatch(
+            partial(self.capture_array_, name), wait, signal_function
+        )
 
-    def capture_arrays_and_metadata_(self, names) -> Tuple[List[np.ndarray], Dict[str, Any]]:
+    def capture_arrays_and_metadata_(
+        self, names
+    ) -> Tuple[List[np.ndarray], Dict[str, Any]]:
         request = self.completed_requests.pop(0)
         result = ([request.make_array(name) for name in names], request.get_metadata())
         request.release()
@@ -1323,9 +1534,13 @@ class Picamera2:
 
     def capture_arrays(self, names=["main"], wait=None, signal_function=None):
         """Make 2d image arrays from the next frames in the named streams."""
-        return self._execute_or_dispatch(partial(self.capture_arrays_and_metadata_, names), wait, signal_function)
+        return self._execute_or_dispatch(
+            partial(self.capture_arrays_and_metadata_, names), wait, signal_function
+        )
 
-    def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None):
+    def switch_mode_and_capture_array(
+        self, camera_config, name="main", wait=None, signal_function=None
+    ):
         """Switch the camera into a new (capture) mode, capture the image array data, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
@@ -1335,11 +1550,15 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_array_and_switch_back_, self, preview_config, name)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(capture_array_and_switch_back_, self, preview_config, name),
+        ]
         return self.dispatch_functions(functions, wait, signal_function)
 
-    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait=None, signal_function=None):
+    def switch_mode_and_capture_arrays(
+        self, camera_config, names=["main"], wait=None, signal_function=None
+    ):
         """Switch the camera into a new (capture) mode, capture the image arrays, then return
         back to the initial camera mode."""
         preview_config = self.camera_config
@@ -1349,8 +1568,10 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_arrays_and_switch_back_, self, preview_config, names)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(capture_arrays_and_switch_back_, self, preview_config, names),
+        ]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_image_(self, name: str) -> Image:
@@ -1364,7 +1585,9 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image:
+    def capture_image(
+        self, name: str = "main", wait: bool = None, signal_function=None
+    ) -> Image:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1376,9 +1599,13 @@ class Picamera2:
         :return: PIL Image
         :rtype: Image
         """
-        return self._execute_or_dispatch(partial(self.capture_image_, name), wait, signal_function)
+        return self._execute_or_dispatch(
+            partial(self.capture_image_, name), wait, signal_function
+        )
 
-    def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None, signal_function=None) -> Image:
+    def switch_mode_and_capture_image(
+        self, camera_config, name: str = "main", wait: bool = None, signal_function=None
+    ) -> Image:
         """Switch the camera into a new (capture) mode, capture the image, then return
         back to the initial camera mode.
         """
@@ -1389,11 +1616,15 @@ class Picamera2:
             self.switch_mode_(preview_config)
             return (True, result)
 
-        functions = [partial(self.switch_mode_, camera_config),
-                     partial(capture_image_and_switch_back_, self, preview_config, name)]
+        functions = [
+            partial(self.switch_mode_, camera_config),
+            partial(capture_image_and_switch_back_, self, preview_config, name),
+        ]
         self.dispatch_functions(functions, wait, signal_function)
 
-    def start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM) -> None:
+    def start_encoder(
+        self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM
+    ) -> None:
         """Start encoder
 
         :param encoder: Sets encoder or uses existing, defaults to None
@@ -1412,9 +1643,9 @@ class Picamera2:
         name = self.encode_stream_name
         if streams.get(name, None) is None:
             raise RuntimeError(f"Encode stream {name} was not defined")
-        self.encoder.width, self.encoder.height = streams[name]['size']
-        self.encoder.format = streams[name]['format']
-        self.encoder.stride = streams[name]['stride']
+        self.encoder.width, self.encoder.height = streams[name]["size"]
+        self.encoder.format = streams[name]["format"]
+        self.encoder.stride = streams[name]["stride"]
         # Also give the encoder a nominal framerate, which we'll peg at 30fps max
         # in case we only have a dummy value
         min_frame_duration = self.camera_ctrl_info["FrameDurationLimits"][1].min
@@ -1425,8 +1656,7 @@ class Picamera2:
         self.encoder.start()
 
     def stop_encoder(self) -> None:
-        """Stops the encoder
-        """
+        """Stops the encoder"""
         self.encoder.stop()
 
     @property
@@ -1450,7 +1680,9 @@ class Picamera2:
             raise RuntimeError("Must pass encoder instance")
         self._encoder = value
 
-    def start_recording(self, encoder, output, pts=None, config=None, quality=Quality.MEDIUM) -> None:
+    def start_recording(
+        self, encoder, output, pts=None, config=None, quality=Quality.MEDIUM
+    ) -> None:
         """Start recording a video using the given encoder and to the given output.
 
         Output may be a string in which case the correspondingly named file is opened.
@@ -1487,7 +1719,16 @@ class Picamera2:
                 raise RuntimeError("Overlay must be a 4-channel image")
         self._preview.set_overlay(overlay)
 
-    def start_and_capture_files(self, name: str = "image{:03d}.jpg", initial_delay=1, preview_mode="preview", capture_mode="still", num_files=1, delay=1, show_preview=True):
+    def start_and_capture_files(
+        self,
+        name: str = "image{:03d}.jpg",
+        initial_delay=1,
+        preview_mode="preview",
+        capture_mode="still",
+        num_files=1,
+        delay=1,
+        show_preview=True,
+    ):
         """
         This function makes capturing multiple images more conenient, but should only be used in
         command line line applications (not from a Qt application, for example). If will configure
@@ -1542,7 +1783,14 @@ class Picamera2:
                 time.sleep(delay)
         self.stop()
 
-    def start_and_capture_file(self, name="image.jpg", delay=1, preview_mode="preview", capture_mode="still", show_preview=True):
+    def start_and_capture_file(
+        self,
+        name="image.jpg",
+        delay=1,
+        preview_mode="preview",
+        capture_mode="still",
+        show_preview=True,
+    ):
         """
         This function makes capturing a single image more conenient, but should only be used in
         command line line applications (not from a Qt application, for example). If will configure
@@ -1565,9 +1813,25 @@ class Picamera2:
             effect if a preview is not already running. If it is, it would have to be stopped first
             (with the stop_preview method).
         """
-        self.start_and_capture_files(name=name, initial_delay=delay, preview_mode=preview_mode, capture_mode=capture_mode, num_files=1, show_preview=show_preview)
+        self.start_and_capture_files(
+            name=name,
+            initial_delay=delay,
+            preview_mode=preview_mode,
+            capture_mode=capture_mode,
+            num_files=1,
+            show_preview=show_preview,
+        )
 
-    def start_and_record_video(self, output, encoder=None, config=None, quality=Quality.MEDIUM, show_preview=False, duration=0, audio=False):
+    def start_and_record_video(
+        self,
+        output,
+        encoder=None,
+        config=None,
+        quality=Quality.MEDIUM,
+        show_preview=False,
+        duration=0,
+        audio=False,
+    ):
         """
         This function makes video recording more convenient, but should only be used in command
         line applications (not from a Qt application, for example). It will configure the camera
@@ -1610,7 +1874,7 @@ class Picamera2:
             self.configure(config)
         if isinstance(output, str):
             if encoder is None:
-                extension = output.split('.')[-1].lower()
+                extension = output.split(".")[-1].lower()
                 if extension in ("mjpg", "mjpeg"):
                     encoder = MJPEGEncoder()
                 if extension in ("mp4", "ts"):

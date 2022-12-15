@@ -11,20 +11,25 @@ from picamera2.encoders import H264Encoder
 # we want capture_buffer to get the image without face boxes, but then we
 # want the boxes drawn before handing the image to the encoder.
 
-face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
+face_detector = cv2.CascadeClassifier(
+    "/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"
+)
 
 
 def draw_faces(request):
     with MappedArray(request, "main") as m:
         for f in faces:
-            (x, y, w, h) = [c * n // d for c, n, d in zip(f, (w0, h0) * 2, (w1, h1) * 2)]
+            (x, y, w, h) = [
+                c * n // d for c, n, d in zip(f, (w0, h0) * 2, (w1, h1) * 2)
+            ]
             cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0))
 
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.QTGL)
-config = picam2.create_preview_configuration(main={"size": (640, 480)},
-                                      lores={"size": (320, 240), "format": "YUV420"})
+config = picam2.create_preview_configuration(
+    main={"size": (640, 480)}, lores={"size": (320, 240), "format": "YUV420"}
+)
 picam2.configure(config)
 
 (w0, h0) = picam2.stream_configuration("main")["size"]
@@ -40,7 +45,7 @@ start_time = time.monotonic()
 # Run for 10 seconds.
 while time.monotonic() - start_time < 10:
     buffer = picam2.capture_buffer("lores")
-    grey = buffer[:s1 * h1].reshape((h1, s1))
+    grey = buffer[: s1 * h1].reshape((h1, s1))
     faces = face_detector.detectMultiScale(grey, 1.1, 3)
 
 picam2.stop_recording()

@@ -29,6 +29,6 @@ program = """from picamera2 import Picamera2
 picam2 = Picamera2()
 picam2.start()"""
 print("Start camera in separate process:")
-cmd = ['python3', '-c', program]
+cmd = ["python3", "-c", program]
 p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
 p.wait()

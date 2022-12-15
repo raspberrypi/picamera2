@@ -22,7 +22,7 @@ def thread_func(delay):
 
 delays = [0.1, 0.07, 0.15]
 
-threads = [Thread(target=thread_func, args=(d, )) for d in delays]
+threads = [Thread(target=thread_func, args=(d,)) for d in delays]
 
 for thread in threads:
     thread.start()
