@@ -7,8 +7,8 @@
 
 import cv2
 import numpy as np
-from picamera2 import Picamera2
 
+from picamera2 import Picamera2
 
 exposure_time = 60000  # put your own numbers here
 num_frames = 6

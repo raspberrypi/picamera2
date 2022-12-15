@@ -3,11 +3,13 @@
 # Test that we can read the sensor modes, and then configure the camera
 # into each mode and get the correct framerate
 
-from picamera2 import Picamera2
-from picamera2.sensor_format import SensorFormat
-from libcamera import Transform
 import time
 from math import isclose
+
+from libcamera import Transform
+
+from picamera2 import Picamera2
+from picamera2.sensor_format import SensorFormat
 
 picam2 = Picamera2()
 

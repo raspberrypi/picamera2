@@ -6,9 +6,9 @@
 # final result (e.g. "dcraw -w -W accumulated.dng").
 
 import numpy as np
+
 from picamera2 import Picamera2
 from picamera2.sensor_format import SensorFormat
-
 
 exposure_time = 60000
 num_frames = 6

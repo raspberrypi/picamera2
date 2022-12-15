@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import time
+
 import numpy as np
+
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import Output

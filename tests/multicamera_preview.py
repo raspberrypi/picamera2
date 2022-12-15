@@ -3,6 +3,7 @@
 import time
 
 import numpy as np
+
 from picamera2 import Picamera2, Preview
 
 picam2a = Picamera2(0)

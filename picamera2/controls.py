@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import threading
 
-from libcamera import ControlType, Size, Rectangle
+from libcamera import ControlType, Rectangle, Size
 
 
 class Controls:

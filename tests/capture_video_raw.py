@@ -2,11 +2,12 @@
 import time
 
 import numpy as np
-from picamera2 import Picamera2
-from picamera2.encoders import Encoder
 from pidng.core import RAW2DNG, DNGTags, Tag
 from pidng.defs import *
 from PIL import Image
+
+from picamera2 import Picamera2
+from picamera2.encoders import Encoder
 
 size = (2592, 1944)
 picam2 = Picamera2()

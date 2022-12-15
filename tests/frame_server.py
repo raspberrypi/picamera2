@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 # These two are only needed for the demo code below the FrameServer class.
-from picamera2 import Picamera2
 import time
-
 from threading import Condition, Thread
+
+from picamera2 import Picamera2
 
 
 class FrameServer:

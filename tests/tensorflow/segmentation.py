@@ -2,17 +2,17 @@
 
 # Usage: ./segmentation.py --model deeplapv3.tflite --label deeplab_labels.txt
 
-import tflite_runtime.interpreter as tflite
-import cv2
-import numpy as np
 import argparse
-from picamera2 import Picamera2, Preview
-from PIL import Image
-
-import sys
 import select
+import sys
 import time
 
+import cv2
+import numpy as np
+import tflite_runtime.interpreter as tflite
+from PIL import Image
+
+from picamera2 import Picamera2, Preview
 
 normalSize = (640, 480)
 lowresSize = (320, 240)

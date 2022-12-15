@@ -5,9 +5,10 @@ from enum import Enum
 
 from v4l2 import *
 
+import picamera2.formats as formats
+
 from ..outputs import Output
 from ..request import _MappedBuffer
-import picamera2.formats as formats
 
 
 class Quality(Enum):

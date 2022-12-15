@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
-from picamera2 import Picamera2
-from threading import Thread
 import time
+from threading import Thread
+
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(queue=False)

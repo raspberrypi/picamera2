@@ -2,7 +2,6 @@
 import time
 
 import cv2
-
 from pyzbar.pyzbar import decode
 
 from picamera2 import MappedArray, Picamera2, Preview

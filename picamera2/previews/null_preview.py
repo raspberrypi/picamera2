@@ -1,8 +1,7 @@
 """Null preview"""
 
-from logging import getLogger
 import threading
-
+from logging import getLogger
 
 _log = getLogger(__name__)
 
