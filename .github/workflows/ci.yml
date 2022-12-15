@@ -1,21 +1,21 @@
 name: CI
 on:
   pull_request:
-    branches: [main, next]
+    branches: [main]
 
 jobs:
-  lint:
-    name: lint code
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: "3.9.13"
-
-      - name: Install dependencies for testing
-        run: pip install -r requirements-test.txt
-
-      - name: Lint with black
-        run: black --check .
+          python-version: "3.9"
+      - name: Run image
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: "1.1.12"
+      - name: Install
+        run: poetry install
+      - name: Lint
+        run: poetry run black --check .
