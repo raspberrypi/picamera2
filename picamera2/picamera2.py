@@ -19,6 +19,7 @@ from libcamera import controls
 from PIL import Image
 
 import picamera2.formats as formats
+import picamera2.utils as utils
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
@@ -28,7 +29,6 @@ from .controls import Controls
 from .job import Job
 from .request import CompletedRequest, Helpers
 from .sensor_format import SensorFormat
-from .utils import convert_from_libcamera_type
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
@@ -328,9 +328,9 @@ class Picamera2:
 
     @property
     def camera_controls(self) -> dict:
-        return {k: (convert_from_libcamera_type(v[1].min),
-                    convert_from_libcamera_type(v[1].max),
-                    convert_from_libcamera_type(v[1].default)) for k, v in self.camera_ctrl_info.items()}
+        return {k: (utils.convert_from_libcamera_type(v[1].min),
+                    utils.convert_from_libcamera_type(v[1].max),
+                    utils.convert_from_libcamera_type(v[1].default)) for k, v in self.camera_ctrl_info.items()}
 
     @property
     def title_fields(self):
@@ -412,7 +412,7 @@ class Picamera2:
 
         # Re-generate the properties list to someting easer to use.
         for k, v in self.camera.properties.items():
-            self.camera_properties_[k.name] = convert_from_libcamera_type(v)
+            self.camera_properties_[k.name] = utils.convert_from_libcamera_type(v)
 
         # These next lines could be placed elsewhere?
         raw_mode = self.camera.generate_configuration([RAW]).at(0)
@@ -681,11 +681,7 @@ class Picamera2:
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
-            if formats.is_RGB(main["format"]):
-                # There's a bug down in some driver where it won't accept anything other than
-                # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
-                colour_space = libcamera.ColorSpace.Sycc()
-            elif main["size"][0] < 1280 or main["size"][1] < 720:
+            if main["size"][0] < 1280 or main["size"][1] < 720:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
@@ -788,9 +784,12 @@ class Picamera2:
         libcamera_config.transform = camera_config["transform"]
         buffer_count = camera_config["buffer_count"]
         self._update_libcamera_stream_config(libcamera_config.at(self.main_index), camera_config["main"], buffer_count)
-        libcamera_config.at(self.main_index).color_space = camera_config["colour_space"]
+        libcamera_config.at(self.main_index).color_space = utils.colour_space_to_libcamera(
+            camera_config["colour_space"],
+            camera_config["main"]["format"])
         if self.lores_index >= 0:
             self._update_libcamera_stream_config(libcamera_config.at(self.lores_index), camera_config["lores"], buffer_count)
+            # Must be YUV, so no need for colour_space_to_libcamera.
             libcamera_config.at(self.lores_index).color_space = camera_config["colour_space"]
         if self.raw_index >= 0:
             self._update_libcamera_stream_config(libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count)
@@ -858,7 +857,7 @@ class Picamera2:
         :type libcamera_config: dict
         """
         camera_config["transform"] = libcamera_config.transform
-        camera_config["colour_space"] = libcamera_config.at(0).color_space
+        camera_config["colour_space"] = utils.colour_space_from_libcamera(libcamera_config.at(0).color_space)
         self._update_stream_config(camera_config["main"], libcamera_config.at(0))
         if self.lores_index >= 0:
             self._update_stream_config(camera_config["lores"], libcamera_config.at(self.lores_index))
@@ -923,7 +922,7 @@ class Picamera2:
         for k, v in self.camera.controls.items():
             self.camera_ctrl_info[k.name] = (k, v)
         for k, v in self.camera.properties.items():
-            self.camera_properties_[k.name] = convert_from_libcamera_type(v)
+            self.camera_properties_[k.name] = utils.convert_from_libcamera_type(v)
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
