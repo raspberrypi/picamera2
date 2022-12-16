@@ -42,3 +42,5 @@ picam2.configure("still")
 config = CameraConfiguration(picam2.camera_configuration(), picam2)
 if config.raw.size != half_res:
     raise RuntimeError("still raw size incorrect")
+
+picam2.close()

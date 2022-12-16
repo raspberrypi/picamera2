@@ -6,7 +6,7 @@ import time
 from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
-picam2.start_preview(Preview.QTGL)
+picam2.start_preview(Preview.NULL)
 
 preview_config = picam2.create_preview_configuration(
     raw={"size": picam2.sensor_resolution}

@@ -47,3 +47,4 @@ for thread in threads:
     thread.join()
 
 picam2.stop()
+picam2.close()

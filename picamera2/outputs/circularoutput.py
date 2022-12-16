@@ -3,7 +3,7 @@
 import collections
 from multiprocessing import Lock
 
-from .fileoutput import FileOutput
+from picamera2.outputs.fileoutput import FileOutput
 
 
 class CircularOutput(FileOutput):

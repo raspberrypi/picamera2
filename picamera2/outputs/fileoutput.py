@@ -4,7 +4,7 @@ import io
 import socket
 import types
 
-from .output import Output
+from picamera2.outputs.output import Output
 
 
 class FileOutput(Output):

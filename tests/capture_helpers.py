@@ -7,7 +7,7 @@ import time
 from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
-picam2.start_preview(Preview.QTGL)
+picam2.start_preview(Preview.NULL)
 
 preview_config = picam2.create_preview_configuration()
 capture_config = picam2.create_still_configuration(raw={})
@@ -20,3 +20,5 @@ buffers, metadata = picam2.switch_mode_and_capture_buffers(capture_config, ["mai
 
 arr = picam2.helpers.make_array(buffers[0], capture_config["main"])
 image = picam2.helpers.make_image(buffers[0], capture_config["main"])
+
+picam2.close()

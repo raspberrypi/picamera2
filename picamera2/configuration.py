@@ -1,4 +1,4 @@
-from .controls import Controls
+from picamera2.controls import Controls
 
 
 class Configuration:

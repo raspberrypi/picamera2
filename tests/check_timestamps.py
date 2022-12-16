@@ -52,3 +52,4 @@ if hist[2] > 3:
     raise RuntimeError(f"Unexpectedly large number ({hist[2]}) of late frames")
 if hist[3] > 0:
     raise RuntimeError(f"{hist[3]} very late frames detected")
+picam2.close()

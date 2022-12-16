@@ -101,3 +101,5 @@ picam2.stop()
 print("Thread1 received", thread1_count, "frames")
 print("Thread2 received", thread2_count, "frames")
 print("Server received", server.count, "frames")
+
+picam2.close()

@@ -10,7 +10,7 @@ if len(Picamera2.global_camera_info()) <= 1:
 
 picam2a = Picamera2(0)
 picam2a.configure(picam2a.create_preview_configuration())
-picam2a.start_preview(Preview.QTGL)
+picam2a.start_preview(Preview.NULL)
 picam2a.start()
 
 time.sleep(2)
@@ -26,3 +26,5 @@ picam2a.stop()
 picam2b.capture_file("testb.jpg")
 
 picam2b.stop()
+picam2a.close()
+picam2b.close()

@@ -8,7 +8,7 @@ from picamera2 import Picamera2, Preview
 from picamera2.controls import Controls
 
 picam2 = Picamera2()
-picam2.start_preview(Preview.QTGL)
+picam2.start_preview(Preview.NULL)
 
 preview_config = picam2.create_preview_configuration()
 picam2.configure(preview_config)
@@ -28,3 +28,4 @@ ctrls.ExposureTime = 10000
 picam2.set_controls(ctrls)
 
 time.sleep(2)
+picam2.close()

@@ -18,3 +18,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
     picam2.start_recording(encoder, FileOutput(stream))
     time.sleep(5)
     picam2.stop_recording()
+
+picam2.close()

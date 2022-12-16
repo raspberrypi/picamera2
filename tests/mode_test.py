@@ -50,3 +50,5 @@ for mode in modes:
     check({"size": mode["size"], "format": mode["format"].format}, mode["fps"])
     # Check unpacked mode works
     check({"size": mode["size"], "format": mode["unpacked"]}, mode["fps"])
+
+picam2.close()

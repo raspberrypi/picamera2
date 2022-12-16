@@ -18,3 +18,4 @@ overlay[150:, 200:] = (0, 0, 255, 64)
 
 picam2.set_overlay(overlay)
 time.sleep(1)
+picam2.close()

@@ -34,3 +34,5 @@ for i in range(imgs):
 
 img = Image.fromarray(np.uint8(sumv / imgs))
 img.save("averaged.tif")
+
+picam2.close()

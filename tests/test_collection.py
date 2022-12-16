@@ -8,6 +8,7 @@ this_folder, this_file = os.path.split(__file__)
 
 test_file_names = [name for name in os.listdir(this_folder) if name.endswith(".py")]
 test_file_names.remove(this_file)
+test_file_names.sort()
 
 
 def forward_subprocess_output(e: subprocess.CalledProcessError):
@@ -15,9 +16,19 @@ def forward_subprocess_output(e: subprocess.CalledProcessError):
     print(e.stderr.decode("utf-8"), end="", file=sys.stderr)
 
 
-@pytest.mark.xfail(reason="Test files are not yet implemented")
+@pytest.mark.xfail(reason="Minimum viable test.")
+def test_init():
+    os.system("udevadm control --reload")
+    from picamera2 import Picamera2
+
+    print(Picamera2.global_camera_info())
+    Picamera2()
+
+
+@pytest.mark.xfail(reason="Not validated to be working")
 @pytest.mark.parametrize("test_file_name", test_file_names)
 def test_file(test_file_name):
+    print(sys.path)
     success = False
     try:
         subprocess.run(
@@ -32,4 +43,4 @@ def test_file(test_file_name):
         forward_subprocess_output(e)
 
     if not success:
-        pytest.fail(f"Test failed: {test_file_name}")
+        pytest.fail(f"Test failed: {test_file_name}", pytrace=False)

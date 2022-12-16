@@ -4,14 +4,10 @@ import threading
 import time
 
 import numpy as np
-import piexif
-from pidng.camdefs import Picamera2Camera
-from pidng.core import PICAM2DNG
 from PIL import Image
 
 import picamera2.formats as formats
-
-from .controls import Controls
+from picamera2.controls import Controls
 
 _log = logging.getLogger(__name__)
 
@@ -267,19 +263,6 @@ class Helpers:
                 # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
                 # doesn't like RGBA to we have to bodge that to RGBX.
                 img.mode = "RGBX"
-            # Make up some extra EXIF data.
-            if "AnalogueGain" in metadata and "DigitalGain" in metadata:
-                zero_ifd = {
-                    piexif.ImageIFD.Make: "Raspberry Pi",
-                    piexif.ImageIFD.Model: self.picam2.camera.id,
-                    piexif.ImageIFD.Software: "Picamera2",
-                }
-                total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
-                exif_ifd = {
-                    piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
-                    piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100),
-                }
-                exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
         # compress_level=1 saves pngs much faster, and still gets most of the compression.
         png_compress_level = self.picam2.options.get("compress_level", 1)
         jpeg_quality = self.picam2.options.get("quality", 90)
@@ -288,8 +271,6 @@ class Helpers:
             "quality": jpeg_quality,
             "format": format,
         }
-        if exif != b"":
-            keywords |= {"exif": exif}
         img.save(file_output, **keywords)
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {file_output}.")

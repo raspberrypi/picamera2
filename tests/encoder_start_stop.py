@@ -19,3 +19,4 @@ for i in range(40):
     time.sleep(0.5)
 
 picam2.stop()
+picam2.close()

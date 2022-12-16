@@ -30,4 +30,4 @@ jobs:
       - name: Poetry Install Deps
         run: /home/docker/.local/bin/poetry install
       - name: Test
-        run: /home/docker/.local/bin/poetry run pytest tests/test_collection.py
+        run: /home/docker/.local/bin/poetry run pytest tests/test_collection.py -k 'test_init'

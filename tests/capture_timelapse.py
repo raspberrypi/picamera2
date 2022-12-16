@@ -22,3 +22,4 @@ for i in range(1, 51):
 
 
 picam2.stop()
+picam2.close()

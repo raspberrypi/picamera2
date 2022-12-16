@@ -9,7 +9,7 @@ from picamera2 import Picamera2, Preview
 
 def run_camera(idx):
     camera = Picamera2(idx)
-    camera.start_preview(Preview.QT)
+    camera.start_preview(Preview.NULL)
     camera.start()
     time.sleep(3)
     camera.stop()
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     print("Test camera in main process")
     camera = Picamera2(0)
-    camera.start_preview(Preview.QT)
+    camera.start_preview(Preview.NULL)
     camera.start()
     time.sleep(3)
     camera.stop()
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     print("Test camera in main process and subprocess")
     camera = Picamera2(0)
-    camera.start_preview(Preview.QT)
+    camera.start_preview(Preview.NULL)
     camera.start()
     p = multiprocessing.Process(target=run_camera, args=(1,))
     p.start()
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     print("Test camera in main process and thread")
     camera = Picamera2(0)
-    camera.start_preview(Preview.QT)
+    camera.start_preview(Preview.NULL)
     camera.start()
     thread = threading.Thread(target=run_camera, args=(1,), daemon=True)
     thread.start()

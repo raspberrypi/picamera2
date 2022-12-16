@@ -28,3 +28,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     picam2.stop()
     picam2.stop_encoder()
     conn.close()
+
+picam2.close()

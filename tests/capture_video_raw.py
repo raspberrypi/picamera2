@@ -53,3 +53,5 @@ t.set(Tag.DNGVersion, DNGVersion.V1_4)
 t.set(Tag.DNGBackwardVersion, DNGVersion.V1_2)
 r.options(t, path="", compress=False)
 r.convert(arr, filename="test")
+
+picam2.close()

@@ -62,3 +62,5 @@ merge = subprocess.Popen(
     ]
 )
 merge.wait()
+
+picam2.close()

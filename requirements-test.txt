@@ -1,18 +1,3 @@
 black
 # numpy
-# PiDNG
-# piexif
 # pillow
-# simplejpeg
-# v4l2-python3
-# python-prctl
-# pyopengl
-# PyQt5
-# opencv-python
-# pytesseract
-# meson
-# ninja
-# pybind11
-# Jinja2
-# ply
-# PyYAML

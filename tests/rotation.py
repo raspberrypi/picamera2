@@ -8,7 +8,7 @@ import libcamera
 from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
-picam2.start_preview(Preview.QTGL)
+picam2.start_preview(Preview.NULL)
 
 preview_config = picam2.create_preview_configuration()
 preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)

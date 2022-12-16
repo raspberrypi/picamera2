@@ -6,7 +6,7 @@ import time
 
 from picamera2 import Picamera2, Preview
 
-preview_type = Preview.QTGL
+preview_type = Preview.NULL
 
 print("First preview...")
 picam2 = Picamera2()

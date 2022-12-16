@@ -7,7 +7,7 @@ import time
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
-from picamera2.outputs import FfmpegOutput
+from picamera2.outputs import FileOutput
 
 picam2 = Picamera2()
 
@@ -26,7 +26,7 @@ picam2.video_configuration = picam2.create_video_configuration(
 picam2.configure("video")
 
 encoder = H264Encoder()
-output = FfmpegOutput("test.mp4")
+output = FileOutput("test.raw")
 
 # Set the fps
 fps = chosen_mode["fps"]

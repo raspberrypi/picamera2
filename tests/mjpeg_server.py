@@ -107,3 +107,5 @@ try:
     server.handle_request()
 finally:
     picam2.stop_recording()
+
+picam2.close()

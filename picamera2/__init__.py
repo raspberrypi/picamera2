@@ -1,11 +1,14 @@
+import sys
+
+sys.path.append("/usr/lib/python3/dist-packages")
 import libcamera
 
-from .configuration import CameraConfiguration, StreamConfiguration
-from .controls import Controls
-from .converters import YUV420_to_RGB
-from .metadata import Metadata
-from .picamera2 import Picamera2, Preview
-from .request import CompletedRequest, MappedArray
+from picamera2.configuration import CameraConfiguration, StreamConfiguration
+from picamera2.controls import Controls
+from picamera2.converters import YUV420_to_RGB
+from picamera2.metadata import Metadata
+from picamera2.picamera2 import Picamera2, Preview
+from picamera2.request import CompletedRequest, MappedArray
 
 
 def libcamera_transforms_eq(t1, t2):

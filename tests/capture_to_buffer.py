@@ -19,3 +19,5 @@ time.sleep(1)
 data = io.BytesIO()
 picam2.switch_mode_and_capture_file(capture_config, data, format="jpeg")
 print(data.getbuffer().nbytes)
+
+picam2.close()
