@@ -47,6 +47,7 @@ tests/async_test.py
 tests/check_timestamps.py
 tests/close_test.py
 tests/close_test_multiple.py
+tests/colour_spaces.py
 tests/configurations.py
 tests/context_test.py
 tests/display_transform_null.py
