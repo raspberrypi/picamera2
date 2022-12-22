@@ -28,6 +28,6 @@ jobs:
       - name: Install packages
         run: pip3 install poetry
       - name: Poetry Install Deps
-        run: /home/docker/.local/bin/poetry install
+        run: poetry install
       - name: Test
-        run: /home/docker/.local/bin/poetry run pytest tests/test_collection.py -k 'test_init'
+        run: poetry run pytest tests/test_collection.py -k 'test_init'

@@ -21,6 +21,8 @@ class NullPreview:
         sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
         self._started.set()
 
+        # TODO(meawoppl) - abort flag and select can be polled in parallel
+        # which will make startup/shutdown faster
         while not self._abort.is_set():
             events = sel.select(0.2)
             for key, _ in events:
@@ -63,14 +65,6 @@ class NullPreview:
         self.thread.start()
         self._started.wait()
 
-    def set_overlay(self, overlay):
-        """Sets overlay
-
-        :param overlay: Overlay
-        """
-        # This only exists so as to have the same interface as other preview windows.
-        pass
-
     def handle_request(self, picam2):
         """Handle requests
 
@@ -91,6 +85,3 @@ class NullPreview:
         self._abort.set()
         self.thread.join()
         self.picam2 = None
-
-    def set_title_function(self, function):
-        pass

@@ -11,6 +11,8 @@ from picamera2.picamera2 import Picamera2, Preview
 from picamera2.request import CompletedRequest, MappedArray
 
 
+# TODO(meawoppl) - Make Transforms dataclasses and percolate out
+# the logic below into them
 def libcamera_transforms_eq(t1, t2):
     return (
         t1.hflip == t2.hflip and t1.vflip == t2.vflip and t1.transpose == t2.transpose
@@ -26,6 +28,7 @@ def libcamera_colour_spaces_eq(c1, c2):
     )
 
 
+# NOTE(meawoppl) - ugleeee monkey patch. Kill the below VV
 libcamera.Transform.__repr__ = libcamera.Transform.__str__
 libcamera.Transform.__eq__ = libcamera_transforms_eq
 

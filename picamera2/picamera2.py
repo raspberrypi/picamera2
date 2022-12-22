@@ -34,6 +34,7 @@ VIEWFINDER = libcamera.StreamRole.Viewfinder
 _log = logging.getLogger(__name__)
 
 
+# TODO(meawoppl) Kill this enum and flatten where it is used
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
 
@@ -247,7 +248,6 @@ class Picamera2:
         self.camera_properties_ = {}
         self.controls = Controls(self)
         self.sensor_modes_ = None
-        self._title_fields = None
 
     @property
     def preview_configuration(self) -> CameraConfiguration:
@@ -314,31 +314,6 @@ class Picamera2:
             for k, v in self.camera_ctrl_info.items()
         }
 
-    @property
-    def title_fields(self):
-        """The metadata fields reported in the title bar of any preview window."""
-        return self._title_fields
-
-    @title_fields.setter
-    def title_fields(self, fields):
-        def make_title(fields, metadata):
-            def tidy(item):
-                if isinstance(item, float):
-                    return round(item, 3)
-                elif isinstance(item, tuple):
-                    return tuple(tidy(i) for i in item)
-                else:
-                    return item
-
-            return "".join(
-                "{} {} ".format(f, tidy(metadata.get(f, "INVALID"))) for f in fields
-            )
-
-        self._title_fields = fields
-        function = None if fields is None else (lambda md: make_title(fields, md))
-        if self._preview is not None:
-            self._preview.set_title_function(function)
-
     def __enter__(self):
         """Used for allowing use with context manager
 
@@ -381,6 +356,7 @@ class Picamera2:
         elif isinstance(idx, int):
             return self.camera_manager.cameras[idx]
 
+    # TODO(meawoppl) - Only returns true.  Should be removed.
     def _initialize_camera(self) -> bool:
         """Initialize camera
 
@@ -398,11 +374,13 @@ class Picamera2:
 
         self.camera = self._grab_camera(self.camera_idx)
 
+        # TODO(meawoppl) - condense the half-dozen of these into a helper
         if self.camera is None:
             _log.error("Initialization failed.")
             raise RuntimeError("Initialization failed.")
 
         self.__identify_camera()
+        # TODO(meawoppl) Foist into libcamera conversions helpers
         # Re-generate the controls list to someting easer to use.
         for k, v in self.camera.controls.items():
             self.camera_ctrl_info[k.name] = (k, v)
@@ -421,6 +399,7 @@ class Picamera2:
         return True
 
     def __identify_camera(self):
+        # TODO(meawoppl) make this a helper on the camera_manager
         for idx, address in enumerate(self.camera_manager.cameras):
             if address == self.camera:
                 self.camera_idx = idx
@@ -482,6 +461,7 @@ class Picamera2:
                 self.sensor_modes_.append(cam_mode)
         return self.sensor_modes_
 
+    # TODO(meawoppl) we don't really support previews, so change the language here
     def start_preview(self, preview=False, **kwargs) -> None:
         """
         Start the given preview which drives the camera processing.
@@ -568,6 +548,7 @@ class Picamera2:
         os.close(self.notifyme_w)
         _log.info("Camera closed successfully.")
 
+    # TODO(meawoppl) Hoist into helpers
     @staticmethod
     def _make_initial_stream_config(
         stream_config: dict, updates: dict, ignore_list=[]
@@ -598,6 +579,7 @@ class Picamera2:
                 )
         return stream_config
 
+    # TODO(meawoppl) - Nuked by using a dataclass
     @staticmethod
     def _add_display_and_encode(config, display, encode) -> None:
         if display is not None and config.get(display, None) is None:
@@ -607,6 +589,7 @@ class Picamera2:
         config["display"] = display
         config["encode"] = encode
 
+    # TODO(meawoppl) - What is this doing here?
     _raw_stream_ignore_list = [
         "bit_depth",
         "crop_limits",
@@ -615,6 +598,7 @@ class Picamera2:
         "unpacked",
     ]
 
+    # TODO(meawoppl) - These can likely be made static/hoisted
     def create_preview_configuration(
         self,
         main={},
@@ -668,6 +652,7 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
+    # TODO(meawoppl) - These can likely be made static/hoisted
     def create_still_configuration(
         self,
         main={},
@@ -719,6 +704,7 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
+    # TODO(meawoppl) - These can likely be made static/hoisted
     def create_video_configuration(
         self,
         main={},
@@ -779,6 +765,7 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
+    # TODO(meawoppl) - dataclass __post_init__ materials
     def check_stream_config(self, stream_config, name) -> None:
         """Check the configuration of the passed in config.
 
@@ -811,6 +798,7 @@ class Picamera2:
         if size[0] % 2 or size[1] % 2:
             raise RuntimeError("width and height should be even")
 
+    # TODO(meawoppl) - dataclass __post_init__ materials
     def check_camera_config(self, camera_config: dict) -> None:
         required_keys = ["colour_space", "transform", "main", "lores", "raw"]
         for name in required_keys:
@@ -837,6 +825,7 @@ class Picamera2:
         if camera_config["raw"] is not None:
             self.check_stream_config(camera_config["raw"], "raw")
 
+    # TODO(meawoppl) - Obviated by dataclasses
     @staticmethod
     def _update_libcamera_stream_config(
         libcamera_stream_config, stream_config, buffer_count
@@ -850,6 +839,7 @@ class Picamera2:
         )
         libcamera_stream_config.buffer_count = buffer_count
 
+    # TODO(meawoppl) - Obviated by dataclasses
     def _make_libcamera_config(self, camera_config):
         # Make a libcamera configuration object from our Python configuration.
 
@@ -895,6 +885,7 @@ class Picamera2:
 
         return libcamera_config
 
+    # TODO(meawoppl) - Method on stream config dataclass
     @staticmethod
     def align_stream(stream_config: dict, optimal=True) -> None:
         if optimal:
@@ -912,6 +903,7 @@ class Picamera2:
         size = stream_config["size"]
         stream_config["size"] = (size[0] - size[0] % align, size[1] - size[1] % 2)
 
+    # TODO(meawoppl) - Method on stream config dataclass
     @staticmethod
     def align_configuration(config: dict, optimal=True) -> None:
         Picamera2.align_stream(config["main"], optimal=optimal)
@@ -1075,6 +1067,9 @@ class Picamera2:
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
+
+        # TODO(meawoppl) - can be taken off public and used in the 1 function
+        # that calls it.
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
         for i, stream in enumerate(self.streams):
             if self.allocator.allocate(stream) < 0:
@@ -1188,6 +1183,7 @@ class Picamera2:
         """Set camera controls. These will be delivered with the next request that gets submitted."""
         self.controls.set_controls(controls)
 
+    # TODO(meawoppl) - This whole thing needs to be smashed to simpler
     def process_requests(self) -> None:
         # This is the function that the event loop, which runs externally to us, must
         # call.
@@ -1653,121 +1649,3 @@ class Picamera2:
         """Stop recording a video. The encode and output are stopped and closed."""
         self.stop()
         self.stop_encoder()
-
-    def set_overlay(self, overlay) -> None:
-        """Display an overlay on the camera image.
-
-        The overlay may be either None, in which case any overlay is removed,
-        or a 4-channel ``ndarray``, the last of thechannels being taken as the alpha channel.
-
-        :param overlay: Overlay or None
-        :type overlay: ndarray
-        :raises RuntimeError: Must pass a 4-channel image
-        """
-        if overlay is not None:
-            if overlay.ndim != 3 or overlay.shape[2] != 4:
-                raise RuntimeError("Overlay must be a 4-channel image")
-        self._preview.set_overlay(overlay)
-
-    def start_and_capture_files(
-        self,
-        name: str = "image{:03d}.jpg",
-        initial_delay=1,
-        preview_mode="preview",
-        capture_mode="still",
-        num_files=1,
-        delay=1,
-        show_preview=True,
-    ):
-        """
-        This function makes capturing multiple images more conenient, but should only be used in
-        command line line applications (not from a Qt application, for example). If will configure
-        the camera as requested and start it, switching between preview and still modes for
-        capture. It supports the following parameters (all optional):
-
-        name - name of the files to which to save the images. If more than one image is to be
-            captured then it should feature a format directive that will be replaced by a counter.
-
-        initial_delay - any time delay (in seconds) before the first image is captured. The camera
-            will run in preview mode during this period. The default time is 1s.
-
-        preview_mode - the camera mode to use for the preview phase (defaulting to the
-            Picamera2 object's preview_configuration field).
-
-        capture_mode - the camera mode to use to capture the still images (defaulting to the
-            Picamera2 object's still_configuration field).
-
-        num_files - number of files to capture (default 1).
-
-        delay - the time delay for every capture after the first (default 1s).
-
-        show_preview - whether to show a preview window (default: yes). The preview window only
-            displays an image by default during the preview phase, so if captures are back-to-back
-            with delay zero, then there may be no images shown. This parameter only has any
-            effect if a preview is not already running. If it is, it would have to be stopped first
-            (with the stop_preview method).
-        """
-        if self.started:
-            self.stop()
-        if delay:
-            # Show a preview between captures, so we will switch mode and back for each capture.
-            self.configure(preview_mode)
-            self.start(show_preview=show_preview)
-            for i in range(num_files):
-                time.sleep(initial_delay if i == 0 else delay)
-                self.switch_mode_and_capture_file(capture_mode, name.format(i))
-        else:
-            # No preview between captures, it's more efficient just to stay in capture mode.
-            if initial_delay:
-                self.configure(preview_mode)
-                self.start(show_preview=show_preview)
-                time.sleep(initial_delay)
-                self.switch_mode(capture_mode)
-            else:
-                self.configure(capture_mode)
-                self.start(show_preview=show_preview)
-            for i in range(num_files):
-                self.capture_file(name.format(i))
-                if i == num_files - 1:
-                    break
-                time.sleep(delay)
-        self.stop()
-
-    def start_and_capture_file(
-        self,
-        name="image.jpg",
-        delay=1,
-        preview_mode="preview",
-        capture_mode="still",
-        show_preview=True,
-    ):
-        """
-        This function makes capturing a single image more conenient, but should only be used in
-        command line line applications (not from a Qt application, for example). If will configure
-        the camera as requested and start it, switching from the preview to the still mode for
-        capture. It supports the following parameters (all optional):
-
-        name - name of the file to which to save the images.
-
-        delay - any time delay (in seconds) before the image is captured. The camera
-            will run in preview mode during this period. The default time is 1s.
-
-        preview_mode - the camera mode to use for the preview phase (defaulting to the
-            Picamera2 object's preview_configuration field).
-
-        capture_mode - the camera mode to use to capture the still images (defaulting to the
-            Picamera2 object's still_configuration field).
-
-        show_preview - whether to show a preview window (default: yes). The preview window only
-            displays an image by default during the preview phase. This parameter only has any
-            effect if a preview is not already running. If it is, it would have to be stopped first
-            (with the stop_preview method).
-        """
-        self.start_and_capture_files(
-            name=name,
-            initial_delay=delay,
-            preview_mode=preview_mode,
-            capture_mode=capture_mode,
-            num_files=1,
-            show_preview=show_preview,
-        )

@@ -19,6 +19,8 @@ class Quality(Enum):
     VERY_HIGH = 4
 
 
+# TODO(meawoppl) Vastly simplify this to consume a sequence of frames and output
+# a sequence of encoded frames.
 class Encoder:
     """Base class for encoders"""
 

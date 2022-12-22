@@ -1,3 +1,5 @@
+# TODO(meawoppl) - Congradulate the author of this for making a builtin
+# less useful and more confusing. REMOVE ME
 class Metadata:
     def __init__(self, metadata={}):
         self.__dict__ = metadata.copy()

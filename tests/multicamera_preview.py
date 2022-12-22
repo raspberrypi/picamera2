@@ -22,15 +22,8 @@ picam2b.stop_preview()
 
 time.sleep(2)
 
-overlay = np.zeros((300, 400, 4), dtype=np.uint8)
-overlay[:150, 200:] = (255, 0, 0, 64)
-overlay[150:, :200] = (0, 255, 0, 64)
-overlay[150:, 200:] = (0, 0, 255, 64)
-
 picam2a.start_preview(Preview.NULL)
 picam2b.start_preview(Preview.NULL)
-picam2a.set_overlay(overlay)
-picam2b.set_overlay(overlay)
 
 time.sleep(10)
 picam2a.close()

@@ -16,7 +16,6 @@ def forward_subprocess_output(e: subprocess.CalledProcessError):
     print(e.stderr.decode("utf-8"), end="", file=sys.stderr)
 
 
-@pytest.mark.xfail(reason="Minimum viable test.")
 def test_init():
     os.system("udevadm control --reload")
     from picamera2 import Picamera2
