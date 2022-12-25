@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
 import time
+from concurrent.futures import Future
 from threading import Thread
+from typing import List
 
 from picamera2 import Picamera2
 
@@ -30,11 +32,12 @@ for thread in threads:
 
 time.sleep(2)
 
-jobs = []
+jobs: List[Future] = []
 for i in range(4):
-    jobs.append(picam2.capture_metadata(wait=False))
+    jobs.append(picam2.capture_metadata_async())
     time.sleep(0.01)
-times = [job.get_result()["SensorTimestamp"] for job in jobs]
+
+times = [job.result()["SensorTimestamp"] for job in jobs]
 diffs = [(t1 - t0) // 1000 for t0, t1 in zip(times[:-1], times[1:])]
 print(diffs)
 if any(d < 0 for d in diffs):
