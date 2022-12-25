@@ -38,11 +38,6 @@ class Job:
         assert self._functions, "Job already completed!"
 
         try:
-            # Each function making up the Job returns two things: whether it's
-            # "done", in which case we pop it off the list so that the function
-            # in the list will run with the next frame (otherwise we leave it there
-            # to try again next time). Secondly, it returns a value that counts
-            # as its "result" once it completes.
             result = self._functions[0]()
             self.calls += 1
 

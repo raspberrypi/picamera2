@@ -39,6 +39,7 @@ VIEWFINDER = libcamera.StreamRole.Viewfinder
 _log = logging.getLogger(__name__)
 
 
+# TODO(meawoppl) doc these arrtibutes
 @dataclass
 class CameraInfo:
     id: str
@@ -83,6 +84,8 @@ class CameraInfo:
 
 
 class CameraManager:
+    cameras: Dict[int, Picamera2]
+
     def __init__(self):
         self.running = False
         self.cameras = {}
@@ -94,7 +97,7 @@ class CameraManager:
         self.running = True
         self.thread.start()
 
-    def add(self, index, camera: Picamera2):
+    def add(self, index: int, camera: Picamera2):
         with self._lock:
             self.cameras[index] = camera
             if not self.running:
@@ -125,11 +128,7 @@ class CameraManager:
         self.cms = None
 
     def handle_request(self, flushid=None):
-        """Handle requests
-
-        :param cameras: Dictionary of Picamera2
-        :type cameras: dict
-        """
+        """Handle requests"""
         with self._lock:
             cams = set()
             for req in self.cms.get_ready_requests():
@@ -138,10 +137,12 @@ class CameraManager:
                     and req.cookie != flushid
                 ):
                     cams.add(req.cookie)
-                    with self.cameras[req.cookie]._requestslock:
-                        self.cameras[req.cookie]._requests += [
-                            CompletedRequest(req, self.cameras[req.cookie])
-                        ]
+
+                    self.cameras[req.cookie].add_completed_request(
+                        CompletedRequest(req, self.cameras[req.cookie])
+                    )
+            # OS based file pipes seem really overkill for this.
+            # TODO(meawoppl) - Convert to queue primitive
             for c in cams:
                 os.write(self.cameras[c].notifyme_w, b"\x00")
 
@@ -1061,6 +1062,10 @@ class Picamera2:
         """Set camera controls. These will be delivered with the next request that gets submitted."""
         self.controls.set_controls(controls)
 
+    def add_completed_request(self, request: CompletedRequest) -> None:
+        with self._requestslock:
+            self._requests.append(request)
+
     # TODO(meawoppl) - This whole thing needs to be smashed to simpler
     def process_requests(self) -> None:
         # This is the function that the event loop, which runs externally to us, must
@@ -1073,10 +1078,6 @@ class Picamera2:
             return
         self.frames += len(requests)
         # It works like this:
-        # * We maintain a list of the requests that libcamera has completed (completed_requests).
-        #   But we keep only a minimal number here so that we have one available to "return
-        #   quickly" if an application asks for it, but the rest get recycled to libcamera to
-        #   keep the camera system running.
         # * The lock here protects the completed_requests list (because if it's non-empty, an
         #   application can pop a request from it asynchronously), and the _job_list. If
         #   we don't have a request immediately available, the application will queue a
@@ -1133,14 +1134,6 @@ class Picamera2:
 
         return display_request
 
-    def wait(self, job):
-        """Wait for the given job to finish (if necessary) and return its final result.
-        The job is obtained either by calling one of the Picamera2 methods asynchronously
-        (passing wait=False), or as a parameter to the signal_function that can be
-        supplied to those same methods.
-        """
-        return job.get_result()
-
     def dispatch_functions(self, functions, wait, signal_function=None) -> None:
         """The main thread should use this to dispatch a number of operations for the event
         loop to perform.
@@ -1156,16 +1149,6 @@ class Picamera2:
             self._job_list.append(job)
         return job.get_result() if wait else job
 
-    def capture_file_(self, file_output, name: str, format=None) -> dict:
-        request = self.completed_requests.pop(0)
-        assert not name.endswith(".raw"), "Raw export is not supported."
-
-        request.save(name, file_output, format=format)
-
-        result = request.get_metadata()
-        request.release()
-        return result
-
     def _execute_or_dispatch(self, function, wait, signal_function):
         if wait is None:
             wait = signal_function is None
@@ -1178,6 +1161,16 @@ class Picamera2:
                 if job.execute():
                     self._job_list.pop(0)
         return job.get_result() if wait else job
+
+    def capture_file_(self, file_output, name: str, format=None) -> dict:
+        request = self.completed_requests.pop(0)
+        assert not name.endswith(".raw"), "Raw export is not supported."
+
+        request.save(name, file_output, format=format)
+
+        result = request.get_metadata()
+        request.release()
+        return result
 
     def capture_file(
         self,
