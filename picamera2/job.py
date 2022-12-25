@@ -43,14 +43,14 @@ class Job:
             # in the list will run with the next frame (otherwise we leave it there
             # to try again next time). Secondly, it returns a value that counts
             # as its "result" once it completes.
-            done, result = self._functions[0]()
+            result = self._functions[0]()
             self.calls += 1
-            if done:
-                self._functions.pop(0)
 
-                # When no functions are left, the entire job is complete.
-                if not self._functions:
-                    self._future.set_result(result)
+            self._functions.pop(0)
+
+            # When no functions are left, the entire job is complete.
+            if not self._functions:
+                self._future.set_result(result)
 
         except Exception as e:
             self._future.set_exception(e)
