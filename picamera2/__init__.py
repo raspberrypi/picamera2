@@ -7,7 +7,7 @@ from picamera2.configuration import CameraConfiguration, StreamConfiguration
 from picamera2.controls import Controls
 from picamera2.converters import YUV420_to_RGB
 from picamera2.metadata import Metadata
-from picamera2.picamera2 import Picamera2, Preview
+from picamera2.picamera2 import CameraInfo, Picamera2, Preview
 from picamera2.request import CompletedRequest, MappedArray
 
 
@@ -34,3 +34,17 @@ libcamera.Transform.__eq__ = libcamera_transforms_eq
 
 libcamera.ColorSpace.__repr__ = libcamera.ColorSpace.__str__
 libcamera.ColorSpace.__eq__ = libcamera_colour_spaces_eq
+
+
+__all__ = [
+    "CameraConfiguration",
+    "StreamConfiguration",
+    "Controls",
+    "YUV420_to_RGB",
+    "Metadata",
+    "Picamera2",
+    "Preview",
+    "CameraInfo",
+    "CompletedRequest",
+    "MappedArray",
+]

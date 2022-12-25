@@ -9,6 +9,7 @@ import selectors
 import tempfile
 import threading
 import time
+from dataclasses import dataclass
 from enum import Enum
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple
@@ -40,6 +41,49 @@ class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
 
     NULL = 0
+
+
+@dataclass
+class CameraInfo:
+    id: str
+
+    model: str
+
+    location: str
+
+    rotation: int
+
+    @staticmethod
+    def global_camera_info() -> List[CameraInfo]:
+        """
+        Return Id string and Model name for all attached cameras, one dict per camera,
+        and ordered correctly by camera number. Also return the location and rotation
+        of the camera when known, as these may help distinguish which is which.
+        """
+        infos = []
+        for cam in libcamera.CameraManager.singleton().cameras:
+            name_to_val = {
+                k.name.lower(): v
+                for k, v in cam.properties.items()
+                if k.name in ("Model", "Location", "Rotation")
+            }
+            name_to_val["id"] = cam.id
+            infos.append(CameraInfo(**name_to_val))
+        return infos
+
+    @staticmethod
+    def n_cameras() -> int:
+        """Return the number of attached cameras."""
+        return len(libcamera.CameraManager.singleton().cameras)
+
+    def requires_camera(n: int = 1):
+        if CameraInfo.n_cameras() < n:
+            _log.error(
+                "Camera(s) not found (Do not forget to disable legacy camera with raspi-config)."
+            )
+            raise RuntimeError(
+                "Camera(s) not found (Do not forget to disable legacy camera with raspi-config)."
+            )
 
 
 class CameraManager:
@@ -156,27 +200,6 @@ class Picamera2:
         if version == 1:
             return tuning[name]
         return next(algo for algo in tuning["algorithms"] if name in algo)[name]
-
-    @staticmethod
-    def global_camera_info() -> list:
-        """
-        Return Id string and Model name for all attached cameras, one dict per camera,
-        and ordered correctly by camera number. Also return the location and rotation
-        of the camera when known, as these may help distinguish which is which.
-        """
-
-        def describe_camera(cam):
-            info = {
-                k.name: v
-                for k, v in cam.properties.items()
-                if k.name in ("Model", "Location", "Rotation")
-            }
-            info["Id"] = cam.id
-            return info
-
-        return [
-            describe_camera(cam) for cam in libcamera.CameraManager.singleton().cameras
-        ]
 
     def __init__(self, camera_num=0, tuning=None):
         """Initialise camera system and open the camera for use.
@@ -348,7 +371,7 @@ class Picamera2:
             value = (value.width, value.height)
         return value
 
-    def _grab_camera(self, idx):
+    def _grab_camera(self, idx: str | int):
         if isinstance(idx, str):
             try:
                 return self.camera_manager.get(idx)
@@ -357,28 +380,21 @@ class Picamera2:
         elif isinstance(idx, int):
             return self.camera_manager.cameras[idx]
 
+    def requires_camera(self):
+        if self.camera is None:
+            message = "Initialization failed."
+            _log.error(message)
+            raise RuntimeError(message)
+
     # TODO(meawoppl) - Only returns true.  Should be removed.
-    def _initialize_camera(self) -> bool:
+    def _initialize_camera(self) -> None:
         """Initialize camera
 
         :raises RuntimeError: Failure to initialise camera
-        :return: True if success
-        :rtype: bool
         """
-        if not self.camera_manager.cameras:
-            _log.error(
-                "Camera(s) not found (Do not forget to disable legacy camera with raspi-config)."
-            )
-            raise RuntimeError(
-                "Camera(s) not found (Do not forget to disable legacy camera with raspi-config)."
-            )
-
+        CameraInfo.requires_camera(1)
         self.camera = self._grab_camera(self.camera_idx)
-
-        # TODO(meawoppl) - condense the half-dozen of these into a helper
-        if self.camera is None:
-            _log.error("Initialization failed.")
-            raise RuntimeError("Initialization failed.")
+        self.requires_camera()
 
         self.__identify_camera()
         # TODO(meawoppl) Foist into libcamera conversions helpers
@@ -397,7 +413,6 @@ class Picamera2:
         )
 
         _log.info("Initialization successful.")
-        return True
 
     def __identify_camera(self):
         # TODO(meawoppl) make this a helper on the camera_manager
@@ -614,8 +629,7 @@ class Picamera2:
         queue=True,
     ) -> dict:
         """Make a configuration suitable for camera preview."""
-        if self.camera is None:
-            raise RuntimeError("Camera not opened")
+        self.requires_camera()
         main = self._make_initial_stream_config(
             {"format": "XBGR8888", "size": (640, 480)}, main
         )
@@ -668,8 +682,7 @@ class Picamera2:
         queue=True,
     ) -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
-        if self.camera is None:
-            raise RuntimeError("Camera not opened")
+        self.requires_camera()
         main = self._make_initial_stream_config(
             {"format": "BGR888", "size": self.sensor_resolution}, main
         )
@@ -720,8 +733,7 @@ class Picamera2:
         queue=True,
     ) -> dict:
         """Make a configuration suitable for video recording."""
-        if self.camera is None:
-            raise RuntimeError("Camera not opened")
+        self.requires_camera()
         main = self._make_initial_stream_config(
             {"format": "XBGR8888", "size": (1280, 720)}, main
         )
