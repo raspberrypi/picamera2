@@ -3,8 +3,11 @@
 # Test that we can read the sensor modes, and then configure the camera
 # into each mode and get the correct framerate
 
+import sys
 import time
 from math import isclose
+
+sys.path.append("/usr/lib/python3/dist-packages")
 
 from libcamera import Transform
 

@@ -15,5 +15,5 @@ picam2.video_configuration.format = "YUV420"
 encoder = JpegEncoder()
 
 picam2.start_recording(encoder, "test.h264", config="video")
-time.sleep(5)
+time.sleep(2)
 picam2.stop_recording()

@@ -8,26 +8,26 @@ from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs import CircularOutput
 
 lsize = (320, 240)
-picam2 = Picamera2()
-video_config = picam2.create_video_configuration(
+camera = Picamera2()
+video_config = camera.create_video_configuration(
     main={"size": (1280, 720), "format": "RGB888"},
     lores={"size": lsize, "format": "YUV420"},
 )
-picam2.configure(video_config)
-picam2.start_preview()
+camera.configure(video_config)
+camera.start_preview()
 encoder = JpegEncoder()
 encoder.output = CircularOutput()
-picam2.encoder = encoder
-picam2.start()
-picam2.start_encoder()
+camera.encoder = encoder
+camera.start()
+camera.start_encoder()
 
 w, h = lsize
 prev = None
 encoding = False
 ltime = 0
 
-for x in range(4):
-    cur = picam2.capture_buffer("lores")
+for _ in range(4):
+    cur = camera.capture_buffer("lores")
     cur = cur[: w * h].reshape(h, w)
     if prev is not None:
         # Measure pixels differences between current and
@@ -47,5 +47,5 @@ for x in range(4):
                 encoding = False
     prev = cur
 
-picam2.stop_encoder()
-picam2.close()
+camera.stop_encoder()
+camera.close()

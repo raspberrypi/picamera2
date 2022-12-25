@@ -1,60 +1,31 @@
 import time
+from logging import getLogger
 
 from picamera2 import Picamera2, Preview
 
-wait = 5
+wait = 2
 buffer = 1
 
+_log = getLogger(__name__)
 
-def main():
-    # First we create a camera instance.
-    picam2 = Picamera2()
+# First we create a camera instance.
+camera = Picamera2()
 
-    # Let's set it up for previewing.
-    preview = picam2.create_preview_configuration()
-    picam2.configure(preview)
+# Let's set it up for previewing.
+preview = camera.create_preview_configuration()
+camera.configure(preview)
 
-    picam2.start(show_preview=None)
+camera.start(show_preview=None)
 
-    qtgl1 = time.monotonic()
-    print("QT GL Preview")
-    time.sleep(buffer)
-    picam2.start_preview(Preview.NULL)
-    time.sleep(wait)
-    picam2.stop_preview()
-    qtgl2 = time.monotonic()
+null1 = time.monotonic()
+print("Null Preview")
+time.sleep(buffer)
+camera.start_preview(Preview.NULL)
+time.sleep(wait)
+camera.stop_preview()
+null2 = time.monotonic()
 
-    null1 = time.monotonic()
-    print("Null Preview")
-    time.sleep(buffer)
-    picam2.start_preview(Preview.NULL)
-    time.sleep(wait)
-    picam2.stop_preview()
-    null2 = time.monotonic()
+# Close the camera.
+camera.close()
 
-    qt1 = time.monotonic()
-    print("QT Preview")
-    time.sleep(buffer)
-    picam2.start_preview(Preview.NULL)
-    time.sleep(wait)
-    picam2.stop_preview()
-    qt2 = time.monotonic()
-
-    # drm1 = time.monotonic()
-    # print("DRM Preview")
-    # time.sleep(1)
-    # picam2.start_preview('drm',x=100,y=100)
-    # time.sleep(10)
-    # picam2.stop_preview()
-    # drm2 = time.monotonic()
-
-    # Close the camera.
-    picam2.close()
-
-    print(f"QT GL Cycle Results: {qtgl2-qtgl1-wait-buffer} s")
-    print(f"Null Cycle Results: {null2-null1-wait-buffer} s")
-    print(f"QT Cycle Results: {qt2-qt1-wait-buffer} s")
-
-
-if __name__ == "__main__":
-    main()
+_log.info(f"Null Cycle Results: {null2-null1-wait-buffer} s")

@@ -1,7 +1,7 @@
 """JPEG encoder functionality"""
 from io import BytesIO
 
-from PIL.Image import Image
+from PIL import Image
 
 from picamera2.encoders import Quality
 from picamera2.encoders.multi_encoder import MultiEncoder
@@ -40,7 +40,11 @@ class JpegEncoder(MultiEncoder):
         :return: Jpeg image
         :rtype: bytes
         """
-        img: Image = request.make_image(name)
+        array = request.make_array(name)
+        if array.ndim == 3:
+            img = Image.fromarray(array[:, :, :3])
+        else:
+            img = Image.fromarray(array)
         bio = BytesIO()
         img.save(bio, format="jpeg", quality=self.q)
         return bio.getvalue()

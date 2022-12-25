@@ -1,27 +1,13 @@
-import time
+from logging import getLogger
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2
 
-print("Preview re-initialized after start.")
-picam2 = Picamera2()
-preview = picam2.create_preview_configuration()
-picam2.configure(preview)
-picam2.start_preview(Preview.NULL)
-picam2.start()
-np_array = picam2.capture_array()
-print(np_array)
-time.sleep(5)
-picam2.stop_preview()
-picam2.close()
-
-print("Preview initialized before start.")
-picam2 = Picamera2()
-preview = picam2.create_preview_configuration()
-picam2.configure(preview)
-picam2.start_preview(Preview.NULL)
-picam2.start()
-np_array = picam2.capture_array()
-print(np_array)
-time.sleep(5)
-picam2.stop_preview()
-picam2.close()
+_log = getLogger(__name__)
+_log.info("Preview re-initialized after start.")
+camera = Picamera2()
+preview = camera.create_preview_configuration()
+camera.configure(preview)
+camera.start()
+np_array = camera.capture_array()
+_log.info(np_array)
+camera.close()

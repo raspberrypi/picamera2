@@ -4,6 +4,8 @@
 
 import time
 
+from PIL import Image
+
 from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
@@ -16,8 +18,7 @@ picam2.start()
 time.sleep(2)
 
 image = picam2.switch_mode_and_capture_image(capture_config)
-image.show()
-
+assert isinstance(image, Image)
 
 time.sleep(5)
 

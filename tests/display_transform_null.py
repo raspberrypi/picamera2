@@ -1,6 +1,8 @@
+import sys
 import time
 
-import numpy as np
+sys.path.append("/usr/lib/python3/dist-packages")
+
 from libcamera import Transform
 
 from picamera2 import Picamera2, Preview

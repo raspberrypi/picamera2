@@ -30,4 +30,4 @@ jobs:
       - name: Poetry Install Deps
         run: poetry install
       - name: Test
-        run: poetry run pytest -rap --durations=10 tests/test_collection.py 
+        run: poetry run pytest -rap --durations=25 tests/test_collection.py 

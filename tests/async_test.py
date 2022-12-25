@@ -28,10 +28,10 @@ threads = [Thread(target=thread_func, args=(d,)) for d in delays]
 for thread in threads:
     thread.start()
 
-time.sleep(5)
+time.sleep(2)
 
 jobs = []
-for i in range(10):
+for i in range(4):
     jobs.append(picam2.capture_metadata(wait=False))
     time.sleep(0.01)
 times = [job.get_result()["SensorTimestamp"] for job in jobs]
@@ -40,7 +40,7 @@ print(diffs)
 if any(d < 0 for d in diffs):
     print("Error: unexpected frame times")
 
-time.sleep(5)
+time.sleep(2)
 
 abort = True
 for thread in threads:
