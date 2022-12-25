@@ -4,7 +4,7 @@ import multiprocessing
 import threading
 import time
 
-from picamera2 import Picamera2, Preview
+from picamera2 import CameraInfo, Picamera2, Preview
 
 
 def run_camera(idx):
@@ -18,7 +18,7 @@ def run_camera(idx):
 
 if __name__ == "__main__":
 
-    if len(Picamera2.global_camera_info()) <= 1:
+    if CameraInfo.n_cameras() <= 1:
         print("SKIPPED (one camera)")
         quit()
 
