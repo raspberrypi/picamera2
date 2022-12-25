@@ -2,14 +2,11 @@
 
 import time
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2
 
 camera = Picamera2()
 config = camera.create_preview_configuration()
 camera.configure(config)
-
-# In fact, picam2.start() would do this anyway for us:
-camera.start_preview(Preview.NULL)
 
 camera.start()
 time.sleep(1)

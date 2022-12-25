@@ -7,7 +7,7 @@ from picamera2.configuration import CameraConfiguration, StreamConfiguration
 from picamera2.controls import Controls
 from picamera2.converters import YUV420_to_RGB
 from picamera2.metadata import Metadata
-from picamera2.picamera2 import CameraInfo, Picamera2, Preview
+from picamera2.picamera2 import CameraInfo, Picamera2
 from picamera2.request import CompletedRequest, MappedArray
 
 
@@ -43,7 +43,6 @@ __all__ = [
     "YUV420_to_RGB",
     "Metadata",
     "Picamera2",
-    "Preview",
     "CameraInfo",
     "CompletedRequest",
     "MappedArray",

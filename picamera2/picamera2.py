@@ -9,7 +9,6 @@ import selectors
 import tempfile
 import threading
 from dataclasses import dataclass
-from enum import Enum
 from functools import partial
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -38,13 +37,6 @@ VIDEO = libcamera.StreamRole.VideoRecording
 VIEWFINDER = libcamera.StreamRole.Viewfinder
 
 _log = logging.getLogger(__name__)
-
-
-# TODO(meawoppl) Kill this enum and flatten where it is used
-class Preview(Enum):
-    """Enum that applications can pass to the start_preview method."""
-
-    NULL = 0
 
 
 @dataclass
@@ -272,7 +264,6 @@ class Picamera2:
         self.lock = (
             threading.Lock()
         )  # protects the _job_list and completed_requests fields
-        self.have_event_loop = False
         self.camera_properties_ = {}
         self.controls = Controls(self)
         self.sensor_modes_ = None
@@ -480,46 +471,16 @@ class Picamera2:
         return self.sensor_modes_
 
     # TODO(meawoppl) we don't really support previews, so change the language here
-    def start_preview(self, preview=False, **kwargs) -> None:
+    def start_preview(self) -> None:
         """
-        Start the given preview which drives the camera processing.
-
-        The preview may be either:
-          None or False - in which case a NullPreview is made,
-          True - which we hope in future to use to autodetect
-          a Preview enum value - in which case a preview of that type is made,
-          or an actual preview object.
-
-        When using the enum form, extra keyword arguments can be supplied that
-        will be forwarded to the preview class constructor.
+        Start the preview loop.
         """
-        if self.have_event_loop:
+        if self._preview:
             raise RuntimeError("An event loop is already running")
 
-        if preview is True:
-            # Crude attempt at "autodetection" but which will mostly (?) work. We will
-            # probably find situations that need fixing, VNC perhaps.
-            display = os.getenv("DISPLAY")
-            if display is None:
-                preview = Preview.NULL
-            elif display.startswith(":"):
-                preview = Preview.NULL
-            else:
-                preview = Preview.NULL
-        if not preview:  # i.e. None or False
-            preview = NullPreview()
-        elif isinstance(preview, Preview):
-            preview_table = {
-                Preview.NULL: NullPreview,
-            }
-            preview = preview_table[preview](**kwargs)
-        else:
-            # Assume it's already a preview object.
-            pass
-
+        preview = NullPreview()
         preview.start(self)
         self._preview = preview
-        self.have_event_loop = True
 
     def stop_preview(self) -> None:
         """Stop preview
@@ -532,7 +493,6 @@ class Picamera2:
         try:
             self._preview.stop()
             self._preview = None
-            self.have_event_loop = False
         except Exception:
             raise RuntimeError("Unable to stop preview.")
 
@@ -1045,7 +1005,7 @@ class Picamera2:
             _log.error("Camera did not start properly.")
             raise RuntimeError("Camera did not start properly.")
 
-    def start(self, config=None, show_preview=False) -> None:
+    def start(self, config=None) -> None:
         """
         Start the camera system running.
 
@@ -1055,12 +1015,6 @@ class Picamera2:
 
         config - if not None this is used to configure the camera. This is just a
             convenience so that you don't have to call configure explicitly.
-
-        show_preview - whether to show a preview window. You can pass in the preview
-            type or True to attempt to autodetect. If left as False you'll get no
-            visible preview window but the "NULL preview" will still be run. The
-            value None would mean no event loop runs at all and you would have to
-            implement your own.
         """
         if self.camera_config is None and config is None:
             config = "preview"
@@ -1069,8 +1023,8 @@ class Picamera2:
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         # By default we will create an event loop is there isn't one running already.
-        if show_preview is not None and not self.have_event_loop:
-            self.start_preview(show_preview)
+        if not self._preview:
+            self.start_preview()
         self.start_()
 
     def stop_(self, request=None) -> None:

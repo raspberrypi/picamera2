@@ -3,10 +3,10 @@
 # Configure a raw stream and capture an image from it.
 import time
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2
 
 camera = Picamera2()
-camera.start_preview(Preview.NULL)
+camera.start_preview()
 
 preview_config = camera.create_preview_configuration(
     raw={"size": camera.sensor_resolution}

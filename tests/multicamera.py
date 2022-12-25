@@ -2,7 +2,7 @@
 
 import time
 
-from picamera2 import CameraInfo, Picamera2, Preview
+from picamera2 import CameraInfo, Picamera2
 
 if CameraInfo.n_cameras() <= 1:
     print("SKIPPED (one camera)")
@@ -10,11 +10,11 @@ if CameraInfo.n_cameras() <= 1:
 
 picam2a = Picamera2(0)
 picam2a.configure(picam2a.create_preview_configuration())
-picam2a.start_preview(Preview.NULL)
+picam2a.start_preview()
 
 picam2b = Picamera2(1)
 picam2b.configure(picam2b.create_preview_configuration())
-picam2b.start_preview(Preview.NULL)
+picam2b.start_preview()
 
 picam2a.start()
 picam2b.start()

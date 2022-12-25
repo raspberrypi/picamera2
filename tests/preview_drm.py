@@ -4,10 +4,10 @@
 
 import time
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2
 
 camera = Picamera2()
-camera.start_preview(Preview.NULL, x=100, y=100, width=640, height=480)
+camera.start_preview()
 
 preview_config = camera.create_preview_configuration({"size": (640, 360)})
 camera.configure(preview_config)

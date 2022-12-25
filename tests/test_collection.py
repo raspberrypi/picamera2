@@ -2,11 +2,7 @@ import os
 import subprocess
 import sys
 
-import numpy as np
 import pytest
-
-from picamera2 import Picamera2
-from picamera2.picamera2 import CameraManager
 
 this_folder, this_file = os.path.split(__file__)
 

@@ -4,12 +4,12 @@ import multiprocessing
 import threading
 import time
 
-from picamera2 import CameraInfo, Picamera2, Preview
+from picamera2 import CameraInfo, Picamera2
 
 
 def run_camera(idx):
     camera = Picamera2(idx)
-    camera.start_preview(Preview.NULL)
+    camera.start_preview()
     camera.start()
     time.sleep(3)
     camera.stop()
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     print("Test camera in main process")
     camera = Picamera2(0)
-    camera.start_preview(Preview.NULL)
+    camera.start_preview()
     camera.start()
     time.sleep(3)
     camera.stop()
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     print("Test camera in main process and subprocess")
     camera = Picamera2(0)
-    camera.start_preview(Preview.NULL)
+    camera.start_preview()
     camera.start()
     p = multiprocessing.Process(target=run_camera, args=(1,))
     p.start()
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     print("Test camera in main process and thread")
     camera = Picamera2(0)
-    camera.start_preview(Preview.NULL)
+    camera.start_preview()
     camera.start()
     thread = threading.Thread(target=run_camera, args=(1,), daemon=True)
     thread.start()

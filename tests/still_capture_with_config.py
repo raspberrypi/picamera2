@@ -15,7 +15,7 @@ picam2.still_configuration.size = (1600, 1200)
 picam2.still_configuration.enable_raw()
 picam2.still_configuration.raw.size = picam2.sensor_resolution
 
-picam2.start("preview", show_preview=True)
+picam2.start("preview")
 time.sleep(2)
 
 picam2.switch_mode_and_capture_file("still", "test_full.jpg")

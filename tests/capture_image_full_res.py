@@ -6,10 +6,10 @@ import time
 
 from PIL import Image
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
-picam2.start_preview(Preview.NULL)
+picam2.start_preview()
 preview_config = picam2.create_preview_configuration()
 capture_config = picam2.create_still_configuration()
 
