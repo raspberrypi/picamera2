@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 from picamera2 import Picamera2
-from picamera2.encoders import H264Encoder
+from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs import CircularOutput, FileOutput
 
 lsize = (320, 240)
@@ -17,7 +17,7 @@ video_config = picam2.create_video_configuration(
 )
 picam2.configure(video_config)
 picam2.start_preview()
-encoder = H264Encoder(1000000, repeat=True)
+encoder = JpegEncoder()
 circ = CircularOutput()
 encoder.output = [circ]
 picam2.encoder = encoder
@@ -61,7 +61,7 @@ while True:
         if mse > 7:
             if not encoding:
                 epoch = int(time.time())
-                circ.fileoutput = "{}.h264".format(epoch)
+                circ.fileoutput = "{}.mjpeg".format(epoch)
                 circ.start()
                 encoding = True
                 print("New Motion", mse)

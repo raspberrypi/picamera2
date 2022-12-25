@@ -3,7 +3,8 @@ import subprocess
 import time
 
 from picamera2 import Picamera2
-from picamera2.encoders import MJPEGEncoder, Quality
+from picamera2.encoders import Quality
+from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs.fileoutput import FileOutput
 
 
@@ -31,7 +32,7 @@ picam2 = Picamera2()
 config = picam2.create_video_configuration(main={"size": resolution})
 picam2.configure(config)
 
-encoder = MJPEGEncoder()
+encoder = JpegEncoder()
 output = TimelapseOutput("test.mjpeg", "timestamps.txt", speedup_factor)
 encoder.output = output
 
@@ -45,7 +46,7 @@ time.sleep(1)
 
 picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
 
-time.sleep(20)
+time.sleep(2)
 
 picam2.stop_encoder()
 picam2.stop()

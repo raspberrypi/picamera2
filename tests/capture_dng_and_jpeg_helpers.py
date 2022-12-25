@@ -22,4 +22,4 @@ buffers, metadata = picam2.switch_mode_and_capture_buffers(
 picam2.helpers.save(
     picam2.helpers.make_image(buffers[0], capture_config["main"]), metadata, "full.jpg"
 )
-picam2.helpers.save_dng(buffers[1], metadata, capture_config["raw"], "full.dng")
+picam2.helpers.save(buffers[1], metadata, "full.jpeg")

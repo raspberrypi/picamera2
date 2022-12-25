@@ -13,7 +13,6 @@ preview_config = picam2.create_preview_configuration()
 picam2.configure(preview_config)
 
 picam2.start()
-time.sleep(2)
 
 size = picam2.capture_metadata()["ScalerCrop"][2:]
 
@@ -25,4 +24,5 @@ for _ in range(20):
     offset = [(r - s) // 2 for r, s in zip(picam2.sensor_resolution, size)]
     picam2.set_controls({"ScalerCrop": offset + size})
 
-time.sleep(2)
+picam2.stop()
+picam2.close()

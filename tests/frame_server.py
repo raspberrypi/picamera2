@@ -90,7 +90,7 @@ thread2.start()
 server.start()
 picam2.start()
 
-time.sleep(5)
+time.sleep(1)
 
 thread_abort = True
 thread1.join()

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """picamera2 main class"""
+from __future__ import annotations
 
 import json
 import logging
@@ -53,13 +54,13 @@ class CameraManager:
         self.running = True
         self.thread.start()
 
-    def add(self, index, camera):
+    def add(self, index, camera: Picamera2):
         with self._lock:
             self.cameras[index] = camera
             if not self.running:
                 self.setup()
 
-    def cleanup(self, index):
+    def cleanup(self, index: int):
         flag = False
         with self._lock:
             del self.cameras[index]
@@ -336,7 +337,7 @@ class Picamera2:
 
     def __del__(self):
         """Without this libcamera will complain if we shut down without closing the camera."""
-        _log.debug(f"Resources now free: {self}")
+        _log.warning(f"__del__ call responsible for cleanup of {self}")
         self.close()
 
     @staticmethod
@@ -1280,10 +1281,9 @@ class Picamera2:
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
         request = self.completed_requests.pop(0)
-        if name == "raw" and formats.is_raw(self.camera_config["raw"]["format"]):
-            request.save_dng(file_output)
-        else:
-            request.save(name, file_output, format=format)
+        assert not name.endswith(".raw"), "Raw export is not supported."
+
+        request.save(name, file_output, format=format)
 
         result = request.get_metadata()
         request.release()

@@ -40,4 +40,4 @@ accumulated -= (num_frames - 1) * int(black_level)
 accumulated = accumulated.clip(0, 2**raw_format.bit_depth - 1).astype(np.uint16)
 accumulated = accumulated.view(np.uint8)
 metadata["ExposureTime"] = exposure_time
-picam2.helpers.save_dng(accumulated, metadata, config["raw"], "accumulated.dng")
+picam2.helpers.save(accumulated, metadata, "accumulated.jpeg")

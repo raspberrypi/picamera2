@@ -172,12 +172,6 @@ class CompletedRequest:
             self.make_image(name), self.get_metadata(), file_output, format
         )
 
-    def save_dng(self, filename, name="raw"):
-        """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(
-            self.make_buffer(name), self.get_metadata(), self.config[name], filename
-        )
-
 
 # TODO(meawoppl) - Make this an ABC with these helper methods, and make
 # sane inheritance structure for it.
@@ -284,21 +278,4 @@ class Helpers:
         img.save(file_output, **keywords)
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {file_output}.")
-        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
-
-    def save_dng(self, buffer, metadata, config, filename):
-        """Save a DNG RAW image of the raw stream's buffer."""
-        start_time = time.monotonic()
-        raw = self.make_array(buffer, config)
-
-        camera = Picamera2Camera(config, metadata)
-        r = PICAM2DNG(camera)
-
-        dng_compress_level = self.picam2.options.get("compress_level", 0)
-
-        r.options(compress=dng_compress_level)
-        r.convert(raw, filename)
-
-        end_time = time.monotonic()
-        _log.info(f"Saved {self} to file {filename}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")

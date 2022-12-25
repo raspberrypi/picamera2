@@ -16,6 +16,6 @@ picam2.start()
 time.sleep(1)
 
 picam2.set_controls({"AwbEnable": 0, "AeEnable": 0})
-time.sleep(5)
+time.sleep(2)
 
 picam2.close()

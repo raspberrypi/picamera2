@@ -22,7 +22,7 @@ with picam2.controls as ctrl:
     ctrl.ExposureTime = 400000
 time.sleep(2)
 
-imgs = 20  # Capture 20 images to average
+imgs = 5  # Capture 20 images to average
 sumv = None
 for i in range(imgs):
     if sumv is None:

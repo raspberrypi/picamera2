@@ -3,11 +3,11 @@
 import time
 
 from picamera2 import Picamera2
-from picamera2.encoders import H264Encoder
+from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs import FileOutput
 
 picam2 = Picamera2()
-encoder = H264Encoder(10000000)
+encoder = JpegEncoder()
 picam2.start(picam2.create_video_configuration())
 
 for i in range(40):

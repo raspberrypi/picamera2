@@ -12,6 +12,6 @@ picam2.start_preview()
 encoder = JpegEncoder(q=70)
 
 picam2.start_recording(encoder, "test.mjpeg")
-time.sleep(10)
+time.sleep(2)
 picam2.stop_recording()
 picam2.close()

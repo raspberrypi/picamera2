@@ -121,7 +121,7 @@ class Encoder:
             formats.assert_format_valid(value)
             self._format = value
         else:
-            raise RuntimeError("Invalid format")
+            raise RuntimeError(f"Invalid format: '{value}'")
 
     @property
     def output(self):

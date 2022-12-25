@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from picamera2 import Picamera2
-from picamera2.encoders import H264Encoder
+from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs import Output
 
 
@@ -20,12 +20,12 @@ picam2 = Picamera2()
 video_config = picam2.create_video_configuration()
 picam2.configure(video_config)
 
-encoder = H264Encoder(bitrate=10000000)
+encoder = JpegEncoder()
 output = TimestampCollector()
 timestamps = []
 
 picam2.start_recording(encoder, output)
-time.sleep(5)
+time.sleep(2)
 picam2.stop_recording()
 
 # Now let's analyse all the timestamps

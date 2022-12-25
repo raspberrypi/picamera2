@@ -15,4 +15,4 @@ preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
 picam2.configure(preview_config)
 
 picam2.start()
-time.sleep(5)
+time.sleep(2)
