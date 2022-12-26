@@ -8,6 +8,7 @@ from PIL import Image
 
 import picamera2.formats as formats
 from picamera2.controls import Controls
+from picamera2.lc_helpers import lc_unpack
 
 _log = logging.getLogger(__name__)
 
@@ -151,10 +152,7 @@ class CompletedRequest:
 
     def get_metadata(self):
         """Fetch the metadata corresponding to this completed request."""
-        metadata = {}
-        for k, v in self.request.metadata.items():
-            metadata[k.name] = self.picam2._convert_from_libcamera_type(v)
-        return metadata
+        return lc_unpack(self.request.metadata)
 
     def make_array(self, name):
         """Make a 2d numpy array from the named stream's buffer."""

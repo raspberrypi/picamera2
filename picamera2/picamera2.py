@@ -21,6 +21,7 @@ import picamera2.formats as formats
 from picamera2.configuration import CameraConfiguration
 from picamera2.controls import Controls
 from picamera2.encoders import Encoder, Quality
+from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
 from picamera2.outputs import FileOutput
 from picamera2.previews import NullPreview
 from picamera2.request import CompletedRequest, Helpers
@@ -346,14 +347,6 @@ class Picamera2:
         _log.warning(f"__del__ call responsible for cleanup of {self}")
         self.close()
 
-    @staticmethod
-    def _convert_from_libcamera_type(value):
-        if isinstance(value, libcamera.Rectangle):
-            value = (value.x, value.y, value.width, value.height)
-        elif isinstance(value, libcamera.Size):
-            value = (value.width, value.height)
-        return value
-
     def _grab_camera(self, idx: str | int):
         if isinstance(idx, str):
             try:
@@ -379,14 +372,8 @@ class Picamera2:
         self.requires_camera()
 
         self.__identify_camera()
-        # TODO(meawoppl) Foist into libcamera conversions helpers
-        # Re-generate the controls list to someting easer to use.
-        for k, v in self.camera.controls.items():
-            self.camera_ctrl_info[k.name] = (k, v)
-
-        # Re-generate the properties list to someting easer to use.
-        for k, v in self.camera.properties.items():
-            self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
+        self.camera_ctrl_info = lc_unpack_controls(self.camera.controls)
+        self.camera_properties_ = lc_unpack(self.camera.properties)
 
         # The next two lines could be placed elsewhere?
         self.sensor_resolution = self.camera_properties_["PixelArraySize"]
@@ -889,12 +876,8 @@ class Picamera2:
         _log.debug(f"Final configuration: {camera_config}")
 
         # Update the controls and properties list as some of the values may have changed.
-        self.camera_ctrl_info = {}
-        self.camera_properties_ = {}
-        for k, v in self.camera.controls.items():
-            self.camera_ctrl_info[k.name] = (k, v)
-        for k, v in self.camera.properties.items():
-            self.camera_properties_[k.name] = self._convert_from_libcamera_type(v)
+        self.camera_ctrl_info = lc_unpack_controls(self.camera.controls)
+        self.camera_properties_ = lc_unpack(self.camera.properties)
 
         # Record which libcamera stream goes with which of our names.
         self.stream_map = {"main": libcamera_config.at(0).stream}
