@@ -24,7 +24,7 @@ from picamera2.encoders import Encoder, Quality
 from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
 from picamera2.outputs import FileOutput
 from picamera2.previews import NullPreview
-from picamera2.request import CompletedRequest, Helpers
+from picamera2.request import CompletedRequest
 from picamera2.sensor_format import SensorFormat
 from picamera2.stream_config import (
     align_stream,
@@ -226,7 +226,6 @@ class Picamera2:
         self._requestslock = threading.Lock()
         self._requests = []
         self._reset_flags()
-        self.helpers = Helpers(self)
         try:
             self._open_camera()
             _log.debug(f"{self.camera_manager}")
