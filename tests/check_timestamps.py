@@ -4,32 +4,21 @@ import time
 import numpy as np
 
 from picamera2 import Picamera2
-from picamera2.encoders.jpeg_encoder import JpegEncoder
-from picamera2.outputs import Output
-
-
-class TimestampCollector(Output):
-    "Output class that doesn't output anything but collects frame timestamps"
-
-    def outputframe(self, frame, keyframe=True, timestamp=None):
-        if timestamp is not None:
-            timestamps.append(timestamp)
-
 
 camera = Picamera2()
 video_config = camera.create_video_configuration()
 camera.configure(video_config)
 
-encoder = JpegEncoder()
-output = TimestampCollector()
 timestamps = []
 
-camera.start_recording(encoder, output)
+camera.add_request_callback(lambda r: timestamps.append(time.time() * 1e6))
+
+camera.start()
 time.sleep(2)
-camera.stop_recording()
+camera.stop()
 
 # Now let's analyse all the timestamps
-diffs = np.array([next - now for now, next in zip(timestamps, timestamps[1:])])
+diffs = timestamps[:-1] - timestamps[1:]
 median = np.median(diffs)
 tol = median / 10
 hist, _ = np.histogram(

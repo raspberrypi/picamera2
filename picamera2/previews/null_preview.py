@@ -58,8 +58,9 @@ class NullPreview:
         self.picam2 = picam2
         self._started.clear()
         self._abort.clear()
-        self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
-        self.thread.setDaemon(True)
+        self.thread = threading.Thread(
+            target=self.thread_func, daemon=True, args=(picam2,)
+        )
         self.thread.start()
         self._started.wait()
 
@@ -70,13 +71,10 @@ class NullPreview:
         :type picam2: Picamera2
         """
         try:
-            completed_request = picam2.process_requests()
+            picam2.process_requests()
         except Exception as e:
             _log.exception("Exception during process_requests()", exc_info=e)
             raise
-
-        if completed_request:
-            completed_request.release()
 
     def stop(self):
         """Stop preview"""

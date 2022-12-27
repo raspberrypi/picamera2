@@ -8,7 +8,7 @@ from typing import List
 from picamera2 import Picamera2
 
 camera = Picamera2()
-config = camera.create_preview_configuration(queue=False)
+config = camera.create_preview_configuration()
 camera.configure(config)
 camera.start()
 abort = False

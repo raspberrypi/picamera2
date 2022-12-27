@@ -9,9 +9,8 @@ video_config = camera.create_video_configuration(main={"size": (1920, 1080)})
 camera.configure(video_config)
 
 camera.start_preview()
-encoder = JpegEncoder(q=70)
 
-camera.start_recording(encoder, "test.mjpeg")
+camera.start()
 time.sleep(2)
-camera.stop_recording()
+camera.stop()
 camera.close()

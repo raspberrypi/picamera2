@@ -4,6 +4,8 @@
 
 import time
 
+from PIL import Image
+
 from picamera2 import Picamera2
 
 camera = Picamera2()
@@ -18,4 +20,4 @@ camera.still_configuration.raw.size = camera.sensor_resolution
 camera.start("preview")
 time.sleep(2)
 
-camera.switch_mode_and_capture_file("still", "test_full.jpg")
+assert camera.switch_mode_and_capture_image("still")

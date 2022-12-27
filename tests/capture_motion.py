@@ -32,15 +32,5 @@ for _ in range(4):
         # Measure pixels differences between current and
         # previous frame
         mse = np.square(np.subtract(cur, prev)).mean()
-        if mse > 7:
-            if not encoding:
-                encoder.output = FileOutput("{}.h264".format(int(time.time())))
-                camera.start_encoder()
-                encoding = True
-                print("New Motion", mse)
-            ltime = time.time()
-        else:
-            if encoding and time.time() - ltime > 2.0:
-                camera.stop_encoder()
-                encoding = False
+        print(mse)
     prev = cur

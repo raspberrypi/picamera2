@@ -10,13 +10,14 @@ camera = Picamera2()
 camera.start_preview()
 
 preview_config = camera.create_preview_configuration()
-capture_config = camera.create_still_configuration(raw={}, display=None)
+capture_config = camera.create_still_configuration(raw={})
 camera.configure(preview_config)
 
 camera.start()
 time.sleep(2)
 
-r = camera.switch_mode_capture_request_and_stop(capture_config)
-r.save("main", "full.jpg")
+request = camera.switch_mode_capture_request_and_stop(capture_config)
+request.save("main", "full.jpg")
+request.release()
 
 camera.close()

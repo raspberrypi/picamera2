@@ -6,9 +6,6 @@
 import time
 
 from picamera2 import Picamera2
-from picamera2.encoders import Quality
-from picamera2.encoders.jpeg_encoder import JpegEncoder
-from picamera2.outputs import FileOutput
 
 camera = Picamera2()
 
@@ -26,15 +23,10 @@ camera.video_configuration = camera.create_video_configuration(
 )
 camera.configure("video")
 
-encoder = JpegEncoder()
-output = FileOutput("test.raw")
-
 # Set the fps
 fps = chosen_mode["fps"]
 camera.set_controls({"FrameRate": fps})
 
-camera.start_recording(encoder, output, quality=Quality.LOW)
-
-time.sleep(5)
-
-camera.stop_recording()
+camera.start()
+time.sleep(2)
+camera.stop()

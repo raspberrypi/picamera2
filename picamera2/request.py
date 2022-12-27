@@ -1,5 +1,11 @@
+from __future__ import annotations
+
 import mmap
 import threading
+from concurrent.futures import Future
+from dataclasses import dataclass, field
+from functools import partial
+from typing import Any, Callable
 
 import numpy as np
 
@@ -96,8 +102,6 @@ class MappedArray:
 
 # TODO(meawoppl) - Make Completed Requests only exist inside of a context manager
 # This remove all the bizzare locking and reference counting we are doing here manually
-
-
 class CompletedRequest:
     def __init__(self, request, picam2):
         self.request = request
@@ -105,7 +109,6 @@ class CompletedRequest:
         self.lock = threading.Lock()
         self.picam2 = picam2
         self.stop_count = picam2.stop_count
-        self.configure_count = picam2.configure_count
         self.config = self.picam2.camera_config.copy()
 
     def acquire(self):
@@ -137,7 +140,7 @@ class CompletedRequest:
                     self.picam2.camera.queue_request(self.request)
                 self.request = None
 
-    def make_buffer(self, name):
+    def make_buffer(self, name: str):
         """Make a 1d numpy array from the named stream's buffer."""
         if self.picam2.stream_map.get(name, None) is None:
             raise RuntimeError(f'Stream "{name}" is not defined')
@@ -148,11 +151,11 @@ class CompletedRequest:
         """Fetch the metadata corresponding to this completed request."""
         return lc_unpack(self.request.metadata)
 
-    def make_array(self, name):
+    def make_array(self, name: str):
         """Make a 2d numpy array from the named stream's buffer."""
         return Helpers.make_array(self.make_buffer(name), self.config[name])
 
-    def make_image(self, name, width=None, height=None):
+    def make_image(self, name: str, width=None, height=None):
         """Make a PIL image from the named stream's buffer."""
         return Helpers.make_image(
             self.make_buffer(name), self.config[name], width, height
@@ -163,3 +166,23 @@ class CompletedRequest:
         return Helpers.save(
             self.picam2, self.make_image(name), self.get_metadata(), file_output, format
         )
+
+
+@dataclass
+class LoopTask:
+    call: Callable[[CompletedRequest], Any] | callable[[], Any]
+
+    needs_request: bool = True
+
+    future: Future = field(init=False, default_factory=Future)
+
+    @classmethod
+    def with_request(cls, call, *args):
+        return cls(call=partial(call, *args), needs_request=True)
+
+    @classmethod
+    def without_request(cls, call, *args):
+        return cls(call=partial(call, *args), needs_request=False)
+
+    def __post_init__(self):
+        self.future.set_running_or_notify_cancel()

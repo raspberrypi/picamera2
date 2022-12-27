@@ -20,15 +20,12 @@ def forward_subprocess_output(e: subprocess.CalledProcessError):
 
 KNOWN_XFAIL = set(
     [
-        "capture_circular.py",
         "capture_dng_and_jpeg_helpers.py",
         "capture_dng.py",
         "capture_image_full_res.py",
         "capture_multiplexer.py",
-        "capture_timelapse_video.py",
         "check_timestamps.py",
         "drm_multiple_test.py",
-        "encoder_start_stop.py",
         "multicamera_preview.py",
         "stack_raw.py",
     ]

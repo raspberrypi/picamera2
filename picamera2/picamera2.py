@@ -8,10 +8,10 @@ import os
 import selectors
 import tempfile
 import threading
+from collections import deque
 from concurrent.futures import Future
 from dataclasses import dataclass
-from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Deque, Dict, List, Tuple
 
 import libcamera
 import numpy as np
@@ -20,11 +20,9 @@ from PIL import Image
 import picamera2.formats as formats
 from picamera2.configuration import CameraConfiguration
 from picamera2.controls import Controls
-from picamera2.encoders import Encoder, Quality
 from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
-from picamera2.outputs import FileOutput
 from picamera2.previews import NullPreview
-from picamera2.request import CompletedRequest
+from picamera2.request import CompletedRequest, LoopTask
 from picamera2.sensor_format import SensorFormat
 from picamera2.stream_config import (
     align_stream,
@@ -223,8 +221,8 @@ class Picamera2:
         self.notifymeread = os.fdopen(self.notifyme_r, "rb")
         self._cm.add(camera_num, self)
         self.camera_idx = camera_num
-        self._requestslock = threading.Lock()
-        self._requests = []
+        self._requests = deque()
+        self._request_callbacks = []
         self._reset_flags()
         try:
             self._open_camera()
@@ -243,6 +241,17 @@ class Picamera2:
     def camera_manager(self):
         return Picamera2._cm.cms
 
+    def add_request_callback(self, callback: Callable[[CompletedRequest], None]):
+        """Add a callback to be called when every request completes.
+
+        Note that the request is only valid within the callback, and will be
+        deallocated after the callback returns.
+
+        :param callback: The callback to be called
+        :type callback: Callable[[CompletedRequest], None]
+        """
+        self._request_callbacks.append(callback)
+
     def _reset_flags(self) -> None:
         self.camera = None
         self.is_open = False
@@ -254,16 +263,10 @@ class Picamera2:
         self.stream_map = None
         self.started = False
         self.stop_count = 0
-        self.configure_count = 0
         self.frames = 0
-        self._job_list: List[Tuple[Callable, Future]] = []
+        self._task_deque: Deque[LoopTask] = deque()
         self.options = {}
-        self._encoder = None
         self.post_callback = None
-        self.completed_requests: List[CompletedRequest] = []
-        self.lock = (
-            threading.Lock()
-        )  # protects the _job_list and completed_requests fields
         self.camera_properties_ = {}
         self.controls = Controls(self)
         self.sensor_modes_ = None
@@ -500,16 +503,6 @@ class Picamera2:
         os.close(self.notifyme_w)
         _log.info("Camera closed successfully.")
 
-    # TODO(meawoppl) - Nuked by using a dataclass
-    @staticmethod
-    def _add_display_and_encode(config, display, encode) -> None:
-        if display is not None and config.get(display, None) is None:
-            raise RuntimeError(f"Display stream {display} was not defined")
-        if encode is not None and config.get(encode, None) is None:
-            raise RuntimeError(f"Encode stream {encode} was not defined")
-        config["display"] = display
-        config["encode"] = encode
-
     # TODO(meawoppl) - What is this doing here?
     _raw_stream_ignore_list = [
         "bit_depth",
@@ -529,9 +522,6 @@ class Picamera2:
         colour_space=libcamera.ColorSpace.Sycc(),
         buffer_count=4,
         controls={},
-        display="main",
-        encode="main",
-        queue=True,
     ) -> dict:
         """Make a configuration suitable for camera preview."""
         self.requires_camera()
@@ -563,13 +553,11 @@ class Picamera2:
             "transform": transform,
             "colour_space": colour_space,
             "buffer_count": buffer_count,
-            "queue": queue,
             "main": main,
             "lores": lores,
             "raw": raw,
             "controls": controls,
         }
-        self._add_display_and_encode(config, display, encode)
         return config
 
     # TODO(meawoppl) - These can likely be made static/hoisted
@@ -582,9 +570,6 @@ class Picamera2:
         colour_space=libcamera.ColorSpace.Sycc(),
         buffer_count=1,
         controls={},
-        display=None,
-        encode=None,
-        queue=True,
     ) -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         self.requires_camera()
@@ -614,13 +599,11 @@ class Picamera2:
             "transform": transform,
             "colour_space": colour_space,
             "buffer_count": buffer_count,
-            "queue": queue,
             "main": main,
             "lores": lores,
             "raw": raw,
             "controls": controls,
         }
-        self._add_display_and_encode(config, display, encode)
         return config
 
     # TODO(meawoppl) - These can likely be made static/hoisted
@@ -633,9 +616,6 @@ class Picamera2:
         colour_space=None,
         buffer_count=6,
         controls={},
-        display="main",
-        encode="main",
-        queue=True,
     ) -> dict:
         """Make a configuration suitable for video recording."""
         self.requires_camera()
@@ -674,13 +654,11 @@ class Picamera2:
             "transform": transform,
             "colour_space": colour_space,
             "buffer_count": buffer_count,
-            "queue": queue,
             "main": main,
             "lores": lores,
             "raw": raw,
             "controls": controls,
         }
-        self._add_display_and_encode(config, display, encode)
         return config
 
     # TODO(meawoppl) - dataclass __post_init__ materials
@@ -890,36 +868,6 @@ class Picamera2:
         )
         _log.debug(f"Streams: {self.stream_map}")
 
-        # These name the streams that we will display/encode.
-        self.display_stream_name = camera_config["display"]
-        if (
-            self.display_stream_name is not None
-            and self.display_stream_name not in camera_config
-        ):
-            raise RuntimeError(
-                f"Display stream {self.display_stream_name} was not defined"
-            )
-        self.encode_stream_name = camera_config["encode"]
-        if (
-            self.encode_stream_name is not None
-            and self.encode_stream_name not in camera_config
-        ):
-            raise RuntimeError(
-                f"Encode stream {self.encode_stream_name} was not defined"
-            )
-        elif self.encode_stream_name is None:
-            # If no encode stream then remove the encoder
-            self._encoder = None
-
-        # Decide whether we are going to keep hold of the last completed request, or
-        # whether capture requests will always wait for the next frame. If there's only
-        # one buffer, never hang on to the request because it would stall the pipeline
-        # instantly.
-        if camera_config["queue"] and camera_config["buffer_count"] > 1:
-            self._max_queue_len = 1
-        else:
-            self._max_queue_len = 0
-
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
 
@@ -944,7 +892,6 @@ class Picamera2:
             self.video_configuration.update(camera_config)
         # Set the controls directly so as to overwrite whatever is there.
         self.controls.set_controls(self.camera_config["controls"])
-        self.configure_count += 1
 
     def configure(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration."""
@@ -1015,9 +962,7 @@ class Picamera2:
             # up when the camera is started the next time.
             self._cm.handle_request(self.camera_idx)
             self.started = False
-            with self._requestslock:
-                self._requests = []
-            self.completed_requests = []
+            self._requests = deque()
             _log.info("Camera stopped")
 
     def stop(self) -> None:
@@ -1026,7 +971,7 @@ class Picamera2:
             _log.debug("Camera was not started")
             return
         if self.asynchronous:
-            self._dispatch_no_request(self._stop).result()
+            self._dispatch_loop_tasks(LoopTask.without_request(self._stop))[0].result()
         else:
             self._stop()
 
@@ -1035,108 +980,65 @@ class Picamera2:
         self.controls.set_controls(controls)
 
     def add_completed_request(self, request: CompletedRequest) -> None:
-        with self._requestslock:
-            self._requests.append(request)
+        self._requests.append(request)
 
-    # TODO(meawoppl) - This whole thing needs to be smashed to simpler
     def process_requests(self) -> None:
-        # This is the function that the event loop, which runs externally to us, must
-        # call.
-        requests = []
-        with self._requestslock:
-            requests = self._requests
-            self._requests = []
-        if requests == []:
-            return
+        # Safe copy and pop off all requests
+        requests = list(self._requests)
+        for _ in requests:
+            self._requests.popleft()
+
         self.frames += len(requests)
-        # It works like this:
-        # * The lock here protects the completed_requests list (because if it's non-empty, an
-        #   application can pop a request from it asynchronously), and the _job_list. If
-        #   we don't have a request immediately available, the application will queue a
-        #   "job" for us to execute here in order to accomplish what it wanted.
 
-        with self.lock:
-            # These new requests all have one "use" recorded, which is the one for
-            # being in this list.  Increase by one, so it cant't get discarded in
-            # self.functions block.
-            for req in requests:
-                req.acquire()
-            self.completed_requests += requests
+        req_idx = 0
+        while len(self._task_deque) and (req_idx < len(requests)):
+            task = self._task_deque.popleft()
+            _log.debug(f"Begin LoopTask Execution: {task.call}")
+            try:
+                if task.needs_request:
+                    req = requests[req_idx]
+                    req_idx += 1
+                    task.future.set_result(task.call(req))
+                else:
+                    task.future.set_result(task.call())
+            except Exception as e:
+                _log.warning(f"Error in LoopTask {task.call}: {e}")
+                task.future.set_exception(e)
+            _log.debug(f"End LoopTask Execution: {task.call}")
 
-            # This is the request we'll hand back to be displayed. This counts as a "use" too.
-            display_request = self.completed_requests[-1]
-            display_request.acquire()
+        for request in requests:
+            for callback in self._request_callbacks:
+                try:
+                    callback(request)
+                except Exception as e:
+                    _log.error(f"Error in request callback ({callback}): {e}")
 
-            # See if we have a job to do. When executed, if it returns True then it's done and
-            # we can discard it. Otherwise it remains here to be tried again next time.
-            for request in requests:
-                if self._job_list:
-                    call, future = self._job_list.pop(0)
-                    _log.debug(f"Begin Execution: {call}")
-                    try:
-                        result = call(request)
-                        future.set_result(result)
-                    except Exception as e:
-                        _log.warning(f"Error in call {call}: {e}")
-                        future.set_exception(e)
-                    _log.debug(f"End Execution: {call}")
+        for req in requests:
+            req.release()
 
-            if self.encode_stream_name in self.stream_map:
-                stream = self.stream_map[self.encode_stream_name]
-
-            for req in requests:
-                if self._encoder is not None:
-                    self._encoder.encode(stream, req)
-
-                req.release()
-
-            # We hang on to the last completed request if we have been asked to.
-            while len(self.completed_requests) > self._max_queue_len:
-                self.completed_requests.pop(0).release()
-
-        # If one of the functions we ran reconfigured the camera since this request came out,
-        # then we don't want it going back to the application as the memory is not valid.
-        if display_request.configure_count != self.configure_count:
-            display_request.release()
-            display_request = None
-
-        return display_request
-
-    def _dispatch_functions(
-        self, functions: List[Callable[[CompletedRequest], Any]]
-    ) -> List[Future]:
+    def _dispatch_loop_tasks(self, *args: LoopTask) -> List[Future]:
         """The main thread should use this to dispatch a number of operations for the event
-        loop to perform.
-
-        When there are multiple items each will be processed on a separate
-        trip round the event loop, meaning that a single operation could stop and restart the
-        camera and the next operation would receive a request from after the restart.
+        loop to perform. The event loop will execute them in order, and return a list of
+        futures which mature at the time the corresponding operation completes.
         """
+        self._task_deque.extend(args)
+        return [task.future for task in args]
 
-        with self.lock:
-            futures = []
-            for f in functions:
-                fut = Future()
-                fut.set_running_or_notify_cancel()
-                self._job_list.append((f, fut))
-                futures.append(fut)
-        return futures
+    def _discard_request(self, request: CompletedRequest) -> None:
+        pass
 
-    def _dispatch(self, call: Callable[[CompletedRequest], Any]) -> Future:
-        return self._dispatch_functions([call])[0]
-
-    def _dispatch_no_request(self, call: Callable[[], Any]) -> Future:
-        return self._dispatch_functions([lambda r: call()])[0]
-
-    def _dispatch_mode_shift(self, config) -> Future:
-        return self._dispatch_no_request(partial(self._switch_mode, config))
-
-    def _dispatch_with_temporary_mode(self, callable, config) -> Future:
+    def _dispatch_with_temporary_mode(self, loop_task: LoopTask, config) -> Future:
         previous_config = self.camera_config
-        self._dispatch_mode_shift(config)
-        fut = self._dispatch(callable)
-        self._dispatch_mode_shift(previous_config)
-        return fut
+        # FIXME: the discarded request enough for test cases, but the correct
+        # way to flag this is with the request.cookie, but that is currently
+        # used to route between cameras. Fixable, but independent issue for now.
+        futures = self._dispatch_loop_tasks(
+            LoopTask.without_request(self._switch_mode, config),
+            LoopTask.with_request(self._discard_request),
+            loop_task,
+            LoopTask.without_request(self._switch_mode, previous_config),
+        )
+        return futures[2]
 
     def _capture_file(
         self, name, file_output, format, request: CompletedRequest
@@ -1150,7 +1052,9 @@ class Picamera2:
         name: str = "main",
         format=None,
     ) -> Future[dict]:
-        return self._dispatch(partial(self._capture_file, name, file_output, format))
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_file, name, file_output, format)
+        )[0]
 
     def capture_file(
         self,
@@ -1172,9 +1076,9 @@ class Picamera2:
 
     def switch_mode(self, camera_config):
         """Switch the camera into another mode given by the camera_config."""
-        return self._dispatch_no_request(
-            partial(self._switch_mode, camera_config)
-        ).result()
+        return self._dispatch_loop_tasks(
+            LoopTask.without_request(self._switch_mode, camera_config)
+        )[0].result()
 
     def switch_mode_and_capture_file(
         self,
@@ -1187,11 +1091,11 @@ class Picamera2:
         back to the initial camera mode.
         """
         return self._dispatch_with_temporary_mode(
-            partial(self._capture_file, name, file_output, format), camera_config
+            LoopTask.with_request(self._capture_file, name, file_output, format),
+            camera_config,
         ).result()
 
     def _capture_request(self, request: CompletedRequest):
-        # The "use" of this request is transferred from the completed_requests list to the caller.
         request.acquire()
         return request
 
@@ -1199,14 +1103,18 @@ class Picamera2:
         """Fetch the next completed request from the camera system. You will be holding a
         reference to this request so you must release it again to return it to the camera system.
         """
-        return self._dispatch(self._capture_request).result()
+        return self._dispatch_loop_tasks(LoopTask.with_request(self._capture_request))[
+            0
+        ].result()
 
     def switch_mode_capture_request_and_stop(self, camera_config):
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
-        self._dispatch_no_request(partial(self._switch_mode, camera_config))
-        request = self._dispatch(self._capture_request)
-        self._dispatch_no_request(self._stop)
-        return request.result()
+        futures = self._dispatch_loop_tasks(
+            LoopTask.without_request(self._switch_mode, camera_config),
+            LoopTask.with_request(self._capture_request),
+            LoopTask.without_request(self._stop),
+        )
+        return futures[1].result()
 
     def _capture_metadata(self, request: CompletedRequest):
         return request.get_metadata()
@@ -1215,15 +1123,19 @@ class Picamera2:
         """Fetch the metadata from the next camera frame."""
         return self.capture_metadata_async().result()
 
-    def capture_metadata_async(self):
-        return self._dispatch(self._capture_metadata)
+    def capture_metadata_async(self) -> Future:
+        return self._dispatch_loop_tasks(LoopTask.with_request(self._capture_metadata))[
+            0
+        ]
 
     def _capture_buffer(self, name: str, request: CompletedRequest):
         return request.make_buffer(name)
 
     def capture_buffer(self, name="main"):
         """Make a 1d numpy array from the next frame in the named stream."""
-        return self._dispatch(partial(self._capture_buffer, name)).result()
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_buffer, name)
+        )[0].result()
 
     def _capture_buffers_and_metadata(
         self, names: List[str], request: CompletedRequest
@@ -1232,16 +1144,16 @@ class Picamera2:
 
     def capture_buffers(self, names=["main"]):
         """Make a 1d numpy array from the next frame for each of the named streams."""
-        return self._dispatch(
-            partial(self._capture_buffers_and_metadata, names)
-        ).result()
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_buffers_and_metadata, names)
+        )[0].result()
 
     def switch_mode_and_capture_buffer(self, camera_config, name="main"):
         """Switch the camera into a new (capture) mode, capture the first buffer, then return
         back to the initial camera mode.
         """
         return self._dispatch_with_temporary_mode(
-            partial(self._capture_buffer, name), camera_config
+            LoopTask.with_request(self._capture_buffer, name), camera_config
         ).result()
 
     def switch_mode_and_capture_buffers(self, camera_config, names=["main"]):
@@ -1249,7 +1161,8 @@ class Picamera2:
         back to the initial camera mode.
         """
         return self._dispatch_with_temporary_mode(
-            partial(self._capture_buffers_and_metadata, names), camera_config
+            LoopTask.with_request(self._capture_buffers_and_metadata, names),
+            camera_config,
         ).result()
 
     def _capture_array(self, name, request: CompletedRequest):
@@ -1257,7 +1170,9 @@ class Picamera2:
 
     def capture_array(self, name="main"):
         """Make a 2d image from the next frame in the named stream."""
-        return self._dispatch(partial(self._capture_array, name)).result()
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_array, name)
+        )[0].result()
 
     def _capture_arrays_and_metadata(
         self, names, request: CompletedRequest
@@ -1266,22 +1181,23 @@ class Picamera2:
 
     def capture_arrays(self, names=["main"]):
         """Make 2d image arrays from the next frames in the named streams."""
-        return self._dispatch(
-            partial(self._capture_arrays_and_metadata, names)
-        ).result()
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_arrays_and_metadata, names)
+        )[0].result()
 
     def switch_mode_and_capture_array(self, camera_config, name="main"):
         """Switch the camera into a new (capture) mode, capture the image array data, then return
         back to the initial camera mode."""
         return self._dispatch_with_temporary_mode(
-            partial(self._capture_array, name), camera_config
+            LoopTask.with_request(self._capture_array, name), camera_config
         ).result()
 
     def switch_mode_and_capture_arrays(self, camera_config, names=["main"]):
         """Switch the camera into a new (capture) mode, capture the image arrays, then return
         back to the initial camera mode."""
         return self._dispatch_with_temporary_mode(
-            partial(self._capture_arrays_and_metadata, names), camera_config
+            LoopTask.with_request(self._capture_arrays_and_metadata, names),
+            camera_config,
         ).result()
 
     def _capture_image(self, name: str, request: CompletedRequest) -> Image:
@@ -1299,94 +1215,14 @@ class Picamera2:
         :return: PIL Image
         :rtype: Image
         """
-        return self._dispatch(partial(self._capture_image, name)).result()
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_image, name)
+        )[0].result()
 
     def switch_mode_and_capture_image(self, camera_config, name: str = "main") -> Image:
         """Switch the camera into a new (capture) mode, capture the image, then return
         back to the initial camera mode.
         """
         return self._dispatch_with_temporary_mode(
-            partial(self._capture_image, name), camera_config
+            LoopTask.with_request(self._capture_image, name), camera_config
         ).result()
-
-    def start_encoder(
-        self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM
-    ) -> None:
-        """Start encoder
-
-        :param encoder: Sets encoder or uses existing, defaults to None
-        :type encoder: Encoder, optional
-        :raises RuntimeError: No encoder set or no stream
-        """
-        if encoder is not None:
-            self.encoder = encoder
-        if output is not None:
-            if isinstance(output, str):
-                output = FileOutput(output, pts=pts)
-            encoder.output = output
-        streams = self.camera_configuration()
-        if self.encoder is None:
-            raise RuntimeError("No encoder specified")
-        name = self.encode_stream_name
-        if streams.get(name, None) is None:
-            raise RuntimeError(f"Encode stream {name} was not defined")
-        self.encoder.width, self.encoder.height = streams[name]["size"]
-        self.encoder.format = streams[name]["format"]
-        self.encoder.stride = streams[name]["stride"]
-        # Also give the encoder a nominal framerate, which we'll peg at 30fps max
-        # in case we only have a dummy value
-        min_frame_duration = self.camera_ctrl_info["FrameDurationLimits"][1].min
-        min_frame_duration = max(min_frame_duration, 33333)
-        self.encoder.framerate = 1000000 / min_frame_duration
-        # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
-        self.encoder._setup(quality)
-        self.encoder.start()
-
-    def stop_encoder(self) -> None:
-        """Stops the encoder"""
-        self.encoder.stop()
-
-    @property
-    def encoder(self) -> Optional[Encoder]:
-        """Extract current Encoder object
-
-        :return: Encoder
-        :rtype: Encoder
-        """
-        return self._encoder
-
-    @encoder.setter
-    def encoder(self, value):
-        """Set Encoder to be used
-
-        :param value: Encoder to be set
-        :type value: Encoder
-        :raises RuntimeError: Fail to pass Encoder
-        """
-        if not isinstance(value, Encoder):
-            raise RuntimeError("Must pass encoder instance")
-        self._encoder = value
-
-    def start_recording(
-        self, encoder, output, pts=None, config=None, quality=Quality.MEDIUM
-    ) -> None:
-        """Start recording a video using the given encoder and to the given output.
-
-        Output may be a string in which case the correspondingly named file is opened.
-
-        :param encoder: Video encoder
-        :type encoder: Encoder
-        :param output: FileOutput object
-        :type output: FileOutput
-        """
-        if self.camera_config is None and config is None:
-            config = "video"
-        if config is not None:
-            self.configure(config)
-        self.start_encoder(encoder, output, pts=pts, quality=quality)
-        self.start()
-
-    def stop_recording(self) -> None:
-        """Stop recording a video. The encode and output are stopped and closed."""
-        self.stop()
-        self.stop_encoder()
