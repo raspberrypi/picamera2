@@ -13,7 +13,7 @@ preview_config = camera.create_preview_configuration()
 camera.configure(preview_config)
 
 camera.start()
-time.sleep(2)
+camera.discard_frames(4)
 camera.stop()
 
 other_config = camera.create_preview_configuration(
@@ -22,4 +22,6 @@ other_config = camera.create_preview_configuration(
 camera.configure(other_config)
 
 camera.start()
-time.sleep(2)
+camera.discard_frames(4)
+camera.stop()
+camera.close()

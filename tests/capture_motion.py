@@ -1,13 +1,7 @@
 #!/usr/bin/python3
-
-import time
-from signal import pause
-
 import numpy as np
 
 from picamera2 import Picamera2
-from picamera2.encoders.jpeg_encoder import JpegEncoder
-from picamera2.outputs import FileOutput
 
 lsize = (320, 240)
 camera = Picamera2()
@@ -16,8 +10,7 @@ video_config = camera.create_video_configuration(
     lores={"size": lsize, "format": "YUV420"},
 )
 camera.configure(video_config)
-encoder = JpegEncoder()
-camera.encoder = encoder
+
 camera.start()
 
 w, h = lsize

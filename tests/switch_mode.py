@@ -13,11 +13,12 @@ preview_config = camera.create_preview_configuration()
 camera.configure(preview_config)
 
 camera.start()
-time.sleep(2)
-
+camera.discard_frames(4)
 other_config = camera.create_preview_configuration(
     main={"size": camera.sensor_resolution}, buffer_count=3
 )
 
 camera.switch_mode(other_config)
-time.sleep(2)
+camera.discard_frames(4)
+camera.stop()
+camera.close()

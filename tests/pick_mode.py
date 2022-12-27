@@ -2,9 +2,6 @@
 
 # Example of reading the available modes, and picking one with
 # the highest framerate and a raw bit depth of at least 10
-
-import time
-
 from picamera2 import Picamera2
 
 camera = Picamera2()
@@ -28,5 +25,5 @@ fps = chosen_mode["fps"]
 camera.set_controls({"FrameRate": fps})
 
 camera.start()
-time.sleep(2)
+camera.discard_frames(2)
 camera.stop()

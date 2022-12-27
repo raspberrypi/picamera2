@@ -11,7 +11,7 @@ def run_camera(idx):
     camera = Picamera2(idx)
     camera.start_preview()
     camera.start()
-    time.sleep(3)
+    camera.discard_frames(10)
     camera.stop()
     camera.close()
 

@@ -13,5 +13,5 @@ camera.video_configuration.size = (800, 480)
 camera.video_configuration.format = "YUV420"
 
 camera.start()
-time.sleep(2)
+camera.discard_frames(10)
 camera.stop()

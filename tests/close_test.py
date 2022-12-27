@@ -9,6 +9,7 @@ from picamera2 import Picamera2
 def run_camera():
     camera = Picamera2()
     camera.start()
+    camera.discard_frames(5)
     camera.stop()
     camera.close()
 
@@ -21,6 +22,7 @@ with Picamera2() as camera:
 
 camera = Picamera2()
 camera.start()
+camera.discard_frames(5)
 camera.stop()
 camera.close()
 
@@ -28,7 +30,10 @@ camera.close()
 
 program = """from picamera2 import Picamera2
 camera = Picamera2()
-camera.start()"""
+camera.start()
+camera.discard_frames(5)
+camera.stop()
+"""
 print("Start camera in separate process:")
 cmd = ["python3", "-c", program]
 p = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)

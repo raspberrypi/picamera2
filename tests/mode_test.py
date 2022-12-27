@@ -35,7 +35,7 @@ def check(raw_config, fps):
     ), f'{camera.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
     camera.set_controls({"FrameRate": fps})
     camera.start()
-    time.sleep(1)
+    camera.discard_frames(2)
     # Check we got roughly the right framerate
     metadata = camera.capture_metadata()
     framerate = 1000000 / metadata["FrameDuration"]

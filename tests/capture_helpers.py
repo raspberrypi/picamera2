@@ -1,9 +1,5 @@
 #!/usr/bin/python3
-
 # Capture multiple representations of a captured frame.
-
-import time
-
 from picamera2 import Picamera2
 from picamera2.helpers import Helpers
 
@@ -15,8 +11,7 @@ capture_config = camera.create_still_configuration(raw={})
 camera.configure(preview_config)
 
 camera.start()
-time.sleep(2)
-
+camera.discard_frames(2)
 buffers, metadata = camera.switch_mode_and_capture_buffers(capture_config, ["main"])
 
 arr = Helpers.make_array(buffers[0], capture_config["main"])

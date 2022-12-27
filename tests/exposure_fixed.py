@@ -1,9 +1,5 @@
 #!/usr/bin/python3
-
 # Start camera with fixed exposure and gain.
-
-import time
-
 from picamera2 import Picamera2
 
 camera = Picamera2()
@@ -13,5 +9,5 @@ preview_config = camera.create_preview_configuration(controls=controls)
 camera.configure(preview_config)
 
 camera.start()
-time.sleep(5)
+camera.discard_frames(2)
 camera.close()

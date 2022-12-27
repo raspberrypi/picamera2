@@ -1,9 +1,6 @@
 #!/usr/bin/python3
-
 # Capture a JPEG while still running in the preview mode. When you
 # capture to a file, the return value is the metadata for that image.
-
-import time
 
 from picamera2 import Picamera2
 
@@ -15,8 +12,7 @@ camera.configure(preview_config)
 camera.start_preview()
 
 camera.start()
-time.sleep(2)
-
+camera.discard_frames(2)
 metadata = camera.capture_file("test.jpg")
 print(metadata)
 
