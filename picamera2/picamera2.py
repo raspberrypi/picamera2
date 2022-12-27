@@ -756,6 +756,19 @@ class Picamera2:
 
         return libcamera_config
 
+    def recycle_request(self, request: libcamera.Request) -> None:
+        """Recycle a request.
+
+        :param request: request
+        :type request: libcamera.Request
+        """
+        request.reuse()
+        controls = self.controls.get_libcamera_controls()
+        for id, value in controls.items():
+            request.set_control(id, value)
+        self.controls = Controls(self)
+        self.camera.queue_request(self.request)
+
     def _make_requests(self) -> List[libcamera.Request]:
         """Make libcamera request objects.
 

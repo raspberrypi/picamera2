@@ -6,14 +6,17 @@ from concurrent.futures import Future
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable
+from logging import getLogger
 
 import numpy as np
+import libcamera
 
 import picamera2.formats as formats
-from picamera2.controls import Controls
 from picamera2.helpers import Helpers
 from picamera2.lc_helpers import lc_unpack
 
+
+_log = getLogger(__name__)
 
 class _MappedBuffer:
     def __init__(self, request, stream):
@@ -103,13 +106,13 @@ class MappedArray:
 # TODO(meawoppl) - Make Completed Requests only exist inside of a context manager
 # This remove all the bizzare locking and reference counting we are doing here manually
 class CompletedRequest:
-    def __init__(self, request, picam2):
+    def __init__(self, request, camera):
         self.request = request
         self.ref_count = 1
         self.lock = threading.Lock()
-        self.picam2 = picam2
-        self.stop_count = picam2.stop_count
-        self.config = self.picam2.camera_config.copy()
+        self.camera = camera
+        self.stop_count = camera.stop_count
+        self.config = self.camera.camera_config.copy()
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to
@@ -128,21 +131,21 @@ class CompletedRequest:
             self.ref_count -= 1
             if self.ref_count < 0:
                 raise RuntimeError("CompletedRequest: lock now has negative ref_count")
-            elif self.ref_count == 0:
-                # If the camera has been stopped since this request was returned then we
-                # can't recycle it.
-                if self.picam2.camera and self.stop_count == self.picam2.stop_count:
-                    self.request.reuse()
-                    controls = self.picam2.controls.get_libcamera_controls()
-                    for id, value in controls.items():
-                        self.request.set_control(id, value)
-                    self.picam2.controls = Controls(self.picam2)
-                    self.picam2.camera.queue_request(self.request)
-                self.request = None
+            
+            if self.ref_count > 0:
+                return
+            
+            # If the camera has been stopped since this request was returned then we
+            # can't recycle it.
+            if self.camera.camera and self.stop_count == self.camera.stop_count:
+                self.camera.recycle_request(self.request)        
+            else:
+                _log.warning("Camera stopped before request could be recycled (Discarding it)")
+            self.request = None
 
     def make_buffer(self, name: str):
         """Make a 1d numpy array from the named stream's buffer."""
-        if self.picam2.stream_map.get(name, None) is None:
+        if self.camera.stream_map.get(name, None) is None:
             raise RuntimeError(f'Stream "{name}" is not defined')
         with _MappedBuffer(self, name) as b:
             return np.array(b, dtype=np.uint8)
@@ -164,7 +167,7 @@ class CompletedRequest:
     def save(self, name, file_output, format=None):
         """Save a JPEG or PNG image of the named stream's buffer."""
         return Helpers.save(
-            self.picam2, self.make_image(name), self.get_metadata(), file_output, format
+            self.camera, self.make_image(name), self.get_metadata(), file_output, format
         )
 
 
