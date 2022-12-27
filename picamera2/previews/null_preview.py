@@ -1,5 +1,5 @@
 """Null preview"""
-
+import selectors
 import threading
 from logging import getLogger
 
@@ -15,8 +15,6 @@ class NullPreview:
         :param picam2: picamera2 object
         :type picam2: Picamera2
         """
-        import selectors
-
         sel = selectors.DefaultSelector()
         sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
         self._started.set()

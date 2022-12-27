@@ -1,17 +1,12 @@
-import io
-import logging
+import mmap
 import threading
-import time
 
 import numpy as np
-from PIL import Image
 
 import picamera2.formats as formats
 from picamera2.controls import Controls
 from picamera2.helpers import Helpers
 from picamera2.lc_helpers import lc_unpack
-
-_log = logging.getLogger(__name__)
 
 
 class _MappedBuffer:
@@ -20,8 +15,6 @@ class _MappedBuffer:
         self.__fb = request.request.buffers[stream]
 
     def __enter__(self):
-        import mmap
-
         # Check if the buffer is contiguous and find the total length.
         fd = self.__fb.planes[0].fd
         planes_metadata = self.__fb.metadata.planes
