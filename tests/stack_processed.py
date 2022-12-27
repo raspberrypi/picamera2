@@ -28,15 +28,15 @@ gamma_lut = np.interp(range(num_frames * 255 + 1), gamma_x, gamma_y, right=255).
     np.uint8
 )
 
-picam2 = Picamera2(tuning=tuning)
-config = picam2.create_still_configuration({"format": "RGB888"}, buffer_count=2)
-picam2.configure(config)
+camera = Picamera2(tuning=tuning)
+config = camera.create_still_configuration({"format": "RGB888"}, buffer_count=2)
+camera.configure(config)
 images = []
-picam2.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0})
-picam2.start()
+camera.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0})
+camera.start()
 
 for i in range(num_frames):
-    images.append(picam2.capture_array())
+    images.append(camera.capture_array())
 
 # Add the images up, apply the gamma transform and we're done.
 accumulated = images.pop(0).astype(np.uint16)

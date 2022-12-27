@@ -16,17 +16,17 @@ class TimestampCollector(Output):
             timestamps.append(timestamp)
 
 
-picam2 = Picamera2()
-video_config = picam2.create_video_configuration()
-picam2.configure(video_config)
+camera = Picamera2()
+video_config = camera.create_video_configuration()
+camera.configure(video_config)
 
 encoder = JpegEncoder()
 output = TimestampCollector()
 timestamps = []
 
-picam2.start_recording(encoder, output)
+camera.start_recording(encoder, output)
 time.sleep(2)
-picam2.stop_recording()
+camera.stop_recording()
 
 # Now let's analyse all the timestamps
 diffs = np.array([next - now for now, next in zip(timestamps, timestamps[1:])])
@@ -52,4 +52,4 @@ if hist[2] > 3:
     raise RuntimeError(f"Unexpectedly large number ({hist[2]}) of late frames")
 if hist[3] > 0:
     raise RuntimeError(f"{hist[3]} very late frames detected")
-picam2.close()
+camera.close()

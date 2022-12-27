@@ -8,23 +8,23 @@ if CameraInfo.n_cameras() <= 1:
     print("SKIPPED (one camera)")
     quit()
 
-picam2a = Picamera2(0)
-picam2a.configure(picam2a.create_preview_configuration())
-picam2a.start_preview()
-picam2a.start()
+camera1 = Picamera2(0)
+camera1.configure(camera1.create_preview_configuration())
+camera1.start_preview()
+camera1.start()
 
 time.sleep(2)
-picam2a.capture_file("testa.jpg")
+camera1.capture_file("testa.jpg")
 
-picam2b = Picamera2(1)
-picam2b.configure(picam2b.create_preview_configuration())
-picam2b.start()
+camera2 = Picamera2(1)
+camera2.configure(camera2.create_preview_configuration())
+camera2.start()
 
 time.sleep(2)
-picam2a.stop()
+camera1.stop()
 
-picam2b.capture_file("testb.jpg")
+camera2.capture_file("testb.jpg")
 
-picam2b.stop()
-picam2a.close()
-picam2b.close()
+camera2.stop()
+camera1.close()
+camera2.close()

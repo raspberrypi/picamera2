@@ -8,18 +8,18 @@ from PIL import Image
 
 from picamera2 import Picamera2
 
-picam2 = Picamera2()
-picam2.start_preview()
-preview_config = picam2.create_preview_configuration()
-capture_config = picam2.create_still_configuration()
+camera = Picamera2()
+camera.start_preview()
+preview_config = camera.create_preview_configuration()
+capture_config = camera.create_still_configuration()
 
-picam2.configure(preview_config)
-picam2.start()
+camera.configure(preview_config)
+camera.start()
 time.sleep(2)
 
-image = picam2.switch_mode_and_capture_image(capture_config)
+image = camera.switch_mode_and_capture_image(capture_config)
 assert isinstance(image, Image)
 
 time.sleep(5)
 
-picam2.close()
+camera.close()

@@ -7,17 +7,17 @@ from typing import List
 
 from picamera2 import Picamera2
 
-picam2 = Picamera2()
-config = picam2.create_preview_configuration(queue=False)
-picam2.configure(config)
-picam2.start()
+camera = Picamera2()
+config = camera.create_preview_configuration(queue=False)
+camera.configure(config)
+camera.start()
 abort = False
 
 
 def thread_func(delay):
     n = 0
     while not abort:
-        picam2.capture_array()
+        camera.capture_array()
         n += 1
         time.sleep(delay)
     print("Thread received", n, "frames")
@@ -34,7 +34,7 @@ time.sleep(2)
 
 jobs: List[Future] = []
 for i in range(4):
-    jobs.append(picam2.capture_metadata_async())
+    jobs.append(camera.capture_metadata_async())
     time.sleep(0.01)
 
 times = [job.result()["SensorTimestamp"] for job in jobs]
@@ -49,5 +49,5 @@ abort = True
 for thread in threads:
     thread.join()
 
-picam2.stop()
-picam2.close()
+camera.stop()
+camera.close()

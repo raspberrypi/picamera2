@@ -6,25 +6,25 @@ import numpy as np
 
 from picamera2 import Picamera2
 
-picam2a = Picamera2(0)
-picam2a.configure(picam2a.create_preview_configuration())
-picam2a.start_preview()
+camera1 = Picamera2(0)
+camera1.configure(camera1.create_preview_configuration())
+camera1.start_preview()
 
-picam2b = Picamera2(1)
-picam2b.configure(picam2b.create_preview_configuration())
-picam2b.start_preview()
+camera2 = Picamera2(1)
+camera2.configure(camera2.create_preview_configuration())
+camera2.start_preview()
 
-picam2a.start()
-picam2b.start()
+camera1.start()
+camera2.start()
 time.sleep(2)
-picam2a.stop_preview()
-picam2b.stop_preview()
-
-time.sleep(2)
-
-picam2a.start_preview()
-picam2b.start_preview()
+camera1.stop_preview()
+camera2.stop_preview()
 
 time.sleep(2)
-picam2a.close()
-picam2b.close()
+
+camera1.start_preview()
+camera2.start_preview()
+
+time.sleep(2)
+camera1.close()
+camera2.close()

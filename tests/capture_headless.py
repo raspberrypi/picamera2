@@ -2,14 +2,14 @@
 
 from picamera2 import Picamera2
 
-picam2 = Picamera2()
-config = picam2.create_still_configuration()
-picam2.configure(config)
+camera = Picamera2()
+config = camera.create_still_configuration()
+camera.configure(config)
 
-picam2.start()
+camera.start()
 
-np_array = picam2.capture_array()
+np_array = camera.capture_array()
 print(np_array)
-picam2.capture_file("demo.jpg")
-picam2.stop()
-picam2.close()
+camera.capture_file("demo.jpg")
+camera.stop()
+camera.close()

@@ -8,12 +8,12 @@ from picamera2 import Picamera2
 
 
 class FrameServer:
-    def __init__(self, picam2, stream="main"):
+    def __init__(self, camera: Picamera2, stream="main"):
         """A simple class that can serve up frames from one of the Picamera2's configured
         streams to multiple other threads.
         Pass in the Picamera2 object and the name of the stream for which you want
         to serve up frames."""
-        self._picam2 = picam2
+        self._camera = camera
         self._stream = stream
         self._array = None
         self._condition = Condition()
@@ -39,7 +39,7 @@ class FrameServer:
 
     def _thread_func(self):
         while self._running:
-            array = self._picam2.capture_array(self._stream)
+            array = self._camera.capture_array(self._stream)
             self._count += 1
             with self._condition:
                 self._array = array
@@ -83,12 +83,12 @@ thread2_count = 0
 thread1 = Thread(target=thread1_func)
 thread2 = Thread(target=thread2_func)
 
-picam2 = Picamera2()
-server = FrameServer(picam2)
+camera = Picamera2()
+server = FrameServer(camera)
 thread1.start()
 thread2.start()
 server.start()
-picam2.start()
+camera.start()
 
 time.sleep(1)
 
@@ -96,10 +96,10 @@ thread_abort = True
 thread1.join()
 thread2.join()
 server.stop()
-picam2.stop()
+camera.stop()
 
 print("Thread1 received", thread1_count, "frames")
 print("Thread2 received", thread2_count, "frames")
 print("Server received", server.count, "frames")
 
-picam2.close()
+camera.close()

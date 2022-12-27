@@ -7,20 +7,20 @@ import time
 
 from picamera2 import Picamera2
 
-picam2 = Picamera2()
-picam2.start_preview()
+camera = Picamera2()
+camera.start_preview()
 
-preview_config = picam2.create_preview_configuration()
-picam2.configure(preview_config)
+preview_config = camera.create_preview_configuration()
+camera.configure(preview_config)
 
-picam2.start()
+camera.start()
 time.sleep(1)
 
-metadata = picam2.capture_metadata()
+metadata = camera.capture_metadata()
 controls = {c: metadata[c] for c in ["ExposureTime", "AnalogueGain", "ColourGains"]}
 print(controls)
 
-picam2.set_controls(controls)
+camera.set_controls(controls)
 time.sleep(5)
 
-picam2.close()
+camera.close()

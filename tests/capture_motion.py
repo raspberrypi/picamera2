@@ -10,15 +10,15 @@ from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs import FileOutput
 
 lsize = (320, 240)
-picam2 = Picamera2()
-video_config = picam2.create_video_configuration(
+camera = Picamera2()
+video_config = camera.create_video_configuration(
     main={"size": (1280, 720), "format": "RGB888"},
     lores={"size": lsize, "format": "YUV420"},
 )
-picam2.configure(video_config)
+camera.configure(video_config)
 encoder = JpegEncoder()
-picam2.encoder = encoder
-picam2.start()
+camera.encoder = encoder
+camera.start()
 
 w, h = lsize
 prev = None
@@ -26,7 +26,7 @@ encoding = False
 ltime = 0
 
 for _ in range(4):
-    cur = picam2.capture_buffer("lores")
+    cur = camera.capture_buffer("lores")
     cur = cur[: w * h].reshape(h, w)
     if prev is not None:
         # Measure pixels differences between current and
@@ -35,12 +35,12 @@ for _ in range(4):
         if mse > 7:
             if not encoding:
                 encoder.output = FileOutput("{}.h264".format(int(time.time())))
-                picam2.start_encoder()
+                camera.start_encoder()
                 encoding = True
                 print("New Motion", mse)
             ltime = time.time()
         else:
             if encoding and time.time() - ltime > 2.0:
-                picam2.stop_encoder()
+                camera.stop_encoder()
                 encoding = False
     prev = cur

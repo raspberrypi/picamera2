@@ -2,14 +2,14 @@ import time
 
 from picamera2 import Picamera2
 
-picam2 = Picamera2()
-picam2.start_preview()
-picam2.start()
+camera = Picamera2()
+camera.start_preview()
+camera.start()
 time.sleep(2)
-picam2.stop_preview()
+camera.stop_preview()
 time.sleep(2)
-picam2.start_preview()
+camera.start_preview()
 time.sleep(2)
-picam2.stop()
-picam2.stop_preview()
-picam2.close()
+camera.stop()
+camera.stop_preview()
+camera.close()

@@ -11,8 +11,8 @@ tuning = Picamera2.load_tuning_file("imx477.json")
 algo = Picamera2.find_tuning_algo(tuning, "rpi.agc")
 algo["exposure_modes"]["normal"] = {"shutter": [100, 66666], "gain": [1.0, 8.0]}
 
-picam2 = Picamera2(tuning=tuning)
-picam2.configure(picam2.create_preview_configuration())
-picam2.start_preview()
-picam2.start()
+camera = Picamera2(tuning=tuning)
+camera.configure(camera.create_preview_configuration())
+camera.start_preview()
+camera.start()
 time.sleep(2)

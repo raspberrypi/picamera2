@@ -6,17 +6,17 @@ from picamera2 import Picamera2
 from picamera2.encoders.jpeg_encoder import JpegEncoder
 from picamera2.outputs import FileOutput
 
-picam2 = Picamera2()
+camera = Picamera2()
 encoder = JpegEncoder()
-picam2.start(picam2.create_video_configuration())
+camera.start(camera.create_video_configuration())
 
 for i in range(40):
     print(i)
     encoder.output = FileOutput("test.h264")
-    picam2.start_encoder(encoder)
+    camera.start_encoder(encoder)
     time.sleep(0.5)
-    picam2.stop_encoder()
+    camera.stop_encoder()
     time.sleep(0.5)
 
-picam2.stop()
-picam2.close()
+camera.stop()
+camera.close()

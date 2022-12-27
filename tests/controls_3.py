@@ -7,25 +7,25 @@ import time
 from picamera2 import Picamera2
 from picamera2.controls import Controls
 
-picam2 = Picamera2()
-picam2.start_preview()
+camera = Picamera2()
+camera.start_preview()
 
-preview_config = picam2.create_preview_configuration()
-picam2.configure(preview_config)
+preview_config = camera.create_preview_configuration()
+camera.configure(preview_config)
 
-picam2.start()
+camera.start()
 time.sleep(1)
 
-with picam2.controls as ctrl:
+with camera.controls as ctrl:
     ctrl.AnalogueGain = 6.0
     ctrl.ExposureTime = 60000
 
 time.sleep(2)
 
-ctrls = Controls(picam2)
+ctrls = Controls(camera)
 ctrls.AnalogueGain = 1.0
 ctrls.ExposureTime = 10000
-picam2.set_controls(ctrls)
+camera.set_controls(ctrls)
 
 time.sleep(2)
-picam2.close()
+camera.close()
