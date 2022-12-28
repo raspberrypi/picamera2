@@ -12,7 +12,7 @@ camera.configure(preview_config)
 
 camera.start()
 
-size = camera.capture_metadata()["ScalerCrop"][2:]
+size = camera.capture_metadata().result()["ScalerCrop"][2:]
 
 for _ in range(20):
     # This syncs us to the arrival of a new camera frame:

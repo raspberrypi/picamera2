@@ -11,9 +11,9 @@ capture_config = camera.create_still_configuration(raw={})
 camera.configure(preview_config)
 
 camera.start()
-
 mature_after_frames_or_timeout(camera, 2).result()
+camera.switch_mode(capture_config).result()
+buffers, metadata = camera.capture_buffers_and_metadata(["main", "raw"]).result()
 
-buffers, metadata = camera.switch_mode_and_capture_buffers(
-    capture_config, ["main", "raw"]
-)
+camera.stop()
+camera.close()

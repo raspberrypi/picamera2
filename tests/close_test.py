@@ -9,7 +9,7 @@ from picamera2 import Picamera2
 def run_camera():
     camera = Picamera2()
     camera.start()
-    camera.discard_frames(2)
+    camera.discard_frames(2).result()
     camera.stop()
     camera.close()
 
@@ -22,7 +22,7 @@ with Picamera2() as camera:
 
 camera = Picamera2()
 camera.start()
-camera.discard_frames(2)
+camera.discard_frames(2).result()
 camera.stop()
 camera.close()
 

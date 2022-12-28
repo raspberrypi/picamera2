@@ -22,5 +22,5 @@ ctrls = Controls(camera)
 ctrls.AnalogueGain = 1.0
 ctrls.ExposureTime = 10000
 camera.set_controls(ctrls)
-camera.discard_frames(2)
+camera.discard_frames(2).result()
 camera.close()

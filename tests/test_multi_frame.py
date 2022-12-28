@@ -7,7 +7,7 @@ camera = Picamera2()
 
 camera.start()
 
-futures = camera.capture_serial_frames_async(5)
+futures = camera.capture_serial_frames(5)
 
 camera.stop()
 camera.close()

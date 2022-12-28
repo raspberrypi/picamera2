@@ -7,7 +7,6 @@ from picamera2.configuration import CameraConfiguration, StreamConfiguration
 from picamera2.controls import Controls
 from picamera2.converters import YUV420_to_RGB
 from picamera2.lc_helpers import libcamera_color_spaces_eq, libcamera_transforms_eq
-from picamera2.metadata import Metadata
 from picamera2.picamera2 import CameraInfo, Picamera2
 from picamera2.request import CompletedRequest
 
@@ -24,7 +23,6 @@ __all__ = [
     "StreamConfiguration",
     "Controls",
     "YUV420_to_RGB",
-    "Metadata",
     "Picamera2",
     "CameraInfo",
     "CompletedRequest",

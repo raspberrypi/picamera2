@@ -25,5 +25,5 @@ fps = chosen_mode["fps"]
 camera.set_controls({"FrameRate": fps})
 
 camera.start()
-camera.discard_frames(2)
+camera.discard_frames(2).result()
 camera.stop()

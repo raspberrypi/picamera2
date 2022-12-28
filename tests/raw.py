@@ -16,6 +16,6 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-raw = camera.capture_array("raw")
+raw = camera.capture_array("raw").result()
 print(raw.shape)
 print(camera.stream_configuration("raw"))

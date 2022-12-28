@@ -11,5 +11,5 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-camera.capture_file("test.png")
+camera.capture_file("test.png").result()
 camera.close()

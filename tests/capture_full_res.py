@@ -11,5 +11,5 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-camera.switch_mode_and_capture_file(capture_config, "test_full.jpg")
+camera.capture_file("test_full.jpg", config=capture_config).result()
 camera.close()

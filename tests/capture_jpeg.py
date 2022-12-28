@@ -13,7 +13,7 @@ camera.start_preview()
 
 camera.start()
 camera.discard_frames(2)
-metadata = camera.capture_file("test.jpg")
+metadata = camera.capture_file("test.jpg").result()
 print(metadata)
 
 camera.close()

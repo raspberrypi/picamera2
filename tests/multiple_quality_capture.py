@@ -6,6 +6,6 @@ video_config = camera.create_video_configuration()
 camera.configure(video_config)
 
 camera.start()
-camera.discard_frames(4)
+camera.discard_frames(4).result()
 camera.stop()
 camera.close()

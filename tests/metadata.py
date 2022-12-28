@@ -11,5 +11,5 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-print(camera.capture_metadata())
+print(camera.capture_metadata().result())
 camera.close()

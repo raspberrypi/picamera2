@@ -9,7 +9,8 @@ def main():
         preview = camera.create_preview_configuration()
         camera.configure(preview)
         camera.start()
-        metadata = camera.capture_metadata()
+        metadata = camera.capture_metadata().result()
+        assert isinstance(metadata, dict)
         print(metadata)
 
     print("Without context...")
@@ -17,7 +18,7 @@ def main():
     preview = camera.create_preview_configuration()
     camera.configure(preview)
     camera.start()
-    metadata = camera.capture_metadata()
+    metadata = camera.capture_metadata().result()
     print(metadata)
     camera.stop_preview()
     camera.close()

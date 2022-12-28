@@ -37,7 +37,7 @@ def check(raw_config, fps):
     camera.start()
     camera.discard_frames(2)
     # Check we got roughly the right framerate
-    metadata = camera.capture_metadata()
+    metadata = camera.capture_metadata().result()
     framerate = 1000000 / metadata["FrameDuration"]
     print(metadata)
     print(f"Framerate: {framerate:.2f}, requested: {fps:.2f}")

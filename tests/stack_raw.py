@@ -29,8 +29,8 @@ camera.start()
 
 # The raw images can be added directly using 2-byte pixels.
 for i in range(num_frames):
-    images.append(camera.capture_array("raw").view(np.uint16))
-metadata = camera.capture_metadata()
+    images.append(camera.capture_array("raw").result().view(np.uint16))
+metadata = camera.capture_metadata().result()
 
 accumulated = images.pop(0).astype(int)
 for image in images:

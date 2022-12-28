@@ -18,4 +18,5 @@ preview_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
 camera.configure(preview_config)
 
 camera.start()
-time.sleep(2)
+camera.discard_frames(2).result()
+camera.stop()

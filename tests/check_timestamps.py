@@ -14,7 +14,7 @@ timestamps = []
 camera.add_request_callback(lambda r: timestamps.append(time.time() * 1e6))
 
 camera.start()
-camera.discard_frames(10)
+camera.discard_frames(10).result()
 camera.stop()
 
 # Now let's analyse all the timestamps

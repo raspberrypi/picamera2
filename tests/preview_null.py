@@ -7,5 +7,5 @@ config = camera.create_preview_configuration()
 camera.configure(config)
 
 camera.start()
-camera.discard_frames(4)
+camera.discard_frames(4).result()
 camera.stop()

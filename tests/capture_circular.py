@@ -18,7 +18,7 @@ prev = None
 ltime = 0
 
 for _ in range(4):
-    cur = camera.capture_array("lores")
+    cur = camera.capture_array("lores").result()
     if prev is not None:
         # Measure pixels differences between current and
         # previous frame

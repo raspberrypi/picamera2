@@ -12,7 +12,7 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-metadata = camera.capture_metadata()
+metadata = camera.capture_metadata().result()
 controls = {c: metadata[c] for c in ["ExposureTime", "AnalogueGain", "ColourGains"]}
 print(controls)
 

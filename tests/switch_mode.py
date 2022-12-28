@@ -19,6 +19,6 @@ other_config = camera.create_preview_configuration(
 )
 
 camera.switch_mode(other_config)
-camera.discard_frames(4)
+camera.discard_frames(4).result()
 camera.stop()
 camera.close()

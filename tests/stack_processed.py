@@ -36,7 +36,7 @@ camera.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain"
 camera.start()
 
 for i in range(num_frames):
-    images.append(camera.capture_array())
+    images.append(camera.capture_array().result())
 
 # Add the images up, apply the gamma transform and we're done.
 accumulated = images.pop(0).astype(np.uint16)

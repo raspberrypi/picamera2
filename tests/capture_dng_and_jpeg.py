@@ -11,7 +11,9 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-request = camera.switch_mode_capture_request_and_stop(capture_config)
+camera.switch_mode(capture_config).result()
+
+request = camera.capture_request(capture_config).result()
 request.make_image("main").convert("RGB").save("full.jpg")
 request.release()
 

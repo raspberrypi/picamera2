@@ -14,8 +14,8 @@ camera.configure(preview_config)
 camera.start()
 mature_after_frames_or_timeout(camera, 5).result()
 
-image = camera.switch_mode_and_capture_image(capture_config)
-assert isinstance(image, Image)
+image = camera.capture_image(config=capture_config).result()
+assert isinstance(image, Image.Image)
 
 mature_after_frames_or_timeout(camera, 5).result()
 

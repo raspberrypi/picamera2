@@ -17,7 +17,7 @@ abort = False
 def thread_func(delay):
     n = 0
     while not abort:
-        camera.capture_array()
+        camera.capture_array().result()
         n += 1
         time.sleep(delay)
     print("Thread received", n, "frames")
@@ -34,7 +34,7 @@ time.sleep(2)
 
 jobs: List[Future] = []
 for i in range(4):
-    jobs.append(camera.capture_metadata_async())
+    jobs.append(camera.capture_metadata())
     time.sleep(0.01)
 
 times = [job.result()["SensorTimestamp"] for job in jobs]

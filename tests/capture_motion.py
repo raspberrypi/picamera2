@@ -19,7 +19,7 @@ encoding = False
 ltime = 0
 
 for _ in range(4):
-    cur = camera.capture_buffer("lores")
+    cur = camera.capture_buffer("lores").result()
     cur = cur[: w * h].reshape(h, w)
     if prev is not None:
         # Measure pixels differences between current and

@@ -12,6 +12,6 @@ for i in range(2):
     camera.configure(camera.create_preview_configuration())
     camera.start_preview()
     camera.start()
-    camera.discard_frames(5)
+    camera.discard_frames(5).result()
     camera.close()
     print("Done")
