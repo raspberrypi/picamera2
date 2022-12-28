@@ -21,6 +21,7 @@ from PIL import Image
 import picamera2.formats as formats
 from picamera2.configuration import CameraConfiguration
 from picamera2.controls import Controls
+from picamera2.frame import CameraFrame
 from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
 from picamera2.previews import NullPreview
 from picamera2.request import CompletedRequest, LoopTask
@@ -1270,3 +1271,26 @@ class Picamera2:
         return self._dispatch_with_temporary_mode(
             LoopTask.with_request(self._capture_image, name), camera_config
         ).result()
+
+    def _capture_frame(self, name: str, request: CompletedRequest) -> CameraFrame:
+        return CameraFrame.from_request(name, request)
+
+    def capture_frame(self, name: str = "main") -> CameraFrame:
+        """Make a CameraFrame from the next frame in the named stream.
+
+        :param name: Stream name, defaults to "main"
+        :type name: str, optional
+        """
+        return self._dispatch_loop_tasks(
+            LoopTask.with_request(self._capture_frame, name)
+        )[0].result()
+
+    def capture_serial_frames_async(self, n_frames: int, name="main") -> List[Future]:
+        """Capture a number of frames from the named stream, returning a list of CameraFrames."""
+        return self._dispatch_loop_tasks(
+            *(LoopTask.with_request(self._capture_frame, name) for _ in range(n_frames))
+        )
+
+    def capture_serial_frames(self, n_frames: int, name="main") -> List[CameraFrame]:
+        """Capture a number of frames from the named stream, returning a list of CameraFrames."""
+        return [f.result() for f in self.capture_serial_frames_async(n_frames, name)]
