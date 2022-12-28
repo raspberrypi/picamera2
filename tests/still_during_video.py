@@ -14,7 +14,7 @@ camera.start()
 
 # It's better to capture the still in this thread, not in the one driving the camera.
 request: CompletedRequest = camera.capture_request()
-request.save("main", "test.jpg")
+request.make_image("main").convert("RGB").save("test.jpg")
 request.release()
 print("Still image captured!")
 

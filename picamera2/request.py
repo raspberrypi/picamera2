@@ -1,27 +1,28 @@
 from __future__ import annotations
 
+import io
 import mmap
 import threading
+from abc import ABC, abstractmethod
 from concurrent.futures import Future
 from dataclasses import dataclass, field
 from functools import partial
 from logging import getLogger
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
-import libcamera
 import numpy as np
+from PIL import Image
 
 import picamera2.formats as formats
-from picamera2.helpers import Helpers
+from picamera2 import formats
 from picamera2.lc_helpers import lc_unpack
 
 _log = getLogger(__name__)
 
 
-class _MappedBuffer:
-    def __init__(self, request, stream):
-        stream = request.camera.stream_map[stream]
-        self.__fb = request.request.buffers[stream]
+class MappedBuffer:
+    def __init__(self, lc_buffer):
+        self.__fb = lc_buffer
 
     def __enter__(self):
         # Check if the buffer is contiguous and find the total length.
@@ -45,74 +46,97 @@ class _MappedBuffer:
             self.__mm.close()
 
 
-# TODO (meawoppl) - Flatten into the above class using an np array view.
-# or at the very least actully use the context manager protocol it reps.
-class MappedArray:
-    def __init__(self, request, stream, reshape=True):
-        self.__request = request
-        self.__stream = stream
-        self.__buffer = _MappedBuffer(request, stream)
-        self.__array = None
-        self.__reshape = reshape
+class AbstractCompletedRequest(ABC):
+    @abstractmethod
+    def get_config(self, name: str) -> Dict[str, Any]:
+        raise NotImplementedError()
 
-    def __enter__(self):
-        b = self.__buffer.__enter__()
-        array = np.array(b, copy=False, dtype=np.uint8)
+    @abstractmethod
+    def get_buffer(self, name: str) -> np.ndarray:
+        raise NotImplementedError()
 
-        if self.__reshape:
-            config = self.__request.camera.camera_config[self.__stream]
-            fmt = config["format"]
-            w, h = config["size"]
-            stride = config["stride"]
+    @abstractmethod
+    def get_metadata(self) -> Dict[str, Any]:
+        raise NotImplementedError()
 
-            # Turning the 1d array into a 2d image-like array only works if the
-            # image stride (which is in bytes) is a whole number of pixels. Even
-            # then, if they don't match exactly you will get "padding" down the RHS.
-            # Working around this requires another expensive copy of all the data.
-            if fmt in ("BGR888", "RGB888"):
-                if stride != w * 3:
-                    array = array.reshape((h, stride))
-                    array = array[:, : w * 3]
-                array = array.reshape((h, w, 3))
-            elif fmt in ("XBGR8888", "XRGB8888"):
-                if stride != w * 4:
-                    array = array.reshape((h, stride))
-                    array = array[:, : w * 4]
-                array = array.reshape((h, w, 4))
-            elif fmt in ("YUV420", "YVU420"):
-                # Returning YUV420 as an image of 50% greater height (the extra bit continaing
-                # the U/V data) is useful because OpenCV can convert it to RGB for us quite
-                # efficiently. We leave any packing in there, however, as it would be easier
-                # to remove that after conversion to RGB (if that's what the caller does).
-                array = array.reshape((h * 3 // 2, stride))
-            elif formats.is_raw(fmt):
+    def make_array(self, name: str) -> np.ndarray:
+        """Make a 2d numpy array from the named stream's buffer."""
+        config = self.get_config(name)
+        array = self.get_buffer(name)
+        fmt = config["format"]
+        w, h = config["size"]
+        stride = config["stride"]
+
+        # Turning the 1d array into a 2d image-like array only works if the
+        # image stride (which is in bytes) is a whole number of pixels. Even
+        # then, if they don't match exactly you will get "padding" down the RHS.
+        # Working around this requires another expensive copy of all the data.
+        if fmt in ("BGR888", "RGB888"):
+            if stride != w * 3:
                 array = array.reshape((h, stride))
-            else:
-                raise RuntimeError("Format " + fmt + " not supported")
+                array = np.asarray(array[:, : w * 3], order="C")
+            image = array.reshape((h, w, 3))
+        elif fmt in ("XBGR8888", "XRGB8888"):
+            if stride != w * 4:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, : w * 4], order="C")
+            image = array.reshape((h, w, 4))
+        elif fmt in ("YUV420", "YVU420"):
+            # Returning YUV420 as an image of 50% greater height (the extra bit continaing
+            # the U/V data) is useful because OpenCV can convert it to RGB for us quite
+            # efficiently. We leave any packing in there, however, as it would be easier
+            # to remove that after conversion to RGB (if that's what the caller does).
+            image = array.reshape((h * 3 // 2, stride))
+        elif fmt in ("YUYV", "YVYU", "UYVY", "VYUY"):
+            # These dimensions seem a bit strange, but mean that
+            # cv2.cvtColor(image, cv2.COLOR_YUV2BGR_YUYV) will convert directly to RGB.
+            image = array.reshape(h, stride // 2, 2)
+        elif fmt == "MJPEG":
+            image = np.array(Image.open(io.BytesIO(array)))
+        elif formats.is_raw(fmt):
+            image = array.reshape((h, stride))
+        else:
+            raise RuntimeError("Format " + fmt + " not supported")
+        return image
 
-        self.__array = array
-        return self
+    def make_image(self, name: str) -> Image.Image:
+        """Make a PIL image from the named stream's buffer."""
+        fmt = self.get_config(name)["format"]
+        if fmt == "MJPEG":
+            buffer = self.get_buffer(name)
+            return Image.open(io.BytesIO(buffer))
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        if self.__array is not None:
-            del self.__array
-        self.__buffer.__exit__(exc_type, exc_value, exc_traceback)
-
-    @property
-    def array(self):
-        return self.__array
+        rgb = self.make_array(name)
+        mode_lookup = {
+            "RGB888": "BGR",
+            "BGR888": "RGB",
+            "XBGR8888": "RGBA",
+            "XRGB8888": "BGRX",
+        }
+        if fmt not in mode_lookup:
+            raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
+        mode = mode_lookup[fmt]
+        return Image.frombuffer(
+            "RGB", (rgb.shape[1], rgb.shape[0]), rgb, "raw", mode, 0, 1
+        )
 
 
 # TODO(meawoppl) - Make Completed Requests only exist inside of a context manager
 # This remove all the bizzare locking and reference counting we are doing here manually
-class CompletedRequest:
-    def __init__(self, request, camera):
-        self.request = request
+class CompletedRequest(AbstractCompletedRequest):
+    def __init__(
+        self,
+        lc_request,
+        config: dict,
+        stream_map: Dict[str, Any],
+        cleanup: Callable[[], None],
+    ):
+        self.request = lc_request
         self.ref_count = 1
         self.lock = threading.Lock()
-        self.camera = camera
-        self.stop_count = camera.stop_count
-        self.config = self.camera.camera_config.copy()
+        self.config = config
+        self.cleanup = cleanup
+        self.stream_map = stream_map
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to
@@ -135,42 +159,23 @@ class CompletedRequest:
             if self.ref_count > 0:
                 return
 
-            # If the camera has been stopped since this request was returned then we
-            # can't recycle it.
-            if self.camera.camera and self.stop_count == self.camera.stop_count:
-                self.camera.recycle_request(self.request)
-            else:
-                _log.warning(
-                    "Camera stopped before request could be recycled (Discarding it)"
-                )
+            self.cleanup()
             self.request = None
 
-    def make_buffer(self, name: str):
+    def get_config(self, name: str) -> Dict[str, Any]:
+        """Fetch the configuration for the named stream."""
+        return self.config[name]
+
+    def get_buffer(self, name: str) -> np.ndarray:
         """Make a 1d numpy array from the named stream's buffer."""
-        if self.camera.stream_map.get(name, None) is None:
-            raise RuntimeError(f'Stream "{name}" is not defined')
-        with _MappedBuffer(self, name) as b:
+        stream = self.stream_map[name]
+        buffer = self.request.buffers[stream]
+        with MappedBuffer(buffer) as b:
             return np.array(b, dtype=np.uint8)
 
-    def get_metadata(self):
+    def get_metadata(self) -> Dict[str, Any]:
         """Fetch the metadata corresponding to this completed request."""
         return lc_unpack(self.request.metadata)
-
-    def make_array(self, name: str):
-        """Make a 2d numpy array from the named stream's buffer."""
-        return Helpers.make_array(self.make_buffer(name), self.config[name])
-
-    def make_image(self, name: str, width=None, height=None):
-        """Make a PIL image from the named stream's buffer."""
-        return Helpers.make_image(
-            self.make_buffer(name), self.config[name], width, height
-        )
-
-    def save(self, name, file_output, format=None):
-        """Save a JPEG or PNG image of the named stream's buffer."""
-        return Helpers.save(
-            self.camera, self.make_image(name), self.get_metadata(), file_output, format
-        )
 
 
 @dataclass

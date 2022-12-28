@@ -9,7 +9,7 @@ from picamera2.converters import YUV420_to_RGB
 from picamera2.lc_helpers import libcamera_color_spaces_eq, libcamera_transforms_eq
 from picamera2.metadata import Metadata
 from picamera2.picamera2 import CameraInfo, Picamera2
-from picamera2.request import CompletedRequest, MappedArray
+from picamera2.request import CompletedRequest
 
 # NOTE(meawoppl) - ugleeee monkey patch. Kill the below VV
 libcamera.Transform.__repr__ = libcamera.Transform.__str__
@@ -28,5 +28,4 @@ __all__ = [
     "Picamera2",
     "CameraInfo",
     "CompletedRequest",
-    "MappedArray",
 ]

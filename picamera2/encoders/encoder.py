@@ -5,7 +5,7 @@ from enum import Enum
 
 import picamera2.formats as formats
 from picamera2.outputs import Output
-from picamera2.request import _MappedBuffer
+from picamera2.request import MappedBuffer
 
 _log = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ class Encoder:
     def _encode(self, stream, request):
         fb = request.request.buffers[stream]
         timestamp_us = self._timestamp(fb)
-        with _MappedBuffer(request, request.picam2.encode_stream_name) as b:
+        with MappedBuffer(request, request.picam2.encode_stream_name) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
     def start(self):
