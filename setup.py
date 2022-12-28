@@ -32,8 +32,6 @@ setup(
     ],
     packages=[
         "picamera2",
-        "picamera2.encoders",
-        "picamera2.outputs",
         "picamera2.previews",
     ],
     python_requires=">=3.9",

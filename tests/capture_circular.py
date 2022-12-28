@@ -2,8 +2,6 @@
 import numpy as np
 
 from picamera2 import Picamera2
-from picamera2.encoders.jpeg_encoder import JpegEncoder
-from picamera2.outputs import CircularOutput
 
 lsize = (320, 240)
 camera = Picamera2()
@@ -13,8 +11,6 @@ video_config = camera.create_video_configuration(
 )
 camera.configure(video_config)
 camera.start_preview()
-encoder = JpegEncoder()
-encoder.output = CircularOutput()
 camera.start()
 
 w, h = lsize
@@ -22,8 +18,7 @@ prev = None
 ltime = 0
 
 for _ in range(4):
-    cur = camera.capture_buffer("lores")
-    cur = cur[: w * h].reshape(h, w)
+    cur = camera.capture_array("lores")
     if prev is not None:
         # Measure pixels differences between current and
         # previous frame
