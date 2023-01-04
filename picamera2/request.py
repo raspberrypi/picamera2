@@ -15,7 +15,7 @@ from PIL import Image
 
 import picamera2.formats as formats
 from picamera2 import formats
-from picamera2.configuration import CameraConfiguration
+from picamera2.configuration import CameraConfig
 from picamera2.lc_helpers import lc_unpack
 
 _log = getLogger(__name__)
@@ -49,7 +49,7 @@ class MappedBuffer:
 
 class AbstractCompletedRequest(ABC):
     @abstractmethod
-    def get_config(self, name: str) -> CameraConfiguration:
+    def get_config(self, name: str) -> CameraConfig:
         raise NotImplementedError()
 
     @abstractmethod
@@ -129,7 +129,7 @@ class CompletedRequest(AbstractCompletedRequest):
     def __init__(
         self,
         lc_request,
-        config: CameraConfiguration,
+        config: CameraConfig,
         stream_map: Dict[str, Any],
         cleanup: Callable[[], None],
     ):

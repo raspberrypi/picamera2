@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from picamera2 import Picamera2
+from picamera2 import CameraConfig, Picamera2
 from picamera2.request import CompletedRequest
 
 # Encode a VGA stream, and capture a higher resolution still image half way through.
@@ -8,7 +8,7 @@ camera = Picamera2()
 half_resolution = tuple(dim // 2 for dim in camera.sensor_resolution)
 main_stream = {"size": half_resolution}
 lores_stream = {"size": (640, 480)}
-video_config = camera.create_video_configuration(main=main_stream, lores=lores_stream)
+video_config = CameraConfig.for_video(camera, main=main_stream, lores=lores_stream)
 camera.configure(video_config)
 camera.start()
 

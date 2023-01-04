@@ -8,7 +8,7 @@
 import numpy as np
 from PIL import Image
 
-from picamera2 import Picamera2
+from picamera2 import CameraConfig, Picamera2
 
 exposure_time = 60000  # put your own numbers here
 num_frames = 6
@@ -29,7 +29,7 @@ gamma_lut = np.interp(range(num_frames * 255 + 1), gamma_x, gamma_y, right=255).
 )
 
 camera = Picamera2(tuning=tuning)
-config = camera.create_still_configuration({"format": "RGB888"}, buffer_count=2)
+config = CameraConfig.for_still(camera, {"format": "RGB888"}, buffer_count=2)
 camera.configure(config)
 images = []
 camera.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0})

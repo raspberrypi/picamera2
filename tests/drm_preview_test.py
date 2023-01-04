@@ -2,13 +2,11 @@
 
 # Test that we can successfully close a QtGlPreview window and open a new one.
 
-import time
-
-from picamera2 import Picamera2
+from picamera2 import CameraConfig, Picamera2
 
 print("First preview...")
 camera = Picamera2()
-camera.configure(camera.create_preview_configuration())
+camera.configure(CameraConfig.for_preview(camera))
 camera.start_preview()
 camera.start()
 camera.discard_frames(2).result()
@@ -17,7 +15,7 @@ print("Done")
 
 print("Second preview...")
 camera = Picamera2()
-camera.configure(camera.create_preview_configuration())
+camera.configure(CameraConfig.for_preview(camera))
 camera.start_preview()
 camera.start()
 camera.discard_frames(2).result()

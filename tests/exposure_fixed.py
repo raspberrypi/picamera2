@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 # Start camera with fixed exposure and gain.
-from picamera2 import Picamera2
+from picamera2 import CameraConfig, Picamera2
 
 camera = Picamera2()
 camera.start_preview()
 controls = {"ExposureTime": 10000, "AnalogueGain": 1.0}
-preview_config = camera.create_preview_configuration(controls=controls)
+preview_config = CameraConfig.for_preview(camera, controls=controls)
 camera.configure(preview_config)
 
 camera.start()

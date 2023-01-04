@@ -1,30 +1,34 @@
 #!/usr/bin/python3
 
-import time
+import concurrent.futures
 
-from picamera2 import CameraInfo, Picamera2
+from picamera2 import CameraConfig, CameraInfo, Picamera2
 
 if CameraInfo.n_cameras() <= 1:
     print("SKIPPED (one camera)")
     quit()
 
 camera1 = Picamera2(0)
-camera1.configure(camera1.create_preview_configuration())
-camera1.start_preview()
+camera1.configure(CameraConfig.for_preview(camera1))
+camera1.start()
 
 camera2 = Picamera2(1)
-camera2.configure(camera2.create_preview_configuration())
-camera2.start_preview()
-
-camera1.start()
+camera2.configure(CameraConfig.for_preview(camera2))
 camera2.start()
 
-time.sleep(2)
-print(camera1.capture_metadata())
-time.sleep(2)
-print(camera2.capture_metadata())
-camera1.capture_file("testa.jpg").result()
-camera2.capture_file("testb.jpg").result()
+f1 = camera1.discard_frames(4)
+f2 = camera2.discard_frames(4)
+concurrent.futures.wait((f1, f2), timeout=5)
+
+md1 = camera1.capture_metadata()
+md2 = camera2.capture_metadata()
+concurrent.futures.wait((md1, md2), timeout=10)
+print(md1.result())
+print(md2.result())
+
+fi1 = camera1.capture_file("testa.jpg")
+fi2 = camera2.capture_file("testb.jpg")
+concurrent.futures.wait((fi1, fi2), timeout=10)
 
 camera1.stop()
 camera2.stop()
