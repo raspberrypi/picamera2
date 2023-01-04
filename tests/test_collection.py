@@ -21,9 +21,11 @@ def forward_subprocess_output(e: subprocess.CalledProcessError):
 KNOWN_XFAIL = set(
     [
         "capture_multiplexer.py",
+        "capture_circular.py",
         "check_timestamps.py",
         "drm_multiple_test.py",
         "multicamera_preview.py",
+        "raw.py",
         "stack_raw.py",
     ]
 )

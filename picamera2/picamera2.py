@@ -10,7 +10,7 @@ import tempfile
 import threading
 from collections import deque
 from concurrent.futures import Future
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import partial
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
@@ -19,18 +19,13 @@ import numpy as np
 from PIL import Image
 
 import picamera2.formats as formats
-from picamera2.configuration import CameraConfiguration
+from picamera2.configuration import CameraConfiguration, StreamConfiguration
 from picamera2.controls import Controls
 from picamera2.frame import CameraFrame
 from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
 from picamera2.previews import NullPreview
 from picamera2.request import CompletedRequest, LoopTask
 from picamera2.sensor_format import SensorFormat
-from picamera2.stream_config import (
-    align_stream,
-    check_stream_config,
-    make_initial_stream_config,
-)
 from picamera2.typing import TypedFuture
 
 STILL = libcamera.StreamRole.StillCapture
@@ -146,7 +141,7 @@ class CameraManager:
                     self.cameras[req.cookie].add_completed_request(
                         CompletedRequest(
                             req,
-                            camera_inst.camera_config.copy(),
+                            replace(camera_inst.camera_config),
                             camera_inst.stream_map,
                             cleanup_call,
                         )
@@ -238,6 +233,9 @@ class Picamera2:
         try:
             self._open_camera()
             _log.debug(f"{self.camera_manager}")
+
+            # Configuration requires various bits of information from the camera
+            # so we build the default configurations here
             self.preview_configuration = self.create_preview_configuration()
             self.still_configuration = self.create_still_configuration()
             self.video_configuration = self.create_video_configuration()
@@ -295,24 +293,27 @@ class Picamera2:
         return self.preview_configuration_
 
     @preview_configuration.setter
-    def preview_configuration(self, value):
-        self.preview_configuration_ = CameraConfiguration(value, self)
+    def preview_configuration(self, value: CameraConfiguration):
+        assert isinstance(value, CameraConfiguration)
+        self.preview_configuration_ = value
 
     @property
     def still_configuration(self) -> CameraConfiguration:
         return self.still_configuration_
 
     @still_configuration.setter
-    def still_configuration(self, value):
-        self.still_configuration_ = CameraConfiguration(value, self)
+    def still_configuration(self, value: CameraConfiguration):
+        assert isinstance(value, CameraConfiguration)
+        self.still_configuration_ = value
 
     @property
     def video_configuration(self) -> CameraConfiguration:
         return self.video_configuration_
 
     @video_configuration.setter
-    def video_configuration(self, value):
-        self.video_configuration_ = CameraConfiguration(value, self)
+    def video_configuration(self, value: CameraConfiguration):
+        assert isinstance(value, CameraConfiguration)
+        self.video_configuration_ = value
 
     @property
     def asynchronous(self) -> bool:
@@ -534,30 +535,38 @@ class Picamera2:
     # TODO(meawoppl) - These can likely be made static/hoisted
     def create_preview_configuration(
         self,
-        main={},
+        main: dict = {},
         lores=None,
         raw=None,
         transform=libcamera.Transform(),
         colour_space=libcamera.ColorSpace.Sycc(),
         buffer_count=4,
         controls={},
-    ) -> dict:
+    ) -> CameraConfiguration:
         """Make a configuration suitable for camera preview."""
         self.requires_camera()
-        main = make_initial_stream_config(
-            {"format": "XBGR8888", "size": (640, 480)}, main
-        )
-        align_stream(main, optimal=False)
-        lores = make_initial_stream_config(
-            {"format": "YUV420", "size": main["size"]}, lores
-        )
+
+        main_stream = StreamConfiguration(format="XBGR8888", size=(640, 480))
+        main_stream = replace(main_stream, **main)
+        main_stream.align(optimal=False)
+
         if lores is not None:
-            align_stream(lores, optimal=False)
-        raw = make_initial_stream_config(
-            {"format": self.sensor_format, "size": main["size"]},
-            raw,
-            self._raw_stream_ignore_list,
-        )
+            lores_stream = StreamConfiguration(format="YUV420", size=main_stream.size)
+            lores_stream = replace(lores_stream, **lores)
+            lores_stream.align(optimal=False)
+        else:
+            lores_stream = None
+
+        if raw is not None:
+            raw_stream = StreamConfiguration(
+                format=self.sensor_format, size=self.sensor_resolution
+            )
+            updates: dict = raw.copy()
+            for name in self._raw_stream_ignore_list:
+                updates.pop(name, None)
+            raw_stream = replace(raw_stream, **updates)
+        else:
+            raw_stream = None
         # Let the framerate vary from 12fps to as fast as possible.
         if (
             "NoiseReductionMode" in self.camera_controls
@@ -567,17 +576,17 @@ class Picamera2:
                 "NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
                 "FrameDurationLimits": (100, 83333),
             } | controls
-        config = {
-            "use_case": "preview",
-            "transform": transform,
-            "colour_space": colour_space,
-            "buffer_count": buffer_count,
-            "main": main,
-            "lores": lores,
-            "raw": raw,
-            "controls": controls,
-        }
-        return config
+        return CameraConfiguration(
+            camera=self,
+            use_case="preview",
+            transform=transform,
+            colour_space=colour_space,
+            buffer_count=buffer_count,
+            controls=controls,
+            main=main_stream,
+            lores=lores_stream,
+            raw=raw_stream,
+        )
 
     # TODO(meawoppl) - These can likely be made static/hoisted
     def create_still_configuration(
@@ -589,21 +598,28 @@ class Picamera2:
         colour_space=libcamera.ColorSpace.Sycc(),
         buffer_count=1,
         controls={},
-    ) -> dict:
+    ) -> CameraConfiguration:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         self.requires_camera()
-        main = make_initial_stream_config(
-            {"format": "BGR888", "size": self.sensor_resolution}, main
-        )
-        align_stream(main, optimal=False)
-        lores = make_initial_stream_config(
-            {"format": "YUV420", "size": main["size"]}, lores
-        )
+
+        main_stream = StreamConfiguration(format="BGR888", size=self.sensor_resolution)
+        main_stream = replace(main_stream, **main)
+        main_stream.align(optimal=False)
+
         if lores is not None:
-            align_stream(lores, optimal=False)
-        raw = make_initial_stream_config(
-            {"format": self.sensor_format, "size": main["size"]}, raw
-        )
+            lores_stream = StreamConfiguration(format="YUV420", size=main_stream.size)
+            lores_stream = replace(lores_stream, **lores)
+            lores_stream.align(optimal=False)
+        else:
+            lores_stream = None
+
+        if raw is not None:
+            raw_stream = StreamConfiguration(
+                format=self.sensor_format, size=main_stream.size
+            )
+            raw_stream = replace(raw_stream, **raw)
+        else:
+            raw_stream = None
         # Let the framerate span the entire possible range of the sensor.
         if (
             "NoiseReductionMode" in self.camera_controls
@@ -613,17 +629,17 @@ class Picamera2:
                 "NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
                 "FrameDurationLimits": (100, 1000000 * 1000),
             } | controls
-        config = {
-            "use_case": "still",
-            "transform": transform,
-            "colour_space": colour_space,
-            "buffer_count": buffer_count,
-            "main": main,
-            "lores": lores,
-            "raw": raw,
-            "controls": controls,
-        }
-        return config
+        return CameraConfiguration(
+            camera=self,
+            use_case="still",
+            transform=transform,
+            colour_space=colour_space,
+            buffer_count=buffer_count,
+            controls=controls,
+            main=main_stream,
+            lores=lores_stream,
+            raw=raw_stream,
+        )
 
     # TODO(meawoppl) - These can likely be made static/hoisted
     def create_video_configuration(
@@ -635,28 +651,35 @@ class Picamera2:
         colour_space=None,
         buffer_count=6,
         controls={},
-    ) -> dict:
+    ) -> CameraConfiguration:
         """Make a configuration suitable for video recording."""
         self.requires_camera()
-        main = make_initial_stream_config(
-            {"format": "XBGR8888", "size": (1280, 720)}, main
-        )
-        align_stream(main, optimal=False)
-        lores = make_initial_stream_config(
-            {"format": "YUV420", "size": main["size"]}, lores
-        )
+        main_stream = StreamConfiguration(format="XBGR8888", size=(1280, 720))
+        main_stream = replace(main_stream, **main)
+        main_stream.align(optimal=False)
+
         if lores is not None:
-            align_stream(lores, optimal=False)
-        raw = make_initial_stream_config(
-            {"format": self.sensor_format, "size": main["size"]}, raw
-        )
+            lores_stream = StreamConfiguration(format="YUV420", size=main_stream.size)
+            lores_stream = replace(lores_stream, **lores)
+            lores_stream.align(optimal=False)
+        else:
+            lores_stream = None
+
+        if raw is not None:
+            raw_stream = StreamConfiguration(
+                format=self.sensor_format, size=main_stream.size
+            )
+            raw_stream = replace(raw_stream, **raw)
+        else:
+            raw_stream = None
+
         if colour_space is None:
             # Choose default colour space according to the video resolution.
-            if formats.is_RGB(main["format"]):
+            if formats.is_RGB(main_stream.format):
                 # There's a bug down in some driver where it won't accept anything other than
                 # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
                 colour_space = libcamera.ColorSpace.Sycc()
-            elif main["size"][0] < 1280 or main["size"][1] < 720:
+            elif main_stream.size[0] < 1280 or main_stream.size[1] < 720:
                 colour_space = libcamera.ColorSpace.Smpte170m()
             else:
                 colour_space = libcamera.ColorSpace.Rec709()
@@ -668,102 +691,81 @@ class Picamera2:
                 "NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
                 "FrameDurationLimits": (33333, 33333),
             } | controls
-        config = {
-            "use_case": "video",
-            "transform": transform,
-            "colour_space": colour_space,
-            "buffer_count": buffer_count,
-            "main": main,
-            "lores": lores,
-            "raw": raw,
-            "controls": controls,
-        }
-        return config
-
-    # TODO(meawoppl) - dataclass __post_init__ materials
-    def check_camera_config(self, camera_config: dict) -> None:
-        required_keys = ["colour_space", "transform", "main", "lores", "raw"]
-        for name in required_keys:
-            if name not in camera_config:
-                raise RuntimeError(f"'{name}' key expected in camera configuration")
-
-        # Check the entire camera configuration for errors.
-        if not isinstance(
-            camera_config["colour_space"], libcamera._libcamera.ColorSpace
-        ):
-            raise RuntimeError("Colour space has incorrect type")
-        if not isinstance(camera_config["transform"], libcamera._libcamera.Transform):
-            raise RuntimeError("Transform has incorrect type")
-
-        check_stream_config(camera_config["main"], "main")
-        if camera_config["lores"] is not None:
-            check_stream_config(camera_config["lores"], "lores")
-            main_w, main_h = camera_config["main"]["size"]
-            lores_w, lores_h = camera_config["lores"]["size"]
-            if lores_w > main_w or lores_h > main_h:
-                raise RuntimeError("lores stream dimensions may not exceed main stream")
-            if not formats.is_YUV(camera_config["lores"]["format"]):
-                raise RuntimeError("lores stream must be YUV")
-        if camera_config["raw"] is not None:
-            check_stream_config(camera_config["raw"], "raw")
+        return CameraConfiguration(
+            camera=self,
+            use_case="video",
+            transform=transform,
+            colour_space=colour_space,
+            buffer_count=buffer_count,
+            controls=controls,
+            main=main_stream,
+            lores=lores_stream,
+            raw=raw_stream,
+        )
 
     # TODO(meawoppl) - Obviated by dataclasses
     @staticmethod
     def _update_libcamera_stream_config(
-        libcamera_stream_config, stream_config, buffer_count
+        libcamera_stream_config, stream_config: StreamConfiguration, buffer_count: int
     ) -> None:
         # Update the libcamera stream config with ours.
-        libcamera_stream_config.size = libcamera.Size(
-            stream_config["size"][0], stream_config["size"][1]
-        )
+        libcamera_stream_config.size = libcamera.Size(*stream_config.size)
         libcamera_stream_config.pixel_format = libcamera.PixelFormat(
-            stream_config["format"]
+            stream_config.format
         )
         libcamera_stream_config.buffer_count = buffer_count
 
+    def _get_stream_indices(
+        self, camera_config: CameraConfiguration
+    ) -> Tuple[int, int, int]:
+        # Get the indices of the streams we want to use.
+        index = 1
+        main_index = 0
+        lores_index = -1
+        raw_index = -1
+        if camera_config.lores is not None:
+            lores_index = index
+            index += 1
+        if camera_config.raw is not None:
+            raw_index = index
+        return main_index, lores_index, raw_index
+
     # TODO(meawoppl) - Obviated by dataclasses
-    def _make_libcamera_config(self, camera_config):
+    def _make_libcamera_config(self, camera_config: CameraConfiguration):
         # Make a libcamera configuration object from our Python configuration.
 
         # We will create each stream with the "viewfinder" role just to get the stream
         # configuration objects, and note the positions our named streams will have in
         # libcamera's stream list.
         roles = [VIEWFINDER]
-        index = 1
-        self.main_index = 0
-        self.lores_index = -1
-        self.raw_index = -1
-        if camera_config["lores"] is not None:
-            self.lores_index = index
-            index += 1
+        main_index, lores_index, raw_index = self._get_stream_indices(camera_config)
+        if camera_config.lores is not None:
             roles += [VIEWFINDER]
-        if camera_config["raw"] is not None:
-            self.raw_index = index
+        if camera_config.raw is not None:
             roles += [RAW]
 
         # Make the libcamera configuration, and then we'll write all our parameters over
         # the ones it gave us.
         libcamera_config = self.camera.generate_configuration(roles)
-        libcamera_config.transform = camera_config["transform"]
-        buffer_count = camera_config["buffer_count"]
+        libcamera_config.transform = camera_config.transform
+        buffer_count = camera_config.buffer_count
         self._update_libcamera_stream_config(
-            libcamera_config.at(self.main_index), camera_config["main"], buffer_count
+            libcamera_config.at(main_index), camera_config.main, buffer_count
         )
-        libcamera_config.at(self.main_index).color_space = camera_config["colour_space"]
-        if self.lores_index >= 0:
+        libcamera_config.at(main_index).color_space = camera_config.colour_space
+        if camera_config.lores is not None:
             self._update_libcamera_stream_config(
-                libcamera_config.at(self.lores_index),
-                camera_config["lores"],
+                libcamera_config.at(lores_index),
+                camera_config.lores,
                 buffer_count,
             )
-            libcamera_config.at(self.lores_index).color_space = camera_config[
-                "colour_space"
-            ]
-        if self.raw_index >= 0:
+            libcamera_config.at(lores_index).color_space = camera_config.colour_space
+
+        if camera_config.raw is not None:
             self._update_libcamera_stream_config(
-                libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count
+                libcamera_config.at(raw_index), camera_config.raw, buffer_count
             )
-            libcamera_config.at(self.raw_index).color_space = libcamera.ColorSpace.Raw()
+            libcamera_config.at(raw_index).color_space = libcamera.ColorSpace.Raw()
 
         return libcamera_config
 
@@ -812,17 +814,9 @@ class Picamera2:
             requests.append(request)
         return requests
 
-    def _update_stream_config(self, stream_config, libcamera_stream_config) -> None:
-        # Update our stream config from libcamera's.
-        stream_config["format"] = str(libcamera_stream_config.pixel_format)
-        stream_config["size"] = (
-            libcamera_stream_config.size.width,
-            libcamera_stream_config.size.height,
-        )
-        stream_config["stride"] = libcamera_stream_config.stride
-        stream_config["framesize"] = libcamera_stream_config.frame_size
-
-    def _update_camera_config(self, camera_config, libcamera_config) -> None:
+    def _update_camera_config(
+        self, camera_config: CameraConfiguration, libcamera_config
+    ) -> None:
         """Update our camera config from libcamera's.
 
         :param camera_config: Camera configuration
@@ -830,19 +824,43 @@ class Picamera2:
         :param libcamera_config: libcamera configuration
         :type libcamera_config: dict
         """
-        camera_config["transform"] = libcamera_config.transform
-        camera_config["colour_space"] = libcamera_config.at(0).color_space
-        self._update_stream_config(camera_config["main"], libcamera_config.at(0))
+        camera_config.transform = libcamera_config.transform
+        camera_config.colour_space = libcamera_config.at(0).color_space
+        camera_config.main = StreamConfiguration.from_lc_stream_config(
+            libcamera_config.at(0)
+        )
         if self.lores_index >= 0:
-            self._update_stream_config(
-                camera_config["lores"], libcamera_config.at(self.lores_index)
+            camera_config.lores = StreamConfiguration.from_lc_stream_config(
+                libcamera_config.at(self.lores_index)
             )
         if self.raw_index >= 0:
-            self._update_stream_config(
-                camera_config["raw"], libcamera_config.at(self.raw_index)
+            camera_config.raw = StreamConfiguration.from_lc_stream_config(
+                libcamera_config.at(self.raw_index)
             )
 
-    def _configure(self, camera_config="preview") -> None:
+    def _config_opts(
+        self, config: str | dict | CameraConfiguration
+    ) -> CameraConfiguration:
+        if isinstance(config, str):
+            config_name_to_camera_config = {
+                "preview": self.preview_configuration,
+                "still": self.still_configuration,
+                "video": self.video_configuration,
+            }
+            camera_config = config_name_to_camera_config[config]
+        elif isinstance(config, dict):
+            _log.warning("Using old-style camera config, please update")
+            config = config.copy()
+            config["camera"] = self
+            camera_config = CameraConfiguration(**config)
+        elif isinstance(config, CameraConfiguration):
+            # We expect values to have been set for any lores/raw streams.
+            camera_config = config
+        else:
+            raise RuntimeError(f"Don't know how to make a config from {config}")
+        return camera_config
+
+    def _configure(self, config: str | dict | CameraConfiguration = "preview") -> None:
         """Configure the camera system with the given configuration.
 
         :param camera_config: Configuration, defaults to the 'preview' configuration
@@ -851,21 +869,8 @@ class Picamera2:
         """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
-        initial_config = camera_config
-        if isinstance(initial_config, str):
-            if initial_config == "preview":
-                camera_config = self.preview_configuration
-            elif initial_config == "still":
-                camera_config = self.still_configuration
-            else:
-                camera_config = self.video_configuration
-        elif isinstance(initial_config, dict):
-            camera_config = camera_config.copy()
-        if isinstance(camera_config, CameraConfiguration):
-            if camera_config.raw is not None and camera_config.raw.format is None:
-                camera_config.raw.format = self.sensor_format
-            # We expect values to have been set for any lores/raw streams.
-            camera_config = camera_config.make_dict()
+        camera_config = self._config_opts(config)
+
         if camera_config is None:
             camera_config = self.create_preview_configuration()
 
@@ -874,7 +879,9 @@ class Picamera2:
         self.camera_config = None
 
         # Check the config and turn it into a libcamera config.
-        self.check_camera_config(camera_config)
+        self.main_index, self.lores_index, self.raw_index = self._get_stream_indices(
+            camera_config
+        )
         libcamera_config = self._make_libcamera_config(camera_config)
 
         # Check that libcamera is happy with it.
@@ -923,21 +930,15 @@ class Picamera2:
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
-        # Fill in the embedded configuration structures if those were used.
-        if initial_config == "preview":
-            self.preview_configuration.update(camera_config)
-        elif initial_config == "still":
-            self.still_configuration.update(camera_config)
-        else:
-            self.video_configuration.update(camera_config)
+
         # Set the controls directly so as to overwrite whatever is there.
-        self.controls.set_controls(self.camera_config["controls"])
+        self.controls.set_controls(self.camera_config.controls)
 
     def configure(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration."""
         self._configure(camera_config)
 
-    def camera_configuration(self) -> dict:
+    def camera_configuration(self) -> CameraConfiguration:
         """Return the camera configuration."""
         return self.camera_config
 

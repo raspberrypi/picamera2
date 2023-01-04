@@ -1,76 +1,46 @@
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from logging import getLogger
+from typing import TYPE_CHECKING, Any, Optional
+
+import libcamera
+
+from picamera2 import formats
 from picamera2.controls import Controls
 
+if TYPE_CHECKING:
+    from picamera2.picamera2 import Picamera2
 
-# TODO(meawoppl) - These classes are kinda nutty, and should be a dataclasses
-# Needs to be in sync with libcamera, but will fail fast/hard if it isn't
-class Configuration:
-    """
-    A small wrapper class that can be used to turn our configuration dicts into real objects.
-    The constructor can make an empty object, or initialise from a dict. There is also the
-    make_dict() method which turns the object back into a dict.
+_log = getLogger(__name__)
 
-    Derived classes should define:
 
-    _ALLOWED_FIELDS: these are the only attributes that may be set, anything else will raise
-        an error. The idea is to help prevent typos.
+def _assert_type(thing: Any, type_) -> None:
+    if not isinstance(thing, type_):
+        raise TypeError(f"{thing} should be a {type_} not {type(thing)}")
 
-    _FIELD_CLASS_MAP: this allows you to turn a dict that we are given as a value (for some
-        field) into a Configuration object. For example if someone is setting a dict into a
-        field of a CameraConfiguration, you might want it to turn into a StreamConfiguration.
 
-        One of these fields can be set by doing (for example) camera_config.lores = {}, which
-        would be turned into a StreamConfiguration.
+@dataclass
+class StreamConfiguration:
+    size: tuple[int, int]
+    format: Optional[str] = None
+    stride: Optional[int] = None
+    framesize: Optional[int] = None
 
-    _FORWARD_FIELDS: allows certain attribute names to be forwarded to another contained
-        object. For example, if someone wants to set CameraConfiguration.size they probably
-        mean to set CameraConfiguration.main.size. So it's a kind of helpful shorthand.
-    """
-
-    def __init__(self, d={}):
-        if isinstance(d, Configuration):
-            d = d.make_dict()
-        for k in self._ALLOWED_FIELDS:
-            self.__setattr__(k, None)
-        for k, v in d.items():
-            self.__setattr__(k, v)
-
-    def __setattr__(self, name, value):
-        if name in self._FORWARD_FIELDS:
-            target = self._FORWARD_FIELDS[name]
-            self.__getattribute__(target).__setattr__(name, value)
-        elif name in self._ALLOWED_FIELDS:
-            if name in self._FIELD_CLASS_MAP and isinstance(value, dict):
-                value = self._FIELD_CLASS_MAP[name](value)
-            super().__setattr__(name, value)
-        else:
-            raise RuntimeError(f"Invalid field '{name}'")
-
-    def __getattribute__(self, name):
-        if name in super().__getattribute__("_FORWARD_FIELDS"):
-            return (
-                super()
-                .__getattribute__(self._FORWARD_FIELDS[name])
-                .__getattribute__(name)
-            )
-        else:
-            return super().__getattribute__(name)
-
-    def __repr__(self):
-        return type(self).__name__ + "(" + repr(self.make_dict()) + ")"
-
-    def update(self, update_dict):
-        for k, v in update_dict.items():
-            self.__setattr__(k, v)
+    @classmethod
+    def from_lc_stream_config(cls, libcamera_stream_config):
+        return cls(
+            format=str(libcamera_stream_config.pixel_format),
+            size=(
+                libcamera_stream_config.size.width,
+                libcamera_stream_config.size.height,
+            ),
+            stride=libcamera_stream_config.stride,
+            framesize=libcamera_stream_config.frame_size,
+        )
 
     def make_dict(self):
-        d = {}
-        for f in self._ALLOWED_FIELDS:
-            if hasattr(self, f):
-                value = getattr(self, f)
-                if value is not None and f in self._FIELD_CLASS_MAP:
-                    value = value.make_dict()
-                d[f] = value
-        return d
+        return asdict(self)
 
     def align(self, optimal=True):
         if optimal:
@@ -90,55 +60,129 @@ class Configuration:
             self.size[1] - self.size[1] % 2,
         )
 
+    def __post_init__(self) -> None:
+        self.check("internal")
 
-class StreamConfiguration(Configuration):
-    _ALLOWED_FIELDS = ("size", "format", "stride", "framesize")
-    _FIELD_CLASS_MAP = {}
-    _FORWARD_FIELDS = {}
+    def check(self, name: str):
+        """Check the configuration of the passed in config.
 
+        Raises RuntimeError if the configuration is invalid.
+        """
+        # Check the parameters for a single stream.
+        if self.format is not None:
+            _assert_type(self.format, str)
 
-class CameraConfiguration(Configuration):
-    _ALLOWED_FIELDS = (
-        "use_case",
-        "buffer_count",
-        "transform",
-        "display",
-        "encode",
-        "colour_space",
-        "controls",
-        "main",
-        "lores",
-        "raw",
-        "queue",
-    )
-    _FIELD_CLASS_MAP = {
-        "main": StreamConfiguration,
-        "lores": StreamConfiguration,
-        "raw": StreamConfiguration,
-    }
-    _FORWARD_FIELDS = {"size": "main", "format": "main"}
+            if name == "raw":
+                if not formats.is_raw(self.format):
+                    raise RuntimeError("Unrecognized raw format " + self.format)
+            else:
+                if not formats.is_format_valid(self.format):
+                    raise RuntimeError(
+                        "Bad format " + self.format + " in stream " + name
+                    )
 
-    def __init__(self, d={}, picam2=None):
-        # Can't convert "controls" dicts to Controls objects automatically, so do it here:
-        d = {k: v if k != "controls" else Controls(picam2, v) for k, v in d.items()}
-        super().__init__(d)
-
-    def enable_lores(self, onoff=True):
-        if onoff:
-            self.lores = StreamConfiguration(
-                {"size": self.main.size, "format": "YUV420"}
+        _assert_type(self.size, tuple)
+        if len(self.size) != 2:
+            raise RuntimeError(
+                f"size in {name} stream should be (width, height) got: {self.size}"
             )
-        else:
-            self.lores = None
 
-    def enable_raw(self, onoff=True):
-        if onoff:
-            self.raw = StreamConfiguration({"size": self.main.size, "format": None})
-        else:
-            self.raw = None
+        for i in range(2):
+            if self.size[i] % 2:
+                raise RuntimeError(
+                    f"All dimensions in {name} stream should be even got: {self.size}"
+                )
+
+
+@dataclass
+class CameraConfiguration:
+    camera: Picamera2
+    use_case: str
+    buffer_count: int
+    transform: libcamera._libcamera.Transform
+    colour_space: libcamera._libcamera.ColorSpace
+
+    # The are allowed to be a dict when user input, but will
+    # be transformed to the proper class by the __post_init__ method.
+    controls: Controls | dict
+    main: StreamConfiguration | dict
+    lores: Optional[StreamConfiguration | dict] = None
+    raw: Optional[StreamConfiguration | dict] = None
+
+    # TODO: Remove forward references.
+    @property
+    def size(self):
+        return self.main.size
+
+    @size.setter
+    def size(self, value):
+        self.main.size = value
+
+    @property
+    def format(self):
+        return self.main.format
+
+    @format.setter
+    def format(self, value):
+        self.main.format = value
+
+    def enable_lores(self, enable: bool = True) -> None:
+        self.lores = (
+            StreamConfiguration(size=self.main.size, format="YUV420")
+            if enable
+            else None
+        )
+
+    def enable_raw(self, enable: bool = True) -> None:
+        self.raw = (
+            StreamConfiguration(size=self.main.size, format=self.camera.sensor_format)
+            if enable
+            else None
+        )
 
     def align(self, optimal=True):
         self.main.align(optimal)
         if self.lores is not None:
             self.lores.align(optimal)
         # No sense trying to align the raw stream.
+
+    def get_config(self, config_name: str) -> StreamConfiguration:
+        # TODO(meawoppl) - backcompat shim. remove me.
+        if config_name == "main":
+            return self.main
+        if config_name == "lores":
+            return self.lores
+        if config_name == "raw":
+            return self.raw
+        raise ValueError("Unknown config name " + config_name)
+
+    def __post_init__(self) -> None:
+        if isinstance(self.controls, dict):
+            _log.warning("CameraConfiguration controls should be a Controls object")
+            self.controls = Controls(self.camera, self.controls)
+        if isinstance(self.main, dict):
+            _log.warning("CameraConfiguration 'main' should be a StreamConfiguration")
+            self.main = StreamConfiguration(**self.main)
+        if isinstance(self.lores, dict):
+            _log.warning("CameraConfiguration 'lores' should be a StreamConfiguration")
+            self.lores = StreamConfiguration(**self.lores)
+        if isinstance(self.raw, dict):
+            _log.warning("CameraConfiguration 'raw' should be a StreamConfiguration")
+            self.raw = StreamConfiguration(**self.raw)
+
+        # Check the entire camera configuration for errors.
+        _assert_type(self.colour_space, libcamera._libcamera.ColorSpace)
+        _assert_type(self.transform, libcamera._libcamera.Transform)
+
+        self.main.check("main")
+        if self.lores is not None:
+            self.lores.check("lores")
+            main_w, main_h = self.main.size
+            lores_w, lores_h = self.lores.size
+            if lores_w > main_w or lores_h > main_h:
+                raise RuntimeError("lores stream dimensions may not exceed main stream")
+            if not formats.is_YUV(self.lores.format):
+                raise RuntimeError("lores stream must be YUV")
+
+        if self.raw is not None:
+            self.raw.check("raw")

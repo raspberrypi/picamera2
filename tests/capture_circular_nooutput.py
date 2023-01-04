@@ -8,7 +8,7 @@ dur = 5
 
 micro = int((1 / fps) * 1000000)
 video_cfg = camera.create_video_configuration()
-video_cfg["controls"]["FrameDurationLimits"] = (micro, micro)
+video_cfg.controls.FrameDurationLimits = (micro, micro)
 camera.configure(video_cfg)
 
 camera.start()

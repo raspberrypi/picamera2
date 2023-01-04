@@ -25,21 +25,21 @@ camera.still_configuration.raw.size = half_res
 camera.configure("preview")
 if camera.controls.ExposureTime != 10000:
     raise RuntimeError("exposure value was not set")
-config = CameraConfiguration(camera.camera_configuration(), camera)
+config = camera.camera_configuration()
 if config.main.size != (800, 600):
     raise RuntimeError("preview resolution incorrect")
 
 camera.configure("video")
 if camera.controls.FrameRate < 24.99 or camera.controls.FrameRate > 25.01:
     raise RuntimeError("framerate was not set")
-config = CameraConfiguration(camera.camera_configuration(), camera)
+config = camera.camera_configuration()
 if config.size != (800, 480):
     raise RuntimeError("video resolution incorrect")
 if config.format != "YUV420":
     raise RuntimeError("video format incorrect")
 
 camera.configure("still")
-config = CameraConfiguration(camera.camera_configuration(), camera)
+config = camera.camera_configuration()
 if config.raw.size != half_res:
     raise RuntimeError("still raw size incorrect")
 

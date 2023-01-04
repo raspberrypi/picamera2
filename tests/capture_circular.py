@@ -12,6 +12,7 @@ video_config = camera.create_video_configuration(
 camera.configure(video_config)
 camera.start_preview()
 camera.start()
+camera.discard_frames(10)
 
 w, h = lsize
 prev = None
