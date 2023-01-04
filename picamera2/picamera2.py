@@ -2,15 +2,13 @@
 """picamera2 main class"""
 from __future__ import annotations
 
-import json
 import logging
 import os
 import selectors
-import tempfile
 import threading
 from collections import deque
 from concurrent.futures import Future
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass, replace
 from functools import partial
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
@@ -26,6 +24,7 @@ from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
 from picamera2.previews import NullPreview
 from picamera2.request import CompletedRequest, LoopTask
 from picamera2.sensor_format import SensorFormat
+from picamera2.tuning import TuningContext
 from picamera2.typing import TypedFuture
 
 STILL = libcamera.StreamRole.StillCapture
@@ -157,52 +156,6 @@ class Picamera2:
 
     _cm = CameraManager()
 
-    @staticmethod
-    def load_tuning_file(tuning_file, dir=None):
-        """Load the named tuning file.
-
-        If dir is given, then only that directory is checked,
-        otherwise a list of likely installation directories is searched
-
-        :param tuning_file: Tuning file
-        :type tuning_file: str
-        :param dir: Directory of tuning file, defaults to None
-        :type dir: str, optional
-        :raises RuntimeError: Produced if tuning file not found
-        :return: Dictionary of tuning file
-        :rtype: dict
-        """
-        if dir is not None:
-            dirs = [dir]
-        else:
-            dirs = [
-                "/home/pi/libcamera/src/ipa/raspberrypi/data",
-                "/usr/local/share/libcamera/ipa/raspberrypi",
-                "/usr/share/libcamera/ipa/raspberrypi",
-            ]
-        for dir in dirs:
-            file = os.path.join(dir, tuning_file)
-            if os.path.isfile(file):
-                with open(file, "r") as fp:
-                    return json.load(fp)
-        raise RuntimeError("Tuning file not found")
-
-    @staticmethod
-    def find_tuning_algo(tuning: dict, name: str) -> dict:
-        """
-        Return the parameters for the named algorithm in the given camera tuning.
-
-        :param tuning: The camera tuning object
-        :type tuning: dict
-        :param name: The name of the algorithm
-        :type name: str
-        :rtype: dict
-        """
-        version = tuning.get("version", 1)
-        if version == 1:
-            return tuning[name]
-        return next(algo for algo in tuning["algorithms"] if name in algo)[name]
-
     def __init__(self, camera_num=0, tuning=None):
         """Initialise camera system and open the camera for use.
 
@@ -212,17 +165,6 @@ class Picamera2:
         :type tuning: str, optional
         :raises RuntimeError: Init didn't complete
         """
-        tuning_file = None
-        if tuning is not None:
-            if isinstance(tuning, str):
-                os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning
-            else:
-                tuning_file = tempfile.NamedTemporaryFile("w")
-                json.dump(tuning, tuning_file)
-                tuning_file.flush()  # but leave it open as closing it will delete it
-                os.environ["LIBCAMERA_RPI_TUNING_FILE"] = tuning_file.name
-        else:
-            os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
         self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
         self.notifymeread = os.fdopen(self.notifyme_r, "rb")
         self._cm.add(camera_num, self)
@@ -230,21 +172,15 @@ class Picamera2:
         self._requests = deque()
         self._request_callbacks = []
         self._reset_flags()
-        try:
-            self._open_camera()
-            _log.debug(f"{self.camera_manager}")
 
-            # Configuration requires various bits of information from the camera
-            # so we build the default configurations here
-            self.preview_configuration = CameraConfig.for_preview(self)
-            self.still_configuration = CameraConfig.for_still(self)
-            self.video_configuration = CameraConfig.for_video(self)
-        except Exception as e:
-            _log.error("Camera __init__ sequence did not complete.", exc_info=e)
-            raise RuntimeError("Camera __init__ sequence did not complete.") from e
-        finally:
-            if tuning_file is not None:
-                tuning_file.close()  # delete the temporary file
+        with TuningContext(tuning):
+            self._open_camera()
+
+        # Configuration requires various bits of information from the camera
+        # so we build the default configurations here
+        self.preview_configuration = CameraConfig.for_preview(self)
+        self.still_configuration = CameraConfig.for_still(self)
+        self.video_configuration = CameraConfig.for_video(self)
 
     @property
     def camera_manager(self):

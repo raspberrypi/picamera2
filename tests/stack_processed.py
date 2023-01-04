@@ -9,14 +9,15 @@ import numpy as np
 from PIL import Image
 
 from picamera2 import CameraConfig, Picamera2
+from picamera2.tuning import find_tuning_algo, load_tuning_file
 
 exposure_time = 60000  # put your own numbers here
 num_frames = 6
 
 # We must tweak the tuning to disable the non-linear gamma transform. Load the
 # tuning file for the sensor that you have attached.
-tuning = Picamera2.load_tuning_file("imx477.json")
-contrast_algo = Picamera2.find_tuning_algo(tuning, "rpi.contrast")
+tuning = load_tuning_file("imx477.json")
+contrast_algo = find_tuning_algo(tuning, "rpi.contrast")
 gamma_curve = contrast_algo["gamma_curve"]
 contrast_algo["ce_enable"] = 0
 contrast_algo["gamma_curve"] = [0, 0, 65535, 65535]
