@@ -17,12 +17,14 @@ time.sleep(2)
 
 size = picam2.capture_metadata()['ScalerCrop'][2:]
 
+full_res = picam2.camera_properties['PixelArraySize']
+
 for _ in range(20):
     # This syncs us to the arrival of a new camera frame:
     picam2.capture_metadata()
 
     size = [int(s * 0.95) for s in size]
-    offset = [(r - s) // 2 for r, s in zip(picam2.sensor_resolution, size)]
+    offset = [(r - s) // 2 for r, s in zip(full_res, size)]
     picam2.set_controls({"ScalerCrop": offset + size})
 
 time.sleep(2)

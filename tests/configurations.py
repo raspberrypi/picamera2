@@ -20,7 +20,7 @@ picam2.still_configuration.size = (1024, 768)
 picam2.still_configuration.enable_lores()
 picam2.still_configuration.lores.format = "YUV420"
 picam2.still_configuration.enable_raw()
-half_res = tuple([v // 2 for v in picam2.sensor_resolution])
+half_res = tuple([v // 2 for v in picam2.camera_properties['PixelArraySize']])
 picam2.still_configuration.raw.size = half_res
 
 picam2.configure("preview")

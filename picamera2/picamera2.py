@@ -412,9 +412,10 @@ class Picamera2:
         for k, v in self.camera.properties.items():
             self.camera_properties_[k.name] = convert_from_libcamera_type(v)
 
-        # The next two lines could be placed elsewhere?
-        self.sensor_resolution = self.camera_properties_["PixelArraySize"]
-        self.sensor_format = str(self.camera.generate_configuration([RAW]).at(0).pixel_format)
+        # These next lines could be placed elsewhere?
+        raw_mode = self.camera.generate_configuration([RAW]).at(0)
+        self.sensor_resolution = (raw_mode.size.width, raw_mode.size.height)
+        self.sensor_format = str(raw_mode.pixel_format)
 
         _log.info('Initialization successful.')
         return True
