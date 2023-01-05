@@ -6,6 +6,18 @@
 
 ### Changed
 
+## 0.3.8 Beta Release 7
+
+### Added
+
+* Support for cameras that have autofocus integrated properly with libcamera.
+* New switch_mode_and_capture_request method.
+
+### Changed
+
+* Fewer frame drops when recording videos.
+* Fixes when closing a preview window with the mouse.
+
 ## 0.3.7 Beta Release 6
 
 ### Added
