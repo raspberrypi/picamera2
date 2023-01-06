@@ -1,8 +1,7 @@
 """Null preview"""
 
-from logging import getLogger
 import threading
-
+from logging import getLogger
 
 _log = getLogger(__name__)
 
@@ -57,6 +56,7 @@ class NullPreview:
         :type picam2: Picamera2
         """
         self.picam2 = picam2
+        picam2.attach_preview(self)
         self._started.clear()
         self._abort.clear()
         self.thread = threading.Thread(target=self.thread_func, args=(picam2,))
@@ -70,6 +70,9 @@ class NullPreview:
         :param overlay: Overlay
         """
         # This only exists so as to have the same interface as other preview windows.
+
+    def render_request(self, completed_request):
+        """Draw the camera image. For the NullPreview, there is nothing to do."""
         pass
 
     def handle_request(self, picam2):
@@ -79,18 +82,16 @@ class NullPreview:
         :type picam2: Picamera2
         """
         try:
-            completed_request = picam2.process_requests()
+            picam2.process_requests(self)
         except Exception as e:
             _log.exception("Exception during process_requests()", exc_info=e)
             raise
-
-        if completed_request:
-            completed_request.release()
 
     def stop(self):
         """Stop preview"""
         self._abort.set()
         self.thread.join()
+        self.picam2.detach_preview()
         self.picam2 = None
 
     def set_title_function(self, function):

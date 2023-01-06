@@ -6,12 +6,11 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
                              QPushButton, QVBoxLayout, QWidget)
 
 from picamera2 import Picamera2
-from picamera2.previews.qt import QGlPicamera2, QPicamera2
+from picamera2.previews.qt import QGlPicamera2
 
 
 def request_callback(request):
-    label.setText(''.join("{}: {}\n".format(k, v)
-                          for k, v in request.get_metadata().items()))
+    label.setText(''.join(f"{k}: {v}\n" for k, v in request.get_metadata().items()))
 
 
 def cleanup():

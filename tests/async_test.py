@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
-from picamera2 import Picamera2
-from threading import Thread
 import time
+from threading import Thread
+
+from picamera2 import Picamera2
 
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(queue=False)
@@ -30,7 +31,7 @@ for thread in threads:
 time.sleep(5)
 
 jobs = []
-for i in range(10):
+for _ in range(10):
     jobs.append(picam2.capture_metadata(wait=False))
     time.sleep(0.01)
 times = [job.get_result()["SensorTimestamp"] for job in jobs]

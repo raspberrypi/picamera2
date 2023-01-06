@@ -1,13 +1,16 @@
 #!/usr/bin/python3
 import time
+
 import numpy as np
+
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import Output
 
 
 class TimestampCollector(Output):
-    "Output class that doesn't output anything but collects frame timestamps"
+    """Output class that doesn't output anything but collects frame timestamps"""
+
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if timestamp is not None:
             timestamps.append(timestamp)

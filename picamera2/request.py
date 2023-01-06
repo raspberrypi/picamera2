@@ -10,13 +10,16 @@ from pidng.core import PICAM2DNG
 from PIL import Image
 
 import picamera2.formats as formats
+
 from .controls import Controls
+from .utils import convert_from_libcamera_type
 
 _log = logging.getLogger(__name__)
 
+
 class _MappedBuffer:
     def __init__(self, request, stream):
-        stream = request.picam2.stream_map[stream]
+        stream = request.stream_map[stream]
         self.__fb = request.request.buffers[stream]
 
     def __enter__(self):
@@ -54,7 +57,7 @@ class MappedArray:
         array = np.array(b, copy=False, dtype=np.uint8)
 
         if self.__reshape:
-            config = self.__request.picam2.camera_config[self.__stream]
+            config = self.__request.config[self.__stream]
             fmt = config["format"]
             w, h = config["size"]
             stride = config["stride"]
@@ -106,20 +109,17 @@ class CompletedRequest:
         self.stop_count = picam2.stop_count
         self.configure_count = picam2.configure_count
         self.config = self.picam2.camera_config.copy()
+        self.stream_map = self.picam2.stream_map.copy()
 
     def acquire(self):
-        """Acquire a reference to this completed request, which stops it being recycled back to
-        the camera system.
-        """
+        """Acquire a reference to this completed request, which stops it being recycled back to the camera system."""
         with self.lock:
             if self.ref_count == 0:
                 raise RuntimeError("CompletedRequest: acquiring lock with ref_count 0")
             self.ref_count += 1
 
     def release(self):
-        """Release this completed frame back to the camera system (once its reference count
-        reaches zero).
-        """
+        """Release this completed frame back to the camera system (once its reference count reaches zero)."""
         with self.lock:
             self.ref_count -= 1
             if self.ref_count < 0:
@@ -135,10 +135,12 @@ class CompletedRequest:
                     self.picam2.controls = Controls(self.picam2)
                     self.picam2.camera.queue_request(self.request)
                 self.request = None
+                self.config = None
+                self.stream_map = None
 
     def make_buffer(self, name):
         """Make a 1d numpy array from the named stream's buffer."""
-        if self.picam2.stream_map.get(name, None) is None:
+        if self.stream_map.get(name, None) is None:
             raise RuntimeError(f'Stream "{name}" is not defined')
         with _MappedBuffer(self, name) as b:
             return np.array(b, dtype=np.uint8)
@@ -147,7 +149,7 @@ class CompletedRequest:
         """Fetch the metadata corresponding to this completed request."""
         metadata = {}
         for k, v in self.request.metadata.items():
-            metadata[k.name] = self.picam2._convert_from_libcamera_type(v)
+            metadata[k.name] = convert_from_libcamera_type(v)
         return metadata
 
     def make_array(self, name):
@@ -168,8 +170,10 @@ class CompletedRequest:
 
 
 class Helpers:
-    """This class implements functionality required by the CompletedRequest methods, but
-    in such a way that it can be usefully accessed even without a CompletedRequest object."""
+    """This class implements functionality required by the CompletedRequest methods.
+
+    In such a way that it can be usefully accessed even without a CompletedRequest object.
+    """
 
     def __init__(self, picam2):
         self.picam2 = picam2

@@ -1,11 +1,11 @@
+import libcamera
+
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
 from .converters import YUV420_to_RGB
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .request import CompletedRequest, MappedArray
-
-import libcamera
 
 
 def libcamera_transforms_eq(t1, t2):

@@ -6,9 +6,9 @@
 # final result (e.g. "dcraw -w -W accumulated.dng").
 
 import numpy as np
+
 from picamera2 import Picamera2
 from picamera2.sensor_format import SensorFormat
-
 
 exposure_time = 60000
 num_frames = 6
@@ -24,7 +24,7 @@ picam2.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain"
 picam2.start()
 
 # The raw images can be added directly using 2-byte pixels.
-for i in range(num_frames):
+for _ in range(num_frames):
     images.append(picam2.capture_array("raw").view(np.uint16))
 metadata = picam2.capture_metadata()
 

@@ -1,17 +1,13 @@
 import os
-import sys
 import threading
 import time
 
-from libcamera import PixelFormat, Transform
-from PyQt5 import QtCore, QtWidgets
+from libcamera import Transform
 from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QWidget
 
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
-import OpenGL
-from OpenGL import GL as gl
 from OpenGL.EGL.EXT.image_dma_buf_import import *
 from OpenGL.EGL.KHR.image import *
 from OpenGL.EGL.VERSION.EGL_1_0 import *
@@ -79,7 +75,8 @@ class EglState:
 class QGlPicamera2(QWidget):
     done_signal = pyqtSignal(object)
 
-    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20), keep_ar=True, transform=None):
+    def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
+                 keep_ar=True, transform=None, preview_window=None):
         super().__init__(parent=parent)
         self.resize(width, height)
 
@@ -100,16 +97,16 @@ class QGlPicamera2(QWidget):
         self.title_function = None
         self.egl = EglState()
         if picam2.verbose_console:
-            print("EGL {} {}".format(
-                eglQueryString(self.egl.display, EGL_VENDOR).decode(),
-                eglQueryString(self.egl.display, EGL_VERSION).decode()))
+            print(f"EGL {eglQueryString(self.egl.display, EGL_VENDOR).decode()} "
+                  f"{eglQueryString(self.egl.display, EGL_VERSION).decode()}")
         self.init_gl()
 
         # set_overlay could be called before the first frame arrives, hence:
         eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
 
         self.picamera2 = picam2
-        picam2.have_event_loop = True
+        picam2.attach_preview(preview_window)
+        self.preview_window = preview_window
 
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
                                                QSocketNotifier.Read, self)
@@ -126,6 +123,15 @@ class QGlPicamera2(QWidget):
             if self.current_request is not None and self.own_current:
                 self.current_request.release()
             self.current_request = None
+            # We have to tell both the preview window and the Picamera2 object that we have
+            # disappeared.
+            if self.picamera2 is not None:
+                self.picamera2.detach_preview()
+            if self.preview_window is not None:
+                self.preview_window.qpicamera2 = None
+
+    def closeEvent(self, event):
+        self.cleanup()
 
     def signal_done(self, job):
         self.done_signal.emit(job)
@@ -330,7 +336,8 @@ class QGlPicamera2(QWidget):
 
             if self.picamera2.verbose_console:
                 print("Make buffer for request", completed_request.request)
-            self.buffers[completed_request.request] = self.Buffer(self.egl.display, completed_request, self.egl.max_texture_size)
+            self.buffers[completed_request.request] = self.Buffer(
+                self.egl.display, completed_request, self.egl.max_texture_size)
 
             # New buffers mean the image size may change so update the viewport just in case.
             update_viewport = True
@@ -356,35 +363,26 @@ class QGlPicamera2(QWidget):
 
         eglSwapBuffers(self.egl.display, self.surface)
 
+    def render_request(self, completed_request):
+        """Draw the camera image using Qt and OpenGL/GLES."""
+        if self.title_function is not None:
+            self.setWindowTitle(self.title_function(completed_request.get_metadata()))
+        with self.lock:
+            if self.running:
+                eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
+                self.repaint(completed_request)
+                eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
+            if self.current_request and self.own_current:
+                self.current_request.release()
+            self.current_request = completed_request
+            self.own_current = (completed_request.config['buffer_count'] > 1)
+            if self.own_current:
+                self.current_request.acquire()
+
     @pyqtSlot()
     def handle_requests(self):
         self.picamera2.notifymeread.read()
-        request = self.picamera2.process_requests()
-        if not request:
-            return
-
-        if self.title_function is not None:
-            self.setWindowTitle(self.title_function(request.get_metadata()))
-        if self.picamera2.display_stream_name is not None:
-            with self.lock:
-                if self.running:
-                    eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
-                    self.repaint(request)
-                    eglMakeCurrent(self.egl.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)
-                if self.current_request and self.own_current:
-                    self.current_request.release()
-                self.current_request = request
-            # The pipeline will stall if there's only one buffer and we always hold on to
-            # the last one. When we can, however, holding on to them is still preferred.
-            config = self.picamera2.camera_config
-            if config is not None and config['buffer_count'] > 1:
-                self.own_current = True
-            else:
-                self.own_current = False
-                request.release()
-        else:
-            self.own_current = False
-            request.release()
+        self.picamera2.process_requests(self)
 
     def recalculate_viewport(self):
         window_w = self.width()
@@ -395,7 +393,8 @@ class QGlPicamera2(QWidget):
         if not self.keep_ar or camera_config is None or camera_config['display'] is None:
             return 0, 0, window_w, window_h
 
-        image_w, image_h = (stream_map[camera_config['display']].configuration.size.width, stream_map[camera_config['display']].configuration.size.height)
+        image_w, image_h = (stream_map[camera_config['display']].configuration.size.width,
+                            stream_map[camera_config['display']].configuration.size.height)
         if image_w * window_h > window_w * image_h:
             w = window_w
             h = w * image_h // image_w

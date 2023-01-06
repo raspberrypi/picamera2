@@ -14,7 +14,7 @@ from picamera2.previews.qt import QGlPicamera2
 
 
 def post_callback(request):
-    label.setText(''.join("{}: {}\n".format(k, v) for k, v in request.get_metadata().items()))
+    label.setText(''.join(f"{k}: {v}\n" for k, v in request.get_metadata().items()))
 
 
 Picamera2.set_logging()

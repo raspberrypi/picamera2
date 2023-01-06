@@ -3,8 +3,9 @@ from concurrent.futures import Future
 
 class Job:
     """
-    A Job is an operation that can be delegated to the camera event loop to
-    perform, such as capturing and returning an image. Most jobs only do a single
+    A Job is an operation that can be delegated to the camera event loop to perform
+
+    Such as capturing and returning an image. Most jobs only do a single
     thing, like copying out a numpy array, and so consist of a single function
     that we pass to do this.
 
@@ -23,16 +24,18 @@ class Job:
         self._functions = functions
         self._future = Future()
         self._future.set_running_or_notify_cancel()
-        if signal_function is not None:
-            self._future.add_done_callback(lambda f: signal_function(self))
+        self._signal_function = signal_function
+        self._result = None
 
         # I wonder if there is any useful information we could collect, number
         # of frames it took for things to finish, maybe intermediate results...
         self.calls = 0
 
     def execute(self):
-        """Try to execute this Job. It will return True if it finishes,
-        or False if it needs to be tried again."""
+        """Try to execute this Job.
+
+        It will return True if it finishes, or False if it needs to be tried again.
+        """
         assert self._functions, "Job already completed!"
 
         try:
@@ -48,7 +51,7 @@ class Job:
 
                 # When no functions are left, the entire job is complete.
                 if not self._functions:
-                    self._future.set_result(result)
+                    self._result = result
 
         except Exception as e:
             self._future.set_exception(e)
@@ -56,8 +59,19 @@ class Job:
 
         return not self._functions
 
+    def signal(self):
+        """Signal that the job is finished."""
+        assert not self._functions, "Job not finished!"
+
+        if not self._future.done():
+            self._future.set_result(self._result)
+        if self._signal_function:
+            self._signal_function(self)
+
     def get_result(self):
-        """This fetches the 'final result' of the job (being given by the return
-        value of the last function executed). It will block if necessary for the
-        job to complete."""
+        """This fetches the 'final result' of the job
+
+        (being given by the return value of the last function executed). It will block
+        if necessary for the job to complete.
+        """
         return self._future.result()

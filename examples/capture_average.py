@@ -5,8 +5,9 @@
 import time
 
 import numpy as np
-from picamera2 import Picamera2, Preview
 from PIL import Image
+
+from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
 picam2.start_preview(Preview.NULL)
@@ -23,7 +24,7 @@ time.sleep(2)
 
 imgs = 20  # Capture 20 images to average
 sumv = None
-for i in range(imgs):
+for _ in range(imgs):
     if sumv is None:
         sumv = np.longdouble(picam2.capture_array())
         img = Image.fromarray(np.uint8(sumv))

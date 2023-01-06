@@ -12,7 +12,7 @@ from picamera2.outputs import CircularOutput, FileOutput
 lsize = (320, 240)
 picam2 = Picamera2()
 video_config = picam2.create_video_configuration(main={"size": (1280, 720), "format": "RGB888"},
-                                          lores={"size": lsize, "format": "YUV420"})
+                                                 lores={"size": lsize, "format": "YUV420"})
 picam2.configure(video_config)
 picam2.start_preview()
 encoder = H264Encoder(1000000, repeat=True)
@@ -41,7 +41,7 @@ def server():
             filestream = FileOutput(stream)
             filestream.start()
             picam2.encoder.output = [circ, filestream]
-            filestream.connectiondead = lambda ex: event.set()
+            filestream.connectiondead = lambda _: event.set()  # noqa
             event.wait()
 
 
@@ -59,7 +59,7 @@ while True:
         if mse > 7:
             if not encoding:
                 epoch = int(time.time())
-                circ.fileoutput = "{}.h264".format(epoch)
+                circ.fileoutput = f"{epoch}.h264"
                 circ.start()
                 encoding = True
                 print("New Motion", mse)

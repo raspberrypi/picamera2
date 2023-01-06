@@ -449,8 +449,8 @@ class ShellChecker(StyleChecker):
             line = results[nr + 1]
             msg = results[nr + 2]
 
-            # Determined, but not yet used
-            position = msg.find('^') + 1
+            # Position - Determined, but not yet used
+            _ = msg.find('^') + 1
 
             if line_number in line_numbers:
                 issues.append(StyleIssue(line_number, line, msg))
@@ -657,9 +657,7 @@ def check_style(top_level, commit):
 
 
 def extract_commits(revs):
-    """Extract a list of commits on which to operate from a revision or revision
-    range.
-    """
+    """Extract a list of commits on which to operate from a revision or revision range."""
     ret = subprocess.run(['git', 'rev-parse', revs], stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     if ret.returncode != 0:

@@ -26,10 +26,9 @@ class FfmpegOutput(Output):
 
     When audio recording is enabled, the following optional parameters are available:
     audio_device - the name of the Pulse audio device ("default" is usually OK)
-    audio_sync - time offset (in seconds) to add to the audio stream to ensure
-        synchronisation with the video. So making this more negative will make the
-        audio earlier. In general this may need tweaking depending on the hardware
-        and configuration being used.
+    audio_sync - time offset (in seconds) to add to the audio stream to ensure synchronisation
+    with the video. So making this more negative will make the audio earlier. In general this
+    may need tweaking depending on the hardware and configuration being used.
     audio_samplerate, audio_codec, audio_bitrate - the usual audio parameters.
     """
 

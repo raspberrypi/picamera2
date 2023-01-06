@@ -1,5 +1,6 @@
-from picamera2 import Picamera2, Preview
 import time
+
+from picamera2 import Picamera2, Preview
 
 picam2a = Picamera2(0)
 picam2a.start_preview(Preview.DRM, x=1000, y=0)

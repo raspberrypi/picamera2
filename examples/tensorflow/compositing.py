@@ -3,15 +3,16 @@
 # Usage: ./compositing.py --model mobilenet_v2.tflite --label coco_labels.txt
 
 import argparse
-from picamera2 import Picamera2, Preview, MappedArray
+import select
+import sys
+import time
+
 import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from PIL import Image
-import time
-import select
-import sys
 
+from picamera2 import MappedArray, Picamera2, Preview
 
 normalSize = (640, 480)
 lowresSize = (320, 240)
@@ -39,7 +40,8 @@ def DrawRectangles(request):
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10),
+                            font, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def InferenceTensorFlow(image, model, label=None):

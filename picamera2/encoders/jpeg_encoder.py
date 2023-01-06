@@ -38,7 +38,8 @@ class JpegEncoder(MultiEncoder):
         :rtype: bytes
         """
         array = request.make_array(name)
-        return simplejpeg.encode_jpeg(array, quality=self.q, colorspace=self.colour_space, colorsubsampling=self.colour_subsampling)
+        return simplejpeg.encode_jpeg(array, quality=self.q, colorspace=self.colour_space,
+                                      colorsubsampling=self.colour_subsampling)
 
     def _setup(self, quality):
         if self.requested_q is None:

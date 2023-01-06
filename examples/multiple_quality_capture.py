@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import time
 
-from picamera2.encoders import H264Encoder, Quality
 from picamera2 import Picamera2
+from picamera2.encoders import H264Encoder, Quality
 
 picam2 = Picamera2()
 video_config = picam2.create_video_configuration()

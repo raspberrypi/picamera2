@@ -6,6 +6,7 @@ examples/capture_full_res.py
 examples/capture_headless.py
 examples/capture_helpers.py
 examples/capture_mjpeg.py
+examples/capture_old_request.py
 examples/capture_png.py
 examples/capture_to_buffer.py
 examples/capture_video.py
@@ -55,4 +56,5 @@ tests/multicamera.py
 tests/multicamera_2.py
 tests/preview_cycle_test.py
 tests/preview_location_test.py
+tests/preview_start_stop.py
 tests/qt_gl_preview_test.py

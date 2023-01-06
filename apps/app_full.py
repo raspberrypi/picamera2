@@ -1,24 +1,26 @@
 #!/usr/bin/python3
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
-                             QVBoxLayout, QWidget, QTabWidget, QSlider,
-                             QFormLayout, QSpinBox, QLineEdit, QCheckBox, QComboBox,
-                             QDoubleSpinBox)
 from PyQt5.QtGui import QPainter, QPalette
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox,
+                             QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QSlider, QSpinBox,
+                             QTabWidget, QVBoxLayout, QWidget)
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews.qt import QGlPicamera2
+
 try:
     import cv2
     cv_present = True
 except ImportError:
     cv_present = False
     print("OpenCV not found - HDR not available")
-import numpy as np
 import threading
+
+import numpy as np
 
 
 def post_callback(request):
@@ -66,7 +68,7 @@ while lores_size[0] > 1600:
     lores_size = (lores_size[0] // 2 & ~1, lores_size[1] // 2 & ~1)
 still_kwargs = {"lores": {"size": lores_size}, "display": "lores", "encode": "lores", "buffer_count": 1}
 picam2.still_configuration = picam2.create_still_configuration(
-    **still_kwargs
+    **still_kwargs,
 )
 picam2.configure("still")
 # Read the sensor modes
@@ -497,7 +499,8 @@ class panTab(QWidget):
             alignment=Qt.AlignCenter)
         self.zoom_text = QLabel("Current Zoom Level: 1.0", alignment=Qt.AlignCenter)
         self.pan_display = panZoomDisplay()
-        self.pan_display.updated.connect(lambda: self.zoom_text.setText(f"Current Zoom Level: {self.pan_display.zoom_level:.1f}x"))
+        self.pan_display.updated.connect(lambda: self.zoom_text.setText(
+            f"Current Zoom Level: {self.pan_display.zoom_level:.1f}x"))
 
         self.layout.addRow(self.label)
         self.layout.addRow(self.zoom_text)
@@ -820,11 +823,11 @@ class otherTab(QWidget):
         self.layout = QFormLayout()
         self.setLayout(self.layout)
 
-        global implemented_controls
+        global implemented_controls, ignore_controls
         all_controls = picam2.camera_controls.keys()
         other_controls = []
         for control in all_controls:
-            if control not in implemented_controls:
+            if control not in implemented_controls and control not in ignore_controls:
                 other_controls.append(control)
         self.fields = {}
         for control in other_controls:
@@ -1070,7 +1073,7 @@ class picTab(QWidget):
         picam2.still_configuration = picam2.create_still_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
             **still_kwargs,
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
 
     def update_options(self):
@@ -1110,7 +1113,7 @@ class picTab(QWidget):
         picam2.still_configuration = picam2.create_still_configuration(
             main={"size": (self.resolution_w.value(), self.resolution_h.value())},
             **still_kwargs,
-            raw=self.sensor_mode
+            raw=self.sensor_mode,
         )
         picam2.preview_configuration = picam2.create_preview_configuration(
             main={"size": (
@@ -1164,6 +1167,16 @@ implemented_controls = [
     "FrameDurationLimits"
 ]
 
+ignore_controls = {
+    # It is not helpful to try to drive AF with simple slider controls, so ignore them.
+    "AfMode",
+    "AfTrigger",
+    "AfSpeed",
+    "AfRange",
+    "AfWindows",
+    "AfPause",
+    "AfMetering",
+}
 
 # Main widgets
 window = QWidget()
