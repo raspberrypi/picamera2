@@ -2,6 +2,7 @@
 
 from libcamera import controls
 from PyQt5 import QtCore
+from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
                              QPushButton, QVBoxLayout, QWidget)
 
@@ -18,7 +19,15 @@ def request_callback(request):
 
 picam2 = Picamera2()
 picam2.post_callback = request_callback
-picam2.configure(picam2.create_preview_configuration(main={"size": (800, 600)}))
+# Adjust the preview size to match the sensor aspect ratio.
+preview_width = 800
+preview_height = picam2.sensor_resolution[1] * 800 // picam2.sensor_resolution[0]
+preview_height -= preview_height % 2
+preview_size = (preview_width, preview_height)
+# We also want a full FoV raw mode, this gives us the 2x2 binned mode.
+raw_size = tuple([v // 2 for v in picam2.camera_properties['PixelArraySize']])
+preview_config = picam2.create_preview_configuration({"size": preview_size}, raw={"size": raw_size})
+picam2.configure(preview_config)
 if 'AfMode' not in picam2.camera_controls:
     print("Attached camera does not support autofocus")
     quit()
@@ -63,10 +72,9 @@ def on_continuous_toggled(checked):
     picam2.set_controls({"AfMode": mode})
 
 
-# Either camera widget implementation should work:
-# qpicamera2 = QPicamera2(picam2, width=800, height=600)
-# or:
-qpicamera2 = QGlPicamera2(picam2, width=800, height=600)
+window = QWidget()
+bg_colour = window.palette().color(QPalette.Background).getRgb()[:3]
+qpicamera2 = QGlPicamera2(picam2, width=preview_width, height=preview_height, bg_colour=bg_colour)
 qpicamera2.done_signal.connect(callback, type=QtCore.Qt.QueuedConnection)
 
 button = QPushButton("Click to capture JPEG")
@@ -75,7 +83,6 @@ label = QLabel()
 af_checkbox = QCheckBox("AF before capture", checked=False)
 continuous_checkbox = QCheckBox("Continuous AF", checked=False)
 continuous_checkbox.toggled.connect(on_continuous_toggled)
-window = QWidget()
 window.setWindowTitle("Qt Picamera2 App")
 
 label.setFixedWidth(400)
@@ -88,7 +95,7 @@ layout_v.addWidget(af_checkbox)
 layout_v.addWidget(button)
 layout_h.addWidget(qpicamera2, 80)
 layout_h.addLayout(layout_v, 20)
-window.resize(1200, 600)
+window.resize(1200, preview_height + 80)
 window.setLayout(layout_h)
 
 picam2.start()
