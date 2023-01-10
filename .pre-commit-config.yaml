@@ -4,6 +4,8 @@ repos:
     hooks:
     -  id: flake8
        additional_dependencies: [
+        'astroid==2.12.14',
+        'pylint==2.15.10',
         'flake8-bugbear>=22.10.27',
         'flake8-comprehensions>=3.10',
         'flake8-debugger',
