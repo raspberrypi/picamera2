@@ -328,7 +328,9 @@ class Picamera2:
 
     @property
     def camera_controls(self) -> dict:
-        return {k: (v[1].min, v[1].max, v[1].default) for k, v in self.camera_ctrl_info.items()}
+        return {k: (convert_from_libcamera_type(v[1].min),
+                    convert_from_libcamera_type(v[1].max),
+                    convert_from_libcamera_type(v[1].default)) for k, v in self.camera_ctrl_info.items()}
 
     @property
     def title_fields(self):
