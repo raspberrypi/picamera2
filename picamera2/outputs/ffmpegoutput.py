@@ -59,7 +59,7 @@ class FfmpegOutput(Output):
         if self.audio:
             audio_input = ['-itsoffset', str(self.audio_sync),
                            '-f', 'pulse',
-                           '-sample_rate', str(self.audio_bitrate),
+                           '-sample_rate', str(self.audio_samplerate),
                            '-thread_queue_size', '512',  # necessary to prevent warnings
                            '-i', self.audio_device]
             audio_codec = ['-b:a', str(self.audio_bitrate),
