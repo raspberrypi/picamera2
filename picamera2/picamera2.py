@@ -967,7 +967,7 @@ class Picamera2:
         else:
             self.video_configuration.update(camera_config)
         # Set the controls directly so as to overwrite whatever is there.
-        self.controls.set_controls(self.camera_config['controls'])
+        self.controls = Controls(self, controls=self.camera_config['controls'])
         self.configure_count += 1
 
     def configure(self, camera_config="preview") -> None:
