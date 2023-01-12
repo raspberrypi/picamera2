@@ -5,7 +5,7 @@ from libcamera import Transform
 
 
 class SensorFormat():
-    def __init__(self, fmt_string):
+    def __init__(self, fmt_string: str) -> None:
         if "_" in fmt_string:
             pixels, self.packing = fmt_string.split("_")
         else:
@@ -15,21 +15,21 @@ class SensorFormat():
         self.bayer_order = re.search("[RGB]+", pixels).group()
 
     @property
-    def format(self):
+    def format(self) -> str:
         return f"{self.unpacked}{f'_{self.packing}' if self.packing else ''}"
 
     @property
-    def unpacked(self):
+    def unpacked(self) -> str:
         return f"{'' if self.mono else 'S'}{self.bayer_order}{self.bit_depth}"
 
     @property
-    def mono(self):
+    def mono(self) -> bool:
         return self.bayer_order == "R"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.format
 
-    def transform(self, transform: Transform):
+    def transform(self, transform: Transform) -> None:
         if self.mono:
             return
         bayer_array = np.reshape(list(self.bayer_order), (2, 2))

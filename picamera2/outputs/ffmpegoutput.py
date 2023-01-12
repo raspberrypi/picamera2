@@ -1,5 +1,7 @@
+import io
 import signal
 import subprocess
+from typing import Optional, Union
 
 import prctl
 
@@ -32,8 +34,15 @@ class FfmpegOutput(Output):
     audio_samplerate, audio_codec, audio_bitrate - the usual audio parameters.
     """
 
-    def __init__(self, output_filename, audio=False, audio_device="default", audio_sync=-0.3,
-                 audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000, pts=None):
+    def __init__(self,
+                 output_filename: str,
+                 audio: bool = False,
+                 audio_device: str = "default",
+                 audio_sync: float = -0.3,
+                 audio_samplerate: int = 48000,
+                 audio_codec: str = "aac",
+                 audio_bitrate: int = 128000,
+                 pts: Union[None, str, io.BufferedWriter] = None) -> None:
         super().__init__(pts=pts)
         self.ffmpeg = None
         self.output_filename = output_filename
@@ -44,7 +53,7 @@ class FfmpegOutput(Output):
         self.audio_codec = audio_codec
         self.audio_bitrate = audio_bitrate
 
-    def start(self):
+    def start(self) -> None:
         general_options = ['-loglevel', 'warning',
                            '-y']  # -y means overwrite output without asking
         # We have to get FFmpeg to timestamp the video frames as it gets them. This isn't
@@ -72,14 +81,14 @@ class FfmpegOutput(Output):
         self.ffmpeg = subprocess.Popen(command, stdin=subprocess.PIPE, preexec_fn=lambda: prctl.set_pdeathsig(signal.SIGKILL))
         super().start()
 
-    def stop(self):
+    def stop(self) -> None:
         super().stop()
         if self.ffmpeg is not None:
             self.ffmpeg.stdin.close()  # FFmpeg needs this to shut down tidily
             self.ffmpeg.terminate()
             self.ffmpeg = None
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame: bytes, keyframe: bool = True, timestamp: Optional[int] = None) -> None:
         if self.recording:
             self.ffmpeg.stdin.write(frame)
             self.ffmpeg.stdin.flush()  # forces every frame to get timestamped individually

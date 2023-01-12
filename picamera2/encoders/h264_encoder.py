@@ -1,6 +1,7 @@
 """H264 encoder functionality"""
 
 from math import sqrt
+from typing import Optional
 
 from v4l2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
                   V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER, V4L2_PIX_FMT_H264)
@@ -12,7 +13,10 @@ from picamera2.encoders.v4l2_encoder import V4L2Encoder
 class H264Encoder(V4L2Encoder):
     """Uses functionality from V4L2Encoder"""
 
-    def __init__(self, bitrate=None, repeat=True, iperiod=None):
+    def __init__(self,
+                 bitrate: Optional[int] = None,
+                 repeat: bool = True,
+                 iperiod: Optional[int] = None) -> None:
         """H264 Encoder
 
         :param bitrate: Bitrate, default None
@@ -28,7 +32,7 @@ class H264Encoder(V4L2Encoder):
         if repeat:
             self._controls += [(V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER, 1)]
 
-    def _setup(self, quality):
+    def _setup(self, quality: Quality) -> None:
         if self._requested_bitrate is None:
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 2,

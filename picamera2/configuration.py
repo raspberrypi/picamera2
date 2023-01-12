@@ -1,8 +1,10 @@
+from typing import Any, Union
+
 from .controls import Controls
 
 
 class Configuration:
-    def __init__(self, d={}):
+    def __init__(self, d: Union[dict[str, Any], "Configuration"] = {}) -> None:
         """A small wrapper class that can be used to turn our configuration dicts into real objects.
 
         The constructor can make an empty object, or initialise from a dict. There is also the
@@ -34,7 +36,7 @@ class Configuration:
         for k, v in d.items():
             self.__setattr__(k, v)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         if name in self._FORWARD_FIELDS:
             target = self._FORWARD_FIELDS[name]
             self.__getattribute__(target).__setattr__(name, value)
@@ -45,7 +47,7 @@ class Configuration:
         else:
             raise RuntimeError(f"Invalid field '{name}'")
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str) -> Any:
         if name in super().__getattribute__("_FORWARD_FIELDS"):
             return super().__getattribute__(self._FORWARD_FIELDS[name]).__getattribute__(name)
         else:
@@ -54,11 +56,11 @@ class Configuration:
     def __repr__(self):
         return type(self).__name__ + "(" + repr(self.make_dict()) + ")"
 
-    def update(self, update_dict):
+    def update(self, update_dict: dict[str, Any]) -> None:
         for k, v in update_dict.items():
             self.__setattr__(k, v)
 
-    def make_dict(self):
+    def make_dict(self) -> dict[str, Any]:
         d = {}
         for f in self._ALLOWED_FIELDS:
             if hasattr(self, f):
@@ -68,7 +70,7 @@ class Configuration:
                 d[f] = value
         return d
 
-    def align(self, optimal=True):
+    def align(self, optimal: bool = True) -> None:
         if optimal:
             # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
             # This matches the hardware behaviour and means we can be more efficient.
@@ -94,24 +96,24 @@ class CameraConfiguration(Configuration):
     _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
 
-    def __init__(self, d={}, picam2=None):
+    def __init__(self, d: dict[str, Any] = {}, picam2=None) -> None:
         # Can't convert "controls" dicts to Controls objects automatically, so do it here:
         d = {k: v if k != "controls" else Controls(picam2, v) for k, v in d.items()}
         super().__init__(d)
 
-    def enable_lores(self, onoff=True):
+    def enable_lores(self, onoff: bool = True) -> None:
         if onoff:
             self.lores = StreamConfiguration({"size": self.main.size, "format": "YUV420"})
         else:
             self.lores = None
 
-    def enable_raw(self, onoff=True):
+    def enable_raw(self, onoff: bool = True) -> None:
         if onoff:
             self.raw = StreamConfiguration({"size": self.main.size, "format": None})
         else:
             self.raw = None
 
-    def align(self, optimal=True):
+    def align(self, optimal: bool = True) -> None:
         self.main.align(optimal)
         if self.lores is not None:
             self.lores.align(optimal)

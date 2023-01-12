@@ -1,6 +1,7 @@
 """MJPEG encoder functionality utilising V4L2"""
 
 from math import sqrt
+from typing import Optional
 
 from v4l2 import V4L2_PIX_FMT_MJPEG
 
@@ -11,7 +12,7 @@ from picamera2.encoders.v4l2_encoder import V4L2Encoder
 class MJPEGEncoder(V4L2Encoder):
     """MJPEG encoder utilsing V4L2 functionality"""
 
-    def __init__(self, bitrate=None):
+    def __init__(self, bitrate: Optional[int] = None) -> None:
         """Creates MJPEG encoder
 
         :param bitrate: Bitrate, default None
@@ -19,7 +20,7 @@ class MJPEGEncoder(V4L2Encoder):
         """
         super().__init__(bitrate, V4L2_PIX_FMT_MJPEG)
 
-    def _setup(self, quality):
+    def _setup(self, quality: Quality) -> None:
         if self._requested_bitrate is None:
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 6,

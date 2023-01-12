@@ -1,4 +1,5 @@
 from concurrent.futures import Future
+from typing import Callable, Optional
 
 
 class Job:
@@ -20,7 +21,7 @@ class Job:
     Picamera2.switch_mode_and_capture_array.
     """
 
-    def __init__(self, functions, signal_function=None):
+    def __init__(self, functions: list[Callable], signal_function: Optional[Callable] = None) -> None:
         self._functions = functions
         self._future = Future()
         self._future.set_running_or_notify_cancel()
@@ -31,7 +32,7 @@ class Job:
         # of frames it took for things to finish, maybe intermediate results...
         self.calls = 0
 
-    def execute(self):
+    def execute(self) -> bool:
         """Try to execute this Job.
 
         It will return True if it finishes, or False if it needs to be tried again.
@@ -59,7 +60,7 @@ class Job:
 
         return not self._functions
 
-    def signal(self):
+    def signal(self) -> None:
         """Signal that the job is finished."""
         assert not self._functions, "Job not finished!"
 

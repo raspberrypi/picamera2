@@ -1,4 +1,5 @@
 """JPEG encoder functionality"""
+from typing import Optional
 
 import simplejpeg
 
@@ -14,7 +15,11 @@ class JpegEncoder(MultiEncoder):
                     "BGR888": "RGB",
                     "RGB888": "BGR"}
 
-    def __init__(self, num_threads=4, q=None, colour_space=None, colour_subsampling='420'):
+    def __init__(self,
+                 num_threads: int = 4,
+                 q: Optional[Quality] = None,
+                 colour_space: Optional[str] = None,
+                 colour_subsampling: str = '420') -> None:
         """Initialises Jpeg encoder
 
         :param num_threads: Number of threads to use, defaults to 4
@@ -32,7 +37,7 @@ class JpegEncoder(MultiEncoder):
         self.colour_space = colour_space
         self.colour_subsampling = colour_subsampling
 
-    def encode_func(self, request, name):
+    def encode_func(self, request, name: str) -> bytes:
         """Performs encoding
 
         :param request: Request
@@ -48,7 +53,7 @@ class JpegEncoder(MultiEncoder):
         return simplejpeg.encode_jpeg(array, quality=self.q, colorspace=self.colour_space,
                                       colorsubsampling=self.colour_subsampling)
 
-    def _setup(self, quality):
+    def _setup(self, quality: Quality) -> None:
         if self.requested_q is None:
             # Image size and framerate isn't an issue here, you just get what you get.
             Q_TABLE = {Quality.VERY_LOW: 20,

@@ -2,6 +2,7 @@ import io
 import logging
 import threading
 import time
+from typing import Any, Optional
 
 import numpy as np
 import piexif
@@ -18,7 +19,7 @@ _log = logging.getLogger(__name__)
 
 
 class _MappedBuffer:
-    def __init__(self, request, stream):
+    def __init__(self, request, stream) -> None:
         stream = request.stream_map[stream]
         self.__fb = request.request.buffers[stream]
 
@@ -39,20 +40,20 @@ class _MappedBuffer:
         self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
         return self.__mm
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
         if self.__mm is not None:
             self.__mm.close()
 
 
 class MappedArray:
-    def __init__(self, request, stream, reshape=True):
+    def __init__(self, request, stream, reshape: bool = True) -> None:
         self.__request = request
         self.__stream = stream
         self.__buffer = _MappedBuffer(request, stream)
-        self.__array = None
+        self.__array: Optional[np.ndarray] = None
         self.__reshape = reshape
 
-    def __enter__(self):
+    def __enter__(self) -> "MappedArray":
         b = self.__buffer.__enter__()
         array = np.array(b, copy=False, dtype=np.uint8)
 
@@ -90,18 +91,18 @@ class MappedArray:
         self.__array = array
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
         if self.__array is not None:
             del self.__array
         self.__buffer.__exit__(exc_type, exc_value, exc_traceback)
 
     @property
-    def array(self):
+    def array(self) -> Optional[np.ndarray]:
         return self.__array
 
 
 class CompletedRequest:
-    def __init__(self, request, picam2):
+    def __init__(self, request, picam2) -> None:
         self.request = request
         self.ref_count = 1
         self.lock = threading.Lock()
@@ -111,14 +112,14 @@ class CompletedRequest:
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
 
-    def acquire(self):
+    def acquire(self) -> None:
         """Acquire a reference to this completed request, which stops it being recycled back to the camera system."""
         with self.lock:
             if self.ref_count == 0:
                 raise RuntimeError("CompletedRequest: acquiring lock with ref_count 0")
             self.ref_count += 1
 
-    def release(self):
+    def release(self) -> None:
         """Release this completed frame back to the camera system (once its reference count reaches zero)."""
         with self.lock:
             self.ref_count -= 1
@@ -138,33 +139,36 @@ class CompletedRequest:
                 self.config = None
                 self.stream_map = None
 
-    def make_buffer(self, name):
+    def make_buffer(self, name: str) -> np.ndarray:
         """Make a 1d numpy array from the named stream's buffer."""
         if self.stream_map.get(name, None) is None:
             raise RuntimeError(f'Stream "{name}" is not defined')
         with _MappedBuffer(self, name) as b:
             return np.array(b, dtype=np.uint8)
 
-    def get_metadata(self):
+    def get_metadata(self) -> dict[str, Any]:
         """Fetch the metadata corresponding to this completed request."""
         metadata = {}
         for k, v in self.request.metadata.items():
             metadata[k.name] = convert_from_libcamera_type(v)
         return metadata
 
-    def make_array(self, name):
+    def make_array(self, name: str) -> np.ndarray:
         """Make a 2d numpy array from the named stream's buffer."""
         return self.picam2.helpers.make_array(self.make_buffer(name), self.config[name])
 
-    def make_image(self, name, width=None, height=None):
+    def make_image(self,
+                   name: str,
+                   width: Optional[np.ndarray] = None,
+                   height: Optional[np.ndarray] = None) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
         return self.picam2.helpers.make_image(self.make_buffer(name), self.config[name], width, height)
 
-    def save(self, name, file_output, format=None):
+    def save(self, name: str, file_output: str, format: Optional[str] = None) -> None:
         """Save a JPEG or PNG image of the named stream's buffer."""
         return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output, format)
 
-    def save_dng(self, filename, name="raw"):
+    def save_dng(self, filename: str, name: str = "raw") -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
         return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.config[name], filename)
 
@@ -175,10 +179,10 @@ class Helpers:
     In such a way that it can be usefully accessed even without a CompletedRequest object.
     """
 
-    def __init__(self, picam2):
+    def __init__(self, picam2) -> None:
         self.picam2 = picam2
 
-    def make_array(self, buffer, config):
+    def make_array(self, buffer: np.ndarray, config: dict[str, Any]) -> np.ndarray:
         """Make a 2d numpy array from the named stream's buffer."""
         array = buffer
         fmt = config["format"]
@@ -217,7 +221,11 @@ class Helpers:
             raise RuntimeError("Format " + fmt + " not supported")
         return image
 
-    def make_image(self, buffer, config, width=None, height=None):
+    def make_image(self,
+                   buffer: np.ndarray,
+                   config: dict[str, Any],
+                   width: Optional[np.ndarray] = None,
+                   height: Optional[np.ndarray] = None) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
         fmt = config["format"]
         if fmt == "MJPEG":
@@ -238,7 +246,11 @@ class Helpers:
             pil_img = pil_img.resize((width, height))
         return pil_img
 
-    def save(self, img, metadata, file_output, format=None):
+    def save(self,
+             img: str,
+             metadata: dict[str, Any],
+             file_output: str,
+             format: Optional[str] = None) -> None:
         """Save a JPEG or PNG image of the named stream's buffer."""
         # This is probably a hideously expensive way to do a capture.
         start_time = time.monotonic()
@@ -274,7 +286,11 @@ class Helpers:
         _log.info(f"Saved {self} to file {file_output}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def save_dng(self, buffer, metadata, config, filename):
+    def save_dng(self,
+                 buffer: np.ndarray,
+                 metadata: dict[str, Any],
+                 config: dict[str, Any],
+                 filename: str) -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)

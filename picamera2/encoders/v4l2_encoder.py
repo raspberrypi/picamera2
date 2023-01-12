@@ -6,6 +6,7 @@ import mmap
 import queue
 import select
 import threading
+from typing import Optional
 
 from v4l2 import *
 
@@ -15,7 +16,7 @@ from picamera2.encoders.encoder import Encoder
 class V4L2Encoder(Encoder):
     """V4L2 Encoding"""
 
-    def __init__(self, bitrate, pixformat):
+    def __init__(self, bitrate: Optional[int], pixformat: int) -> None:
         """Initialise V4L2 encoder
 
         :param bitrate: Bitrate
@@ -31,7 +32,7 @@ class V4L2Encoder(Encoder):
         self._controls = []
         self.vd = None
 
-    def _start(self):
+    def _start(self) -> None:
         self.vd = open('/dev/video11', 'rb+', buffering=0)
 
         self.buf_available = queue.Queue()
@@ -125,7 +126,7 @@ class V4L2Encoder(Encoder):
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
         fcntl.ioctl(self.vd, VIDIOC_STREAMON, typev)
 
-    def _stop(self):
+    def _stop(self) -> None:
         self.thread.join()
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)
         fcntl.ioctl(self.vd, VIDIOC_STREAMOFF, typev)
@@ -149,7 +150,7 @@ class V4L2Encoder(Encoder):
         fcntl.ioctl(self.vd, VIDIOC_REQBUFS, reqbufs)
         self.vd.close()
 
-    def thread_poll(self, buf_available):
+    def thread_poll(self, buf_available: queue.Queue) -> None:
         """Outputs encoded frames"""
         pollit = select.poll()
         pollit.register(self.vd, select.POLLIN)
@@ -204,7 +205,7 @@ class V4L2Encoder(Encoder):
                         queue_item = self.buf_frame.get()
                         queue_item.release()
 
-    def _encode(self, stream, request):
+    def _encode(self, stream, request) -> None:
         """Encodes a frame
 
         :param stream: Stream

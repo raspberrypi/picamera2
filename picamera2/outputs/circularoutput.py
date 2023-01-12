@@ -1,7 +1,9 @@
 """Circular buffer"""
 
 import collections
+import io
 from multiprocessing import Lock
+from typing import Optional, Union
 
 from .fileoutput import FileOutput
 
@@ -9,7 +11,11 @@ from .fileoutput import FileOutput
 class CircularOutput(FileOutput):
     """Circular buffer implementation for file output"""
 
-    def __init__(self, file=None, pts=None, buffersize=30 * 5, outputtofile=True):
+    def __init__(self,
+                 file: Union[None, str, io.BufferedIOBase] = None,
+                 pts: Union[None, str, io.BufferedWriter] = None,
+                 buffersize: int = 30 * 5,
+                 outputtofile: bool = True) -> None:
         """Creates circular buffer for 5s worth of 30fps frames
 
         :param file: File to write frames to, defaults to None
@@ -27,12 +33,12 @@ class CircularOutput(FileOutput):
         self.outputtofile = outputtofile
 
     @property
-    def buffersize(self):
+    def buffersize(self) -> int:
         """Returns size of buffer"""
         return self._buffersize
 
     @buffersize.setter
-    def buffersize(self, value):
+    def buffersize(self, value: int) -> None:
         """Create buffer for specified number of frames"""
         if not isinstance(value, int):
             raise RuntimeError("Buffer size must be integer")
@@ -40,7 +46,7 @@ class CircularOutput(FileOutput):
             self._buffersize = value
             self._circular = collections.deque(maxlen=value)
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame: bytes, keyframe: bool = True, timestamp: Optional[int] = None) -> None:
         """Write frame to circular buffer
 
         :param frame: Frame
@@ -71,7 +77,7 @@ class CircularOutput(FileOutput):
                     frame, keyframe = self._circular.popleft()
                 self._write(frame, timestamp)
 
-    def stop(self):
+    def stop(self) -> None:
         """Close file handle and prevent recording"""
         self.recording = False
         key = False

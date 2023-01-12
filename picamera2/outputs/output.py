@@ -1,10 +1,13 @@
 """Output frames from encoder"""
 
+import io
+from typing import Optional, Union
+
 
 class Output:
     """Handles output functionality of encoders"""
 
-    def __init__(self, pts=None):
+    def __init__(self, pts: Union[None, str, io.BufferedWriter] = None) -> None:
         """Start output, with recording set to False
 
         :param pts: File to write timestamps to, defaults to None
@@ -13,15 +16,15 @@ class Output:
         self.recording = False
         self.ptsoutput = pts
 
-    def start(self):
+    def start(self) -> None:
         """Start recording"""
         self.recording = True
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop recording"""
         self.recording = False
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame: bytes, keyframe: bool = True, timestamp: Optional[int] = None) -> None:
         """Outputs frame from encoder
 
         :param frame: Frame
@@ -32,7 +35,7 @@ class Output:
         :type timestamp: int
         """
 
-    def outputtimestamp(self, timestamp):
+    def outputtimestamp(self, timestamp: Optional[int]) -> None:
         """Output timestamp to file
 
         :param timestamp: Timestamp to write to file
@@ -42,12 +45,12 @@ class Output:
             print(f"{timestamp // 1000}.{timestamp % 1000:03}", file=self.ptsoutput, flush=True)
 
     @property
-    def ptsoutput(self):
+    def ptsoutput(self) -> Optional[io.BufferedWriter]:
         """Return file handle"""
         return self._ptsoutput
 
     @ptsoutput.setter
-    def ptsoutput(self, file):
+    def ptsoutput(self, file: Union[None, str, io.BufferedWriter]):
         """Change file to output pts file to"""
         if file is None:
             self._ptsoutput = None

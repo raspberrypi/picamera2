@@ -3,6 +3,7 @@
 import io
 import socket
 import types
+from typing import Any, Callable, Optional, Union
 
 from .output import Output
 
@@ -10,7 +11,10 @@ from .output import Output
 class FileOutput(Output):
     """File handling functionality for encoders"""
 
-    def __init__(self, file=None, pts=None, split=None):
+    def __init__(self,
+                 file: Union[None, str, io.BufferedIOBase] = None,
+                 pts: Union[None, str, io.BufferedWriter] = None,
+                 split: Optional[int] = None) -> None:
         """Initialise file output
 
         :param file: File to write frames to, defaults to None
@@ -25,16 +29,16 @@ class FileOutput(Output):
         self.fileoutput = file
         self._firstframe = True
         self._before = None
-        self._connectiondead = None
+        self._connectiondead: Optional[Callable[[str], Any]] = None
         self._splitsize = split
 
     @property
-    def fileoutput(self):
+    def fileoutput(self) -> Optional[io.BufferedIOBase]:
         """Return file handle"""
         return self._fileoutput
 
     @fileoutput.setter
-    def fileoutput(self, file):
+    def fileoutput(self, file: Union[None, str, io.BufferedIOBase]) -> None:
         """Change file to output frames to"""
         self._split = False
         self._firstframe = True
@@ -52,12 +56,12 @@ class FileOutput(Output):
                 self._split = True
 
     @property
-    def connectiondead(self):
+    def connectiondead(self) -> Optional[Callable[[str], Any]]:
         """Return callback"""
         return self._connectiondead
 
     @connectiondead.setter
-    def connectiondead(self, _callback):
+    def connectiondead(self, _callback: Optional[Callable[[str], Any]]):
         """Callback for passing exceptions
 
         :param _callback: Callback that is called when exception caught
@@ -69,7 +73,7 @@ class FileOutput(Output):
         else:
             raise RuntimeError("Must pass callback function or None")
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame: bytes, keyframe: bool = True, timestamp: Optional[int] = None) -> None:
         """Outputs frame from encoder
 
         :param frame: Frame
@@ -87,12 +91,12 @@ class FileOutput(Output):
                     self._firstframe = False
             self._write(frame, timestamp)
 
-    def stop(self):
+    def stop(self) -> None:
         """Close file handle and prevent recording"""
         super().stop()
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         """Closes all files"""
         try:
             self._fileoutput.close()
@@ -101,7 +105,7 @@ class FileOutput(Output):
             if self._connectiondead is not None:
                 self._connectiondead(e)
 
-    def _write(self, frame, timestamp=None):
+    def _write(self, frame: bytes, timestamp: Optional[int] = None) -> None:
         try:
             if self._split:
                 maxsize = 65507 if self._splitsize is None else self._splitsize

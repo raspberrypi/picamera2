@@ -1,29 +1,30 @@
 #!/usr/bin/python3
 import threading
+from typing import Any, Union
 
 from libcamera import ControlType, Rectangle, Size
 
 
 class Controls():
-    def _framerates_to_durations_(framerates):
+    def _framerates_to_durations_(framerates) -> tuple[int, int]:
         if not isinstance(framerates, (tuple, list)):
             framerates = (framerates, framerates)
         return (int(1000000 / framerates[1]), int(1000000 / framerates[0]))
 
-    def _durations_to_framerates_(durations):
+    def _durations_to_framerates_(durations) -> Union[int, tuple[int, int]]:
         if durations[0] == durations[1]:
             return 1000000 / durations[0]
         return (1000000 / durations[1], 1000000 / durations[0])
 
     _VIRTUAL_FIELDS_MAP_ = {"FrameRate": ("FrameDurationLimits", _framerates_to_durations_, _durations_to_framerates_)}
 
-    def __init__(self, picam2, controls={}):
+    def __init__(self, picam2, controls: Union[dict[str, Any], "Controls"] = {}) -> None:
         self._picam2 = picam2
-        self._controls = []
+        self._controls: list[str] = []
         self._lock = threading.Lock()
         self.set_controls(controls)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         if not name.startswith('_'):
             if name in Controls._VIRTUAL_FIELDS_MAP_:
                 real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
@@ -34,24 +35,24 @@ class Controls():
             self._controls.append(name)
         self.__dict__[name] = value
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, name: str) -> Any:
         if name in Controls._VIRTUAL_FIELDS_MAP_:
             real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
             real_value = self.__getattribute__(real_field[0])
             return real_field[2](real_value)
         return super().__getattribute__(name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Controls: {self.make_dict()}>"
 
-    def __enter__(self):
+    def __enter__(self) -> "Controls":
         self._lock.acquire()
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type, exc_value, tb) -> None:
         self._lock.release()
 
-    def set_controls(self, controls):
+    def set_controls(self, controls: Union[dict[str, Any], "Controls"]) -> None:
         with self._lock:
             if isinstance(controls, dict):
                 for k, v in controls.items():
@@ -63,8 +64,8 @@ class Controls():
             else:
                 raise RuntimeError(f"Cannot update controls with {type(controls)} type")
 
-    def get_libcamera_controls(self):
-        def list_or_tuple(thing):
+    def get_libcamera_controls(self) -> dict:
+        def list_or_tuple(thing: Any) -> bool:
             return type(thing) in {list, tuple}
 
         libcamera_controls = {}
@@ -83,7 +84,7 @@ class Controls():
                 libcamera_controls[id] = v
         return libcamera_controls
 
-    def make_dict(self):
+    def make_dict(self) -> dict[str, Any]:
         dict_ = {}
         with self._lock:
             for k in self._controls:

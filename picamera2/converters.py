@@ -5,7 +5,11 @@ YUV2RGB_SMPTE170M = np.array([[1.164, 1.164, 1.164], [0.0, -0.392, 2.017], [1.59
 YUV2RGB_REC709    = np.array([[1.164, 1.164, 1.164], [0.0, -0.213, 2.112], [1.793, -0.533, 0.0]]) # noqa
 
 
-def YUV420_to_RGB(YUV_in, size, matrix=YUV2RGB_JPEG, rb_swap=True, final_width=0):
+def YUV420_to_RGB(YUV_in: np.ndarray,
+                  size: tuple[int, int],
+                  matrix: np.ndarray = YUV2RGB_JPEG,
+                  rb_swap: bool = True,
+                  final_width: int = 0) -> np.ndarray:
     """Convert a YUV420 image to an interleaved RGB image of half resolution.
 
     The size parameter should include padding if there is any, which can be trimmed off
