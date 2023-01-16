@@ -43,7 +43,7 @@ class Configuration:
                 value = self._FIELD_CLASS_MAP[name](value)
             super().__setattr__(name, value)
         else:
-            raise RuntimeError(f"Invalid field '{name}'")
+            raise RuntimeError(f"Invalid field {name!r}")
 
     def __getattribute__(self, name):
         if name in super().__getattribute__("_FORWARD_FIELDS"):

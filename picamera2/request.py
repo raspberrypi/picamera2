@@ -141,7 +141,7 @@ class CompletedRequest:
     def make_buffer(self, name):
         """Make a 1d numpy array from the named stream's buffer."""
         if self.stream_map.get(name, None) is None:
-            raise RuntimeError(f'Stream "{name}" is not defined')
+            raise RuntimeError(f'Stream {name!r} is not defined')
         with _MappedBuffer(self, name) as b:
             return np.array(b, dtype=np.uint8)
 
