@@ -596,7 +596,7 @@ class Picamera2:
             elif key in ignore_list:
                 pass  # allows us to pass items from the sensor_modes as a raw stream
             else:
-                raise ValueError(f"Bad key '{key}': valid stream configuration keys are {valid}")
+                raise ValueError(f"Bad key {key!r}: valid stream configuration keys are {valid}")
         return stream_config
 
     @staticmethod
@@ -736,7 +736,7 @@ class Picamera2:
         required_keys = ["colour_space", "transform", "main", "lores", "raw"]
         for name in required_keys:
             if name not in camera_config:
-                raise RuntimeError(f"'{name}' key expected in camera configuration")
+                raise RuntimeError(f"{name!r} key expected in camera configuration")
 
         # Check the entire camera configuration for errors.
         if not isinstance(camera_config["colour_space"], libcamera._libcamera.ColorSpace):
