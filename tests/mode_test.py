@@ -11,10 +11,10 @@ sys.path.append("/usr/lib/python3/dist-packages")
 
 from libcamera import Transform
 
-from picamera2 import CameraConfig, Picamera2
-from picamera2.sensor_format import SensorFormat
+from scicamera import Camera, CameraConfig
+from scicamera.sensor_format import SensorFormat
 
-camera = Picamera2()
+camera = Camera()
 
 
 def check(raw_config, fps):

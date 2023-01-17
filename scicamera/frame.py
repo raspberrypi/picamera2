@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from picamera2.request import CompletedRequest
+from scicamera.request import CompletedRequest
 
 
 @dataclass

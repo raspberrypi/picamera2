@@ -1,13 +1,13 @@
 import subprocess
 import sys
 
-from picamera2 import Picamera2
+from scicamera import Camera
 
 # First open/close several times in this process in various ways.
 
 
 def run_camera():
-    camera = Picamera2()
+    camera = Camera()
     camera.start()
     camera.discard_frames(2).result()
     camera.stop()
@@ -16,11 +16,11 @@ def run_camera():
 
 run_camera()
 
-with Picamera2() as camera:
+with Camera() as camera:
     camera.start()
     camera.stop()
 
-camera = Picamera2()
+camera = Camera()
 camera.start()
 camera.discard_frames(2).result()
 camera.stop()
@@ -28,8 +28,8 @@ camera.close()
 
 # Check that everything is released so other processes can use the camera.
 
-program = """from picamera2 import Picamera2
-camera = Picamera2()
+program = """from scicamera import Camera
+camera = Camera()
 camera.start()
 camera.discard_frames(2)
 camera.stop()

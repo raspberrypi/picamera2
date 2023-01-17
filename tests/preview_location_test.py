@@ -2,11 +2,11 @@ from logging import getLogger
 
 import numpy as np
 
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
 _log = getLogger(__name__)
 _log.info("Preview re-initialized after start.")
-camera = Picamera2()
+camera = Camera()
 preview = CameraConfig.for_preview(camera)
 camera.configure(preview)
 camera.start()

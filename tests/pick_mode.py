@@ -2,9 +2,9 @@
 
 # Example of reading the available modes, and picking one with
 # the highest framerate and a raw bit depth of at least 10
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 
 available_modes = camera.sensor_modes
 min_bit_depth = 10

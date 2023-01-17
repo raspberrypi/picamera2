@@ -3,11 +3,9 @@
 # Normally the QtGlPreview implementation is recommended as it benefits
 # from GPU hardware acceleration.
 
-import time
+from scicamera import Camera, CameraConfig
 
-from picamera2 import CameraConfig, Picamera2
-
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

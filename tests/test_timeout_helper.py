@@ -1,7 +1,7 @@
-from picamera2 import Picamera2
-from picamera2.testing import mature_after_frames_or_timeout
+from scicamera import Camera
+from scicamera.testing import mature_after_frames_or_timeout
 
-camera = Picamera2()
+camera = Camera()
 try:
     mature_after_frames_or_timeout(camera, 10, 0.5)
 except TimeoutError:

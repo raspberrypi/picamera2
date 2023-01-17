@@ -2,9 +2,9 @@
 
 # Example of setting controls. Here, after one second, we fix the AGC/AEC
 # to the values it has reached whereafter it will no longer change.
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

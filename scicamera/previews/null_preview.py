@@ -9,14 +9,14 @@ _log = getLogger(__name__)
 class NullPreview:
     """Null Preview"""
 
-    def thread_func(self, picam2):
+    def thread_func(self, camera):
         """Thread function
 
-        :param picam2: picamera2 object
-        :type picam2: Picamera2
+        :param camera: Camera object
+        :type camera: Camera
         """
         sel = selectors.DefaultSelector()
-        sel.register(picam2.notifyme_r, selectors.EVENT_READ, self.handle_request)
+        sel.register(camera.notifyme_r, selectors.EVENT_READ, self.handle_request)
         self._started.set()
 
         # TODO(meawoppl) - abort flag and select can be polled in parallel
@@ -24,9 +24,9 @@ class NullPreview:
         while not self._abort.is_set():
             events = sel.select(0.2)
             for key, _ in events:
-                picam2.notifymeread.read()
+                camera.notifymeread.read()
                 callback = key.data
-                callback(picam2)
+                callback(camera)
 
     def __init__(self, x=None, y=None, width=None, height=None, transform=None):
         """Initialise null preview
@@ -47,31 +47,31 @@ class NullPreview:
         self.size = (width, height)
         self._abort = threading.Event()
         self._started = threading.Event()
-        self.picam2 = None
+        self.camera = None
 
-    def start(self, picam2):
+    def start(self, camera):
         """Starts null preview
 
-        :param picam2: Picamera2 object
-        :type picam2: Picamera2
+        :param camera: Camera object
+        :type camera: Camera
         """
-        self.picam2 = picam2
+        self.camera = camera
         self._started.clear()
         self._abort.clear()
         self.thread = threading.Thread(
-            target=self.thread_func, daemon=True, args=(picam2,)
+            target=self.thread_func, daemon=True, args=(camera,)
         )
         self.thread.start()
         self._started.wait()
 
-    def handle_request(self, picam2):
+    def handle_request(self, camera):
         """Handle requests
 
-        :param picam2: picamera2 object
-        :type picam2: Picamera2
+        :param camera: Camera object
+        :type camera: Camera
         """
         try:
-            picam2.process_requests()
+            camera.process_requests()
         except Exception as e:
             _log.exception("Exception during process_requests()", exc_info=e)
             raise
@@ -80,4 +80,4 @@ class NullPreview:
         """Stop preview"""
         self._abort.set()
         self.thread.join()
-        self.picam2 = None
+        self.camera = None

@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import libcamera
 
-from picamera2 import formats
-from picamera2.controls import Controls
+from scicamera import formats
+from scicamera.controls import Controls
 
 if TYPE_CHECKING:
-    from picamera2.picamera2 import Picamera2
+    from scicamera.camera import Camera
 
 _log = getLogger(__name__)
 
@@ -105,7 +105,7 @@ class StreamConfig:
 
 @dataclass
 class CameraConfig:
-    camera: Picamera2
+    camera: Camera
     use_case: str
     buffer_count: int
     transform: libcamera._libcamera.Transform
@@ -198,7 +198,7 @@ class CameraConfig:
     @classmethod
     def for_preview(
         cls,
-        camera: Picamera2,
+        camera: Camera,
         main: dict = {},
         lores=None,
         raw=None,
@@ -305,7 +305,7 @@ class CameraConfig:
     @classmethod
     def for_video(
         cls,
-        camera: Picamera2,
+        camera: Camera,
         main={},
         lores=None,
         raw=None,

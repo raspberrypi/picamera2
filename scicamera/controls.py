@@ -26,8 +26,8 @@ class Controls:
         )
     }
 
-    def __init__(self, picam2, controls={}):
-        self._picam2 = picam2
+    def __init__(self, camera, controls={}):
+        self._camera = camera
         self._controls = []
         self._lock = threading.Lock()
         self.set_controls(controls)
@@ -38,7 +38,7 @@ class Controls:
                 real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
                 name = real_field[0]
                 value = real_field[1](value)
-            if name not in self._picam2.camera_ctrl_info.keys():
+            if name not in self._camera.camera_ctrl_info.keys():
                 raise RuntimeError(f"Control {name} is not advertised by libcamera")
             self._controls.append(name)
         self.__dict__[name] = value
@@ -77,7 +77,7 @@ class Controls:
         with self._lock:
             for k in self._controls:
                 v = self.__dict__[k]
-                id = self._picam2.camera_ctrl_info[k][0]
+                id = self._camera.camera_ctrl_info[k][0]
                 if id.type == ControlType.Rectangle:
                     v = Rectangle(*v)
                 elif id.type == ControlType.Size:

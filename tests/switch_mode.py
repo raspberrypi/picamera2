@@ -2,9 +2,9 @@
 
 # Switch from preview to full resolution mode.
 
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # Capture a DNG and a JPEG made from the same raw data.
-from picamera2 import Picamera2
-from picamera2.configuration import CameraConfig
+from scicamera import Camera
+from scicamera.configuration import CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

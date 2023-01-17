@@ -13,10 +13,10 @@ from typing import Any, Callable, Dict
 import numpy as np
 from PIL import Image
 
-import picamera2.formats as formats
-from picamera2 import formats
-from picamera2.configuration import CameraConfig
-from picamera2.lc_helpers import lc_unpack
+import scicamera.formats as formats
+from scicamera import formats
+from scicamera.configuration import CameraConfig
+from scicamera.lc_helpers import lc_unpack
 
 _log = getLogger(__name__)
 

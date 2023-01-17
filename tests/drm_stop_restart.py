@@ -1,8 +1,8 @@
 import time
 
-from picamera2 import Picamera2
+from scicamera import Camera
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 camera.start()
 camera.discard_frames(2).result()

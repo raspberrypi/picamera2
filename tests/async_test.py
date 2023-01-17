@@ -5,10 +5,10 @@ from concurrent.futures import Future
 from threading import Thread
 from typing import List
 
-from picamera2 import Picamera2
-from picamera2.configuration import CameraConfig
+from scicamera import Camera
+from scicamera.configuration import CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 config = CameraConfig.for_preview(camera)
 camera.configure(config)
 camera.start()

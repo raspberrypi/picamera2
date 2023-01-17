@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # Example of setting controls using the "direct" attribute method.
-from picamera2 import CameraConfig, Picamera2
-from picamera2.controls import Controls
+from scicamera import Camera, CameraConfig
+from scicamera.controls import Controls
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

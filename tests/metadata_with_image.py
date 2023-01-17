@@ -2,9 +2,9 @@
 
 # Obtain an image from the camera along with the exact metadata that
 # that describes that image.
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""picamera2 main class"""
+"""scicamera main classes"""
 from __future__ import annotations
 
 import logging
@@ -16,16 +16,16 @@ import libcamera
 import numpy as np
 from PIL import Image
 
-import picamera2.formats as formats
-from picamera2.configuration import CameraConfig, StreamConfig
-from picamera2.controls import Controls
-from picamera2.frame import CameraFrame
-from picamera2.lc_helpers import lc_unpack, lc_unpack_controls
-from picamera2.previews import NullPreview
-from picamera2.request import CompletedRequest, LoopTask
-from picamera2.sensor_format import SensorFormat
-from picamera2.tuning import TuningContext
-from picamera2.typing import TypedFuture
+import scicamera.formats as formats
+from scicamera.configuration import CameraConfig, StreamConfig
+from scicamera.controls import Controls
+from scicamera.frame import CameraFrame
+from scicamera.lc_helpers import lc_unpack, lc_unpack_controls
+from scicamera.previews import NullPreview
+from scicamera.request import CompletedRequest, LoopTask
+from scicamera.sensor_format import SensorFormat
+from scicamera.tuning import TuningContext
+from scicamera.typing import TypedFuture
 
 STILL = libcamera.StreamRole.StillCapture
 RAW = libcamera.StreamRole.Raw
@@ -80,7 +80,7 @@ class CameraInfo:
 
 
 class CameraManager:
-    cameras: Dict[int, Picamera2]
+    cameras: Dict[int, Camera]
 
     def __init__(self):
         self.running = False
@@ -93,7 +93,7 @@ class CameraManager:
         self.running = True
         self.thread.start()
 
-    def add(self, index: int, camera: Picamera2):
+    def add(self, index: int, camera: Camera):
         with self._lock:
             self.cameras[index] = camera
             if not self.running:
@@ -151,8 +151,8 @@ class CameraManager:
                 os.write(self.cameras[c].notifyme_w, b"\x00")
 
 
-class Picamera2:
-    """Welcome to the PiCamera2 class."""
+class Camera:
+    """Welcome to the Camera class."""
 
     _cm = CameraManager()
 
@@ -184,7 +184,7 @@ class Picamera2:
 
     @property
     def camera_manager(self):
-        return Picamera2._cm.cms
+        return Camera._cm.cms
 
     def add_request_callback(self, callback: Callable[[CompletedRequest], None]):
         """Add a callback to be called when every request completes.
@@ -284,7 +284,7 @@ class Picamera2:
         """Used for allowing use with context manager
 
         :return: self
-        :rtype: Picamera2
+        :rtype: Camera
         """
         return self
 

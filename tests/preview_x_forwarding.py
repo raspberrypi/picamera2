@@ -3,9 +3,9 @@
 # The QtPreview uses software rendering and thus makes more use of the
 # CPU, but it does work with X forwarding, unlike the QtGlPreview.
 
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 camera.start_preview()
 
 preview_config = CameraConfig.for_preview(camera)

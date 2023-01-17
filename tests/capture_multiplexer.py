@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
 
 def takephoto(cam):
-    camera = Picamera2(camera_num=cam)
+    camera = Camera(camera_num=cam)
     capture_config = CameraConfig.for_still(camera)
     camera.start()
     camera.switch_mode_and_capture_file(capture_config, f"cam{cam}.jpg")
@@ -16,7 +16,7 @@ for cam in range(4):
 
 # Or
 for cam in range(4):
-    camera = Picamera2(camera_num=cam)
+    camera = Camera(camera_num=cam)
     capture_config = CameraConfig.for_still(camera)
     camera.start()
     camera.capture_file(f"cam{cam}.jpg", config=capture_config)

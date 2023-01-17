@@ -8,14 +8,14 @@
 import numpy as np
 from PIL import Image
 
-from picamera2 import CameraConfig, Picamera2
-from picamera2.sensor_format import SensorFormat
+from scicamera import Camera, CameraConfig
+from scicamera.sensor_format import SensorFormat
 
 exposure_time = 60000
 num_frames = 6
 
 # Configure an unpacked raw format as these are easier to add.
-camera = Picamera2()
+camera = Camera()
 raw_format = SensorFormat(camera.sensor_format)
 raw_format.packing = None
 config = CameraConfig.for_still(

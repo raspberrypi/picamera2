@@ -2,7 +2,7 @@
 profile = "black"
 
 [tool.poetry]
-name = "picamera2"
+name = "scicamera"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]

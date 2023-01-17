@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 
 # We're going to set up some configuration structures, apply each one in
 # turn and see if it gave us the configuration we expected.

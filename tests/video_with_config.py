@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 # Use the configuration structure method to do a full res capture.
-from picamera2 import Picamera2
+from scicamera import Camera
 
-camera = Picamera2()
+camera = Camera()
 
 # We don't really need to change anything, but let's mess around just as a test.
 camera.video_configuration.size = (800, 480)

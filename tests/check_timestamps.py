@@ -3,9 +3,9 @@ import time
 
 import numpy as np
 
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
-camera = Picamera2()
+camera = Camera()
 video_config = CameraConfig.for_video(camera)
 camera.configure(video_config)
 

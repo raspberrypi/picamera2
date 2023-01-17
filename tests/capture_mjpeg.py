@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-from picamera2 import CameraConfig, Picamera2
-from picamera2.testing import mature_after_frames_or_timeout
+from scicamera import Camera, CameraConfig
+from scicamera.testing import mature_after_frames_or_timeout
 
-camera = Picamera2()
+camera = Camera()
 video_config = CameraConfig.for_video(camera, main={"size": (1920, 1080)})
 camera.configure(video_config)
 

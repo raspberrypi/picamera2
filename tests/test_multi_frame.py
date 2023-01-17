@@ -1,9 +1,9 @@
 from concurrent.futures import Future
 
-from picamera2 import Picamera2
-from picamera2.frame import CameraFrame
+from scicamera import Camera
+from scicamera.frame import CameraFrame
 
-camera = Picamera2()
+camera = Camera()
 
 camera.start()
 

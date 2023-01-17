@@ -1,11 +1,9 @@
-import time
-
-from picamera2 import CameraConfig, Picamera2
+from scicamera import Camera, CameraConfig
 
 
 def main():
     print("With context...")
-    with Picamera2() as camera:
+    with Camera() as camera:
         config = CameraConfig.for_preview(camera)
         camera.configure(config)
         camera.start()
@@ -14,7 +12,7 @@ def main():
         print(metadata)
 
     print("Without context...")
-    camera = Picamera2()
+    camera = Camera()
     config = CameraConfig.for_preview(camera)
     camera.configure(config)
     camera.start()
