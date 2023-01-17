@@ -109,7 +109,7 @@ class CameraConfig:
     use_case: str
     buffer_count: int
     transform: libcamera._libcamera.Transform
-    colour_space: libcamera._libcamera.ColorSpace
+    color_space: libcamera._libcamera.ColorSpace
 
     # The are allowed to be a dict when user input, but will
     # be transformed to the proper class by the __post_init__ method.
@@ -178,7 +178,7 @@ class CameraConfig:
             self.raw = StreamConfig(**self.raw)
 
         # Check the entire camera configuration for errors.
-        _assert_type(self.colour_space, libcamera._libcamera.ColorSpace)
+        _assert_type(self.color_space, libcamera._libcamera.ColorSpace)
         _assert_type(self.transform, libcamera._libcamera.Transform)
 
         self.main.check("main")
@@ -203,7 +203,7 @@ class CameraConfig:
         lores=None,
         raw=None,
         transform=libcamera.Transform(),
-        colour_space=libcamera.ColorSpace.Sycc(),
+        color_space=libcamera.ColorSpace.Sycc(),
         buffer_count=4,
         controls={},
     ) -> CameraConfig:
@@ -242,7 +242,7 @@ class CameraConfig:
             camera=camera,
             use_case="preview",
             transform=transform,
-            colour_space=colour_space,
+            color_space=color_space,
             buffer_count=buffer_count,
             controls=controls,
             main=main_stream,
@@ -258,7 +258,7 @@ class CameraConfig:
         lores=None,
         raw=None,
         transform=libcamera.Transform(),
-        colour_space=libcamera.ColorSpace.Sycc(),
+        color_space=libcamera.ColorSpace.Sycc(),
         buffer_count=1,
         controls={},
     ) -> CameraConfig:
@@ -294,7 +294,7 @@ class CameraConfig:
             camera=camera,
             use_case="still",
             transform=transform,
-            colour_space=colour_space,
+            color_space=color_space,
             buffer_count=buffer_count,
             controls=controls,
             main=main_stream,
@@ -310,7 +310,7 @@ class CameraConfig:
         lores=None,
         raw=None,
         transform=libcamera.Transform(),
-        colour_space=None,
+        color_space=None,
         buffer_count=6,
         controls={},
     ) -> CameraConfig:
@@ -334,16 +334,16 @@ class CameraConfig:
         else:
             raw_stream = None
 
-        if colour_space is None:
-            # Choose default colour space according to the video resolution.
+        if color_space is None:
+            # Choose default color space according to the video resolution.
             if formats.is_RGB(main_stream.format):
                 # There's a bug down in some driver where it won't accept anything other than
-                # sRGB or JPEG as the colour space for an RGB stream. So until that is fixed:
-                colour_space = libcamera.ColorSpace.Sycc()
+                # sRGB or JPEG as the color space for an RGB stream. So until that is fixed:
+                color_space = libcamera.ColorSpace.Sycc()
             elif main_stream.size[0] < 1280 or main_stream.size[1] < 720:
-                colour_space = libcamera.ColorSpace.Smpte170m()
+                color_space = libcamera.ColorSpace.Smpte170m()
             else:
-                colour_space = libcamera.ColorSpace.Rec709()
+                color_space = libcamera.ColorSpace.Rec709()
         if (
             "NoiseReductionMode" in camera.camera_controls
             and "FrameDurationLimits" in camera.camera_controls
@@ -356,7 +356,7 @@ class CameraConfig:
             camera=camera,
             use_case="video",
             transform=transform,
-            colour_space=colour_space,
+            color_space=color_space,
             buffer_count=buffer_count,
             controls=controls,
             main=main_stream,

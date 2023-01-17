@@ -506,14 +506,14 @@ class Camera:
         self._update_libcamera_stream_config(
             libcamera_config.at(main_index), camera_config.main, buffer_count
         )
-        libcamera_config.at(main_index).color_space = camera_config.colour_space
+        libcamera_config.at(main_index).color_space = camera_config.color_space
         if camera_config.lores is not None:
             self._update_libcamera_stream_config(
                 libcamera_config.at(lores_index),
                 camera_config.lores,
                 buffer_count,
             )
-            libcamera_config.at(lores_index).color_space = camera_config.colour_space
+            libcamera_config.at(lores_index).color_space = camera_config.color_space
 
         if camera_config.raw is not None:
             self._update_libcamera_stream_config(
@@ -579,7 +579,7 @@ class Camera:
         :type libcamera_config: dict
         """
         camera_config.transform = libcamera_config.transform
-        camera_config.colour_space = libcamera_config.at(0).color_space
+        camera_config.color_space = libcamera_config.at(0).color_space
         camera_config.main = StreamConfig.from_lc_stream_config(libcamera_config.at(0))
         if self.lores_index >= 0:
             camera_config.lores = StreamConfig.from_lc_stream_config(
