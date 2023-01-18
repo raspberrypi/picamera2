@@ -12,7 +12,7 @@ from picamera2.encoders.v4l2_encoder import V4L2Encoder
 class H264Encoder(V4L2Encoder):
     """Uses functionality from V4L2Encoder"""
 
-    def __init__(self, bitrate=None, repeat=True, iperiod=None):
+    def __init__(self, bitrate=None, repeat=True, iperiod=None, framerate=None, enable_sps_framerate=False):
         """H264 Encoder
 
         :param bitrate: Bitrate, default None
@@ -21,12 +21,18 @@ class H264Encoder(V4L2Encoder):
         :type repeat: bool, optional
         :param iperiod: Iperiod, defaults to None
         :type iperiod: int, optional
+        :param framerate: record a framerate in the stream (whether true or not)
+        :type framerate: float, optional
         """
         super().__init__(bitrate, V4L2_PIX_FMT_H264)
         if iperiod is not None:
             self._controls += [(V4L2_CID_MPEG_VIDEO_H264_I_PERIOD, iperiod)]
         if repeat:
             self._controls += [(V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER, 1)]
+        # The framerate can be reported in the sequence headers if enable_sps_framerate is set,
+        # but there's no guarantee that frames will be delivered to the codec at that rate!
+        self._framerate = framerate
+        self._enable_framerate = enable_sps_framerate
 
     def _setup(self, quality):
         if self._requested_bitrate is None:
