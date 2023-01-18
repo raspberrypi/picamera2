@@ -145,10 +145,6 @@ class CameraManager:
                             cleanup_call,
                         )
                     )
-            # OS based file pipes seem really overkill for this.
-            # TODO(meawoppl) - Convert to queue primitive
-            for c in cams:
-                os.write(self.cameras[c].notifyme_w, b"\x00")
 
 
 class Camera:
@@ -165,8 +161,6 @@ class Camera:
         :type tuning: str, optional
         :raises RuntimeError: Init didn't complete
         """
-        self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
-        self.notifymeread = os.fdopen(self.notifyme_r, "rb")
         self._cm.add(camera_num, self)
         self.camera_idx = camera_num
         self._requests = deque()
@@ -455,8 +449,6 @@ class Camera:
         self.still_configuration_ = None
         self.video_configuration_ = None
         self.allocator = None
-        self.notifymeread.close()
-        os.close(self.notifyme_w)
         _log.info("Camera closed successfully.")
 
     # TODO(meawoppl) - Obviated by dataclasses
@@ -772,6 +764,9 @@ class Camera:
 
     def add_completed_request(self, request: CompletedRequest) -> None:
         self._requests.append(request)
+
+    def has_requests(self) -> bool:
+        return len(self._requests) > 0
 
     def process_requests(self) -> None:
         # Safe copy and pop off all requests
