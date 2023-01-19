@@ -3,7 +3,10 @@
 from math import sqrt
 
 from v4l2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
-                  V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER, V4L2_PIX_FMT_H264)
+                  V4L2_CID_MPEG_VIDEO_H264_LEVEL,
+                  V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER,
+                  V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
+                  V4L2_MPEG_VIDEO_H264_LEVEL_4_2, V4L2_PIX_FMT_H264)
 
 from picamera2.encoders import Quality
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
@@ -33,6 +36,23 @@ class H264Encoder(V4L2Encoder):
         # but there's no guarantee that frames will be delivered to the codec at that rate!
         self._framerate = framerate
         self._enable_framerate = enable_sps_framerate
+
+    def _start(self):
+        codec_level = 40
+        # We may need to up the codec level to 4.2 if we have a guidance framerate and the
+        # required macroblocks per second is too high.
+        if self._framerate is not None:
+            mbs_per_sec = ((self._width + 15) // 16) * ((self._height + 15) // 16) * self._framerate
+            if mbs_per_sec > 245760:
+                self._controls += [(V4L2_CID_MPEG_VIDEO_H264_LEVEL, V4L2_MPEG_VIDEO_H264_LEVEL_4_2)]
+                codec_level = 42
+
+        # If the bitrate is > 10Mbps then the level must be at least 4.1
+        if self._bitrate > 10000000 and codec_level == 40:
+            self._controls += [(V4L2_CID_MPEG_VIDEO_H264_LEVEL, V4L2_MPEG_VIDEO_H264_LEVEL_4_1)]
+            codec_level = 41
+
+        super()._start()
 
     def _setup(self, quality):
         if self._requested_bitrate is None:
