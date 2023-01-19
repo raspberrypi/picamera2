@@ -1,6 +1,7 @@
 """Circular buffer"""
 
 import collections
+import itertools
 from multiprocessing import Lock
 
 from .fileoutput import FileOutput
@@ -88,3 +89,18 @@ class CircularOutput(FileOutput):
                 else:
                     self._write(frame)
         self.close()
+
+    def copyandclear(self):
+        """Copy circular buffer and clear"""
+        tmp = None
+        with self._lock:
+            tmp = self._circular
+            found = None
+            for idx, (_, keyframe) in enumerate(tmp):
+                if keyframe:
+                    found = idx
+                    break
+            if found:
+                tmp = itertools.islice(tmp, found, len(tmp))
+            self._circular = collections.deque(maxlen=self.buffersize)
+        return tmp
