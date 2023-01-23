@@ -38,6 +38,7 @@ examples/tuning_file.py
 examples/video_with_config.py
 examples/window_offset.py
 examples/zoom.py
+tests/app_dual.py
 tests/app_full_test.py
 tests/app_test.py
 tests/async_test.py
