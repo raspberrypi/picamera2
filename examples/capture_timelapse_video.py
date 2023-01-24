@@ -3,7 +3,7 @@ import subprocess
 import time
 
 from picamera2 import Picamera2
-from picamera2.encoders import MJPEGEncoder, Quality
+from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs.fileoutput import FileOutput
 
 
@@ -31,8 +31,8 @@ picam2 = Picamera2()
 config = picam2.create_video_configuration(main={"size": resolution})
 picam2.configure(config)
 
-encoder = MJPEGEncoder()
-output = TimelapseOutput("test.mjpeg", "timestamps.txt", speedup_factor)
+encoder = H264Encoder()
+output = TimelapseOutput("test.h264", "timestamps.txt", speedup_factor)
 encoder.output = output
 
 picam2.start()
@@ -52,8 +52,8 @@ picam2.stop()
 
 # Create the output mp4 video
 merge = subprocess.Popen([
-    "mkvmerge", "-o", "timelapse.mp4",
+    "mkvmerge", "-o", "timelapse.mkv",
     "--timestamps", "0:timestamps.txt",
-    "test.mjpeg"
+    "test.h264"
 ])
 merge.wait()
