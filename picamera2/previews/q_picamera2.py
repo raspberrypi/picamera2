@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from libcamera import Transform
 from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
@@ -171,14 +173,17 @@ class QPicamera2(QGraphicsView):
                     img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
                 else:
                     img = cv2.cvtColor(img, cv2.COLOR_YUV2RGB_YUYV)
-                width = stream_config["size"][0]
-                if width != stream_config["stride"]:
-                    img = img[:, :width, :]  # this will make it even more expensive!
             else:
-                raise RuntimeError("Qt preview cannot display YUV420/YUYV without cv2")
-        img = np.ascontiguousarray(img[..., :3])
-        shape = img.shape
-        qim = QImage(img.data, shape[1], shape[0], QImage.Format_RGB888)
+                logging.error("Qt preview cannot display YUV420/YUYV without cv2")
+                return
+
+        # Crop width for two reasons: (1) to remove "stride" padding from YUV images;
+        # (2) to ensure the RGB buffer passed to QImage has mandatory 4-byte alignment.
+        # [TODO: Consider QImage.Format_RGB32, if byte order can be made correct]
+        width = min(img.shape[1], stream_config["size"][0])
+        width -= width % 4
+        img = np.ascontiguousarray(img[:, :width, :3])
+        qim = QImage(img.data, width, img.shape[0], QImage.Format_RGB888)
         pix = QPixmap(qim)
         # Add the pixmap to the scene if there wasn't one, or replace it if the images have
         # changed size.
