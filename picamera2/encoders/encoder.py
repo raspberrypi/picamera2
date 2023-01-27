@@ -191,6 +191,8 @@ class Encoder:
 
     def stop(self):
         with self._lock:
+            if not self._running:
+                raise RuntimeError("Encoder already stopped")
             self._running = False
             for out in self._output:
                 out.stop()
