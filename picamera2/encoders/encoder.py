@@ -39,6 +39,10 @@ class Encoder:
         self.firsttimestamp = None
 
     @property
+    def running(self):
+        return self._running
+
+    @property
     def width(self):
         """Gets width
 

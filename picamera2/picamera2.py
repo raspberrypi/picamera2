@@ -874,6 +874,8 @@ class Picamera2:
         """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
+        if self.encoder is not None and self.encoder.running:
+            raise RuntimeError("Encoder must be stopped before configuring")
         initial_config = camera_config
         if isinstance(initial_config, str):
             if initial_config == "preview":
