@@ -2,6 +2,7 @@ import io
 import logging
 import threading
 import time
+from datetime import datetime
 
 import numpy as np
 import piexif
@@ -256,11 +257,14 @@ class Helpers:
                 img.mode = "RGBX"
             # Make up some extra EXIF data.
             if "AnalogueGain" in metadata and "DigitalGain" in metadata:
+                datetime_now = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
                 zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
                             piexif.ImageIFD.Model: self.picam2.camera.id,
-                            piexif.ImageIFD.Software: "Picamera2"}
+                            piexif.ImageIFD.Software: "Picamera2",
+                            piexif.ImageIFD.DateTime: datetime_now}
                 total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
-                exif_ifd = {piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                exif_ifd = {piexif.ExifIFD.DateTimeOriginal: datetime_now,
+                            piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
                             piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
                 exif = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
         # compress_level=1 saves pngs much faster, and still gets most of the compression.
