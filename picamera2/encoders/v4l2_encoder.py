@@ -26,7 +26,7 @@ class V4L2Encoder(Encoder):
         super().__init__()
         self.bufs = {}
         # The encoder's _setup method will calculate the final bitrate.
-        self._requested_bitrate = bitrate
+        self.bitrate = bitrate
         self._pixformat = pixformat
         self._controls = []
         self.vd = None
@@ -47,7 +47,7 @@ class V4L2Encoder(Encoder):
 
         ctrl = v4l2_control()
         ctrl.id = V4L2_CID_MPEG_VIDEO_BITRATE
-        ctrl.value = self._bitrate
+        ctrl.value = self.bitrate
         fcntl.ioctl(self.vd, VIDIOC_S_CTRL, ctrl)
 
         fmt = v4l2_format()

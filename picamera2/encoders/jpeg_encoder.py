@@ -28,7 +28,7 @@ class JpegEncoder(MultiEncoder):
         :type colour_subsampling: str, optional
         """
         super().__init__(num_threads=num_threads)
-        self.requested_q = q
+        self.q = q
         self.colour_space = colour_space
         self.colour_subsampling = colour_subsampling
 
@@ -49,7 +49,7 @@ class JpegEncoder(MultiEncoder):
                                       colorsubsampling=self.colour_subsampling)
 
     def _setup(self, quality):
-        if self.requested_q is None:
+        if getattr(self, "q", None) is None:
             # Image size and framerate isn't an issue here, you just get what you get.
             Q_TABLE = {Quality.VERY_LOW: 20,
                        Quality.LOW: 40,
@@ -57,5 +57,3 @@ class JpegEncoder(MultiEncoder):
                        Quality.HIGH: 75,
                        Quality.VERY_HIGH: 90}
             self.q = Q_TABLE[quality]
-        else:
-            self.q = self.requested_q
