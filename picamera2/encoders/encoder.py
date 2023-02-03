@@ -85,6 +85,27 @@ class Encoder:
         self._height = value
 
     @property
+    def size(self):
+        """Gets size
+
+        :return: Size of frames as (width, height)
+        :rtype: tuple
+        """
+        return (self._width, self._height)
+
+    @size.setter
+    def size(self, value):
+        """Sets size
+
+        :param value: Size
+        :type value: tuple
+        :raises RuntimeError: Failed to set size
+        """
+        if not isinstance(value, tuple) or len(value) != 2:
+            raise RuntimeError("Size must be a tuple of two integers")
+        self.width, self.height = value
+
+    @property
     def stride(self):
         """Gets stride
 
