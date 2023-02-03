@@ -13,6 +13,7 @@ examples/capture_video.py
 examples/controls.py
 examples/controls_2.py
 examples/display_transform_qtgl.py
+examples/dual_encode.py
 examples/easy_capture.py
 examples/easy_video.py
 examples/exposure_fixed.py
