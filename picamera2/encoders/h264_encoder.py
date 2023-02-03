@@ -48,14 +48,14 @@ class H264Encoder(V4L2Encoder):
                 codec_level = 42
 
         # If the bitrate is > 10Mbps then the level must be at least 4.1
-        if self._bitrate > 10000000 and codec_level == 40:
+        if self.bitrate > 10000000 and codec_level == 40:
             self._controls += [(V4L2_CID_MPEG_VIDEO_H264_LEVEL, V4L2_MPEG_VIDEO_H264_LEVEL_4_1)]
             codec_level = 41
 
         super()._start()
 
     def _setup(self, quality):
-        if self._requested_bitrate is None:
+        if getattr(self, "bitrate", None) is None:
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 2,
                              Quality.LOW: 4,
@@ -65,6 +65,4 @@ class H264Encoder(V4L2Encoder):
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * self.framerate
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self._bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
-        else:
-            self._bitrate = self._requested_bitrate
+            self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
