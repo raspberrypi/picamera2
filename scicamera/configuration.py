@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
 import libcamera
 
@@ -162,6 +162,23 @@ class CameraConfig:
         if config_name == "raw":
             return self.raw
         raise ValueError("Unknown config name " + config_name)
+
+    def get_stream_indices(self) -> Tuple[int, int, int]:
+        """Get the main, lores, and raw stream indices.
+
+        These indices will be -1 if unset.
+        """
+        # Get the indices of the streams we want to use.
+        index = 1
+        main_index = 0
+        lores_index = -1
+        raw_index = -1
+        if self.lores is not None:
+            lores_index = index
+            index += 1
+        if self.raw is not None:
+            raw_index = index
+        return main_index, lores_index, raw_index
 
     def __post_init__(self) -> None:
         if isinstance(self.controls, dict):

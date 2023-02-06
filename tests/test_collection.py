@@ -43,10 +43,14 @@ def test_xfail_list():
 def test_file(test_file_name):
     print(sys.path)
     success = False
+    process_env = os.environ.copy()
+    process_env["LIBCAMERA_LOG_LEVELS"] = "*:DEBUG"
+
     try:
         subprocess.run(
             ["python", test_file_name],
             cwd=this_folder,
+            env=process_env,
             timeout=20,
             capture_output=True,
             check=True,

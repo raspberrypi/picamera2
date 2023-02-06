@@ -463,19 +463,6 @@ class Camera:
         )
         libcamera_stream_config.buffer_count = buffer_count
 
-    def _get_stream_indices(self, camera_config: CameraConfig) -> Tuple[int, int, int]:
-        # Get the indices of the streams we want to use.
-        index = 1
-        main_index = 0
-        lores_index = -1
-        raw_index = -1
-        if camera_config.lores is not None:
-            lores_index = index
-            index += 1
-        if camera_config.raw is not None:
-            raw_index = index
-        return main_index, lores_index, raw_index
-
     # TODO(meawoppl) - Obviated by dataclasses
     def _make_libcamera_config(self, camera_config: CameraConfig):
         # Make a libcamera configuration object from our Python configuration.
@@ -484,7 +471,7 @@ class Camera:
         # configuration objects, and note the positions our named streams will have in
         # libcamera's stream list.
         roles = [VIEWFINDER]
-        main_index, lores_index, raw_index = self._get_stream_indices(camera_config)
+        main_index, lores_index, raw_index = camera_config.get_stream_indices()
         if camera_config.lores is not None:
             roles += [VIEWFINDER]
         if camera_config.raw is not None:
@@ -570,16 +557,17 @@ class Camera:
         :param libcamera_config: libcamera configuration
         :type libcamera_config: dict
         """
+        _, lores_index, raw_index = camera_config.get_stream_indices()
         camera_config.transform = libcamera_config.transform
         camera_config.color_space = libcamera_config.at(0).color_space
         camera_config.main = StreamConfig.from_lc_stream_config(libcamera_config.at(0))
-        if self.lores_index >= 0:
+        if lores_index >= 0:
             camera_config.lores = StreamConfig.from_lc_stream_config(
-                libcamera_config.at(self.lores_index)
+                libcamera_config.at(lores_index)
             )
-        if self.raw_index >= 0:
+        if raw_index >= 0:
             camera_config.raw = StreamConfig.from_lc_stream_config(
-                libcamera_config.at(self.raw_index)
+                libcamera_config.at(raw_index)
             )
 
     def _config_opts(self, config: str | dict | CameraConfig) -> CameraConfig:
@@ -621,9 +609,6 @@ class Camera:
         self.camera_config = None
 
         # Check the config and turn it into a libcamera config.
-        self.main_index, self.lores_index, self.raw_index = self._get_stream_indices(
-            camera_config
-        )
         libcamera_config = self._make_libcamera_config(camera_config)
 
         # Check that libcamera is happy with it.
@@ -636,8 +621,11 @@ class Camera:
             _log.info("Camera configuration has been adjusted!")
 
         # Configure libcamera.
-        if self.camera.configure(libcamera_config):
-            raise RuntimeError("Configuration failed: {}".format(camera_config))
+        config_call_code = self.camera.configure(libcamera_config)
+        if config_call_code:
+            raise RuntimeError(
+                f"Configuration failed ({config_call_code}): {camera_config}\n{libcamera_config}"
+            )
         _log.info("Configuration successful!")
         _log.debug(f"Final configuration: {camera_config}")
 
@@ -645,16 +633,12 @@ class Camera:
         self.camera_ctrl_info = lc_unpack_controls(self.camera.controls)
         self.camera_properties_ = lc_unpack(self.camera.properties)
 
+        indices = camera_config.get_stream_indices()
+        self.stream_map = {}
+        for idx, name in zip(indices, ("main", "lores", "raw")):
+            if idx >= 0:
+                self.stream_map[name] = libcamera_config.at(idx).stream
         # Record which libcamera stream goes with which of our names.
-        self.stream_map = {"main": libcamera_config.at(0).stream}
-        self.stream_map["lores"] = (
-            libcamera_config.at(self.lores_index).stream
-            if self.lores_index >= 0
-            else None
-        )
-        self.stream_map["raw"] = (
-            libcamera_config.at(self.raw_index).stream if self.raw_index >= 0 else None
-        )
         _log.debug(f"Streams: {self.stream_map}")
 
         # Allocate all the frame buffers.
