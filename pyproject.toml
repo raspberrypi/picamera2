@@ -3,9 +3,13 @@ profile = "black"
 
 [tool.poetry]
 name = "scicamera"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+readme="README.md"
+authors = ["Exclosure <info@exclosure.io>"]
+repository = "https://github.com/exclosure/scicamera"
+keywords = ["camera", "imaging", "RaspberryPi"]
+license="BSD"
 
 [tool.poetry.dependencies]
 python = "^3.9"
