@@ -29,3 +29,23 @@ black .
 ```
 
 Great work.
+
+## Publishing to PYPI
+
+Should be added to github action later
+
+1. Add your pypi token
+  ```sh
+  $ poetry config pypi-token.pypi my-token
+  ```
+
+2. Cut a new tag
+    ```sh
+    $ git tag -a v0.1.0 -m "Version 0.1.0"
+    $ git push origin v0.1.0
+    ```
+
+3. Publish
+  ```sh
+  $ poetry publish --build
+  ```
