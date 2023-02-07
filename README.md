@@ -1,24 +1,48 @@
-# scicamera
+# SciCamera
 
 ---
-This is a drastic refactor of _picamera2_ to a much smaller footprint and
-feature set that emphasises consistant and reliable imaging performance. 
+Consistent and reliable imaging for scientific applications.
 
-_scicamera_ is predominantly supported on:
-- Raspberry Pi OS Bullseye (or later) images 64-bit.
-- x86 Ubuntu (likely other debian flavors as well)
 
-**Our goals are performance, reliability, brevity, and maintainability.**
+## Why _SciCamera_?
+
+Scientific imaging applications often require minimal post-processing pipelines, 
+precise capture timing, near-gapless sequential frames, and easily 
+configurable settings like gain, resolution, bit-depth, and exposure 
+length. 
+
+This project, which began as fork of the webcam/video-focused [`picamera2`][picamera2]
+library, aims to make it easy to configure and use cameras for scientific applications,
+with a focus on _performance, reliability, code quality, and maintainability_.
+
+
+### Why not _SciCamera_?
+
+SciCamera currently focuses on high-quality, timing-sensitive, minimally-processed
+_still images_. For low-bandwidth, real-time image and video streaming, we recommend 
+the [`picamera2`][picamera2] library.
+
+
+## Platform support
+
+_SciCamera_ supports
+
+- Raspberry Pi OS (Bullseye or later), 64-bit.
+- x86 Ubuntu
+
+Other debian flavors are likely to be supported. We welcome pull requests to extend
+the testing toolchains to cover your platform.
 
 ## Installation
 
-_scicamera_ is a pure python package, but relies on the python
+_SciCamera_ is a pure python package, but relies on the python
 c++ wrapper of _libcamera_.
 
-_scicamera_ can be installed simply with:
+_SciCamera_ can be installed simply with:
 ```
 pip install scicamera
 ```
+
 ### Installing libcamera + python bindings
 
 Import and use of the above pacakge requires that `libcamera` to be built
@@ -74,3 +98,6 @@ Should be added to github action later
   ```sh
   $ poetry publish --build
   ```
+
+
+[picamera2]:https://github.com/raspberrypi/picamera2
