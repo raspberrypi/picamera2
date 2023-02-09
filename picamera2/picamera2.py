@@ -1433,7 +1433,7 @@ class Picamera2:
 
         functions = [partial(self.switch_mode_, camera_config),
                      partial(capture_image_and_switch_back_, self, preview_config, name)]
-        self.dispatch_functions(functions, wait, signal_function)
+        return self.dispatch_functions(functions, wait, signal_function)
 
     def start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM) -> None:
         """Start encoder
