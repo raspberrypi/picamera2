@@ -38,11 +38,13 @@ class FileOutput(Output):
         """Change file to output frames to"""
         self._split = False
         self._firstframe = True
+        self._needs_close = False
         if file is None:
             self._fileoutput = None
         else:
             if isinstance(file, str):
                 self._fileoutput = open(file, "wb")
+                self._needs_close = True
             elif isinstance(file, io.BufferedIOBase):
                 self._fileoutput = file
             else:
@@ -95,7 +97,8 @@ class FileOutput(Output):
     def close(self):
         """Closes all files"""
         try:
-            self._fileoutput.close()
+            if self._needs_close:
+                self._fileoutput.close()
         except (ConnectionResetError, ConnectionRefusedError, BrokenPipeError) as e:
             self.dead = True
             if self._connectiondead is not None:
