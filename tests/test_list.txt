@@ -18,6 +18,7 @@ examples/easy_capture.py
 examples/easy_video.py
 examples/exposure_fixed.py
 examples/frame_server.py
+examples/h264_constant_qp.py
 examples/metadata.py
 examples/mp4_capture.py
 examples/opencv_face_detect_2.py
