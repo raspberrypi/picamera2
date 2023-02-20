@@ -45,10 +45,11 @@ class V4L2Encoder(Encoder):
         cp = v4l2_capability()
         fcntl.ioctl(self.vd, VIDIOC_QUERYCAP, cp)
 
-        ctrl = v4l2_control()
-        ctrl.id = V4L2_CID_MPEG_VIDEO_BITRATE
-        ctrl.value = self.bitrate
-        fcntl.ioctl(self.vd, VIDIOC_S_CTRL, ctrl)
+        if self.bitrate is not None:
+            ctrl = v4l2_control()
+            ctrl.id = V4L2_CID_MPEG_VIDEO_BITRATE
+            ctrl.value = self.bitrate
+            fcntl.ioctl(self.vd, VIDIOC_S_CTRL, ctrl)
 
         fmt = v4l2_format()
         fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
