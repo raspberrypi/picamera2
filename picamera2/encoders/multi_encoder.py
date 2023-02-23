@@ -55,7 +55,7 @@ class MultiEncoder(Encoder):
         """
         fb = request.request.buffers[stream]
         timestamp_us = self._timestamp(fb)
-        buffer = self.encode_func(request, request.picam2.encode_stream_name)
+        buffer = self.encode_func(request, self.name)
         request.release()
         return (buffer, timestamp_us)
 
