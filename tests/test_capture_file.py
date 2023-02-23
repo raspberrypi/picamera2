@@ -2,6 +2,9 @@
 # Capture a JPEG while still running in the preview mode. When you
 # capture to a file, the return value is the metadata for that image.
 
+import os
+from tempfile import TemporaryDirectory
+
 from scicamera import Camera, CameraConfig
 
 camera = Camera()
@@ -13,7 +16,12 @@ camera.start_preview()
 
 camera.start()
 camera.discard_frames(2)
-metadata = camera.capture_file("test.jpg").result()
+with TemporaryDirectory() as tmpdir:
+    for extension in ["jpg", "png"]:
+        filepath = f"{tmpdir}/test.{extension}"
+        metadata = camera.capture_file(filepath).result()
+        assert os.path.isfile(filepath)
+
 print(metadata)
 
 camera.close()

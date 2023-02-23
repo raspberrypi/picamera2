@@ -11,6 +11,8 @@ camera.configure(preview_config)
 
 camera.start()
 camera.discard_frames(2)
-camera.set_controls({"AwbEnable": 0, "AeEnable": 0})
+
+if {"AwbEnable", "AeEnable"} <= camera.controls.available_control_names():
+    camera.set_controls({"AwbEnable": 0, "AeEnable": 0})
 camera.discard_frames(2).result()
 camera.close()

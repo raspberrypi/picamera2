@@ -18,6 +18,5 @@ image = request.make_image("main")  # image from the "main" stream
 metadata = request.get_metadata()
 request.release()  # requests must always be returned to libcamera
 
-image.show()
 print(metadata)
 camera.close()

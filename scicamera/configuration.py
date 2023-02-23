@@ -78,7 +78,7 @@ class StreamConfig:
         Raises RuntimeError if the configuration is invalid.
         """
         # Check the parameters for a single stream.
-        if self.format is not None:
+        if self.format not in [None, "MJPEG"]:
             _assert_type(self.format, str)
 
             if name == "raw":

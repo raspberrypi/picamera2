@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 
-from scicamera import Camera, CameraConfig
+from scicamera import Camera
+from scicamera.testing import requires_controls
 
 camera = Camera()
+
+requires_controls(camera, ("ExposureTime", "FrameRate"))
 
 # We're going to set up some configuration structures, apply each one in
 # turn and see if it gave us the configuration we expected.

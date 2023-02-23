@@ -1,5 +1,8 @@
 #!/usr/bin/python3
+from __future__ import annotations
+
 import threading
+from typing import Set
 
 from libcamera import ControlType, Rectangle, Size
 
@@ -32,13 +35,17 @@ class Controls:
         self._lock = threading.Lock()
         self.set_controls(controls)
 
+    def available_control_names(self) -> Set[str]:
+        """Returns a set of all available control names"""
+        return set(self._camera.camera_ctrl_info.keys())
+
     def __setattr__(self, name, value):
         if not name.startswith("_"):
             if name in Controls._VIRTUAL_FIELDS_MAP_:
                 real_field = Controls._VIRTUAL_FIELDS_MAP_[name]
                 name = real_field[0]
                 value = real_field[1](value)
-            if name not in self._camera.camera_ctrl_info.keys():
+            if name not in self.available_control_names():
                 raise RuntimeError(f"Control {name} is not advertised by libcamera")
             self._controls.append(name)
         self.__dict__[name] = value
@@ -53,14 +60,7 @@ class Controls:
     def __repr__(self):
         return f"<Controls: {self.make_dict()}>"
 
-    def __enter__(self):
-        self._lock.acquire()
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self._lock.release()
-
-    def set_controls(self, controls):
+    def set_controls(self, controls: dict | Controls):
         with self._lock:
             if isinstance(controls, dict):
                 for k, v in controls.items():

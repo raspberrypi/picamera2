@@ -6,9 +6,9 @@ from scicamera.request import CompletedRequest
 
 camera = Camera()
 half_resolution = tuple(dim // 2 for dim in camera.sensor_resolution)
-main_stream = {"size": half_resolution}
-lores_stream = {"size": (640, 480)}
-video_config = CameraConfig.for_video(camera, main=main_stream, lores=lores_stream)
+video_config = CameraConfig.for_video(
+    camera, main={"size": half_resolution}, lores={"size": half_resolution}
+)
 camera.configure(video_config)
 camera.start()
 

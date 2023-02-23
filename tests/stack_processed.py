@@ -33,7 +33,13 @@ camera = Camera(tuning=tuning)
 config = CameraConfig.for_still(camera, {"format": "RGB888"}, buffer_count=2)
 camera.configure(config)
 images = []
-camera.set_controls({"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0})
+
+# NOTE(meawoppl) pytest.skip here
+available = camera.controls.available_control_names()
+if {"ExposureTime", "AnalogueGain"}.issubset(available):
+    camera.set_controls(
+        {"ExposureTime": exposure_time // num_frames, "AnalogueGain": 1.0}
+    )
 camera.start()
 
 for i in range(num_frames):
