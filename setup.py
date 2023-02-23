@@ -4,14 +4,21 @@
 # Copyright (c) 2021-2022 Raspberry Pi & Raspberry Pi Foundation
 # SPDX-License-Identifier: BSD-2-Clause
 
+import configparser
+
 from setuptools import setup
+
+parser = configparser.ConfigParser()
+parser.read("pyproject.toml")
+version = parser["tool.poetry"]["version"]
+
 
 with open("README.md") as readme:
     long_description = readme.read()
 
 setup(
     name="scicamera",
-    version="1.0.0",
+    version=version,
     description="The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -28,6 +35,7 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3.9",
+        "Topic :: Scientific/Engineering :: Astronomy",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
     ],
     packages=["scicamera"],
