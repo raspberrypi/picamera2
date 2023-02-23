@@ -11,7 +11,7 @@ import threading
 import time
 from enum import Enum
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import libcamera
 import numpy as np
@@ -270,7 +270,7 @@ class Picamera2:
         self.frames = 0
         self._job_list = []
         self.options = {}
-        self._encoder = None
+        self._encoders = set()
         self.pre_callback = None
         self.post_callback = None
         self.completed_requests: List[CompletedRequest] = []
@@ -873,8 +873,6 @@ class Picamera2:
         """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
-        if self.encoder is not None and self.encoder.running:
-            raise RuntimeError("Encoder must be stopped before configuring")
         initial_config = camera_config
         if isinstance(initial_config, str):
             if initial_config == "preview":
@@ -937,9 +935,6 @@ class Picamera2:
         self.encode_stream_name = camera_config['encode']
         if self.encode_stream_name is not None and self.encode_stream_name not in camera_config:
             raise RuntimeError(f"Encode stream {self.encode_stream_name} was not defined")
-        elif self.encode_stream_name is None:
-            # If no encode stream then remove the encoder
-            self._encoder = None
 
         # Decide whether we are going to keep hold of the last completed request, or
         # whether capture requests will always wait for the next frame. If there's only
@@ -990,7 +985,7 @@ class Picamera2:
         if self.camera_config is None:
             raise RuntimeError("Camera has not been configured")
         if self.started:
-            raise RuntimeError("Camera already started")
+            return
         controls = self.controls.get_libcamera_controls()
         self.controls = Controls(self)
         if self.camera.start(controls) >= 0:
@@ -1114,17 +1109,15 @@ class Picamera2:
                 if self._job_list[0].execute():
                     finished_jobs.append(self._job_list.pop(0))
 
-            if self.encode_stream_name in self.stream_map:
-                stream = self.stream_map[self.encode_stream_name]
-
             for req in requests:
                 # Some applications may want to do something to the image after they've had a change
                 # to copy it, but before it goes to the video encoder.
                 if self.post_callback:
                     self.post_callback(req)
 
-                if self._encoder is not None:
-                    self._encoder.encode(stream, req)
+                for encoder in self._encoders:
+                    if encoder.name in self.stream_map:
+                        encoder.encode(self.stream_map[encoder.name], req)
 
                 req.release()
 
@@ -1434,63 +1427,90 @@ class Picamera2:
                      partial(capture_image_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function)
 
-    def start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM) -> None:
+    def start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM, name=None) -> None:
         """Start encoder
 
         :param encoder: Sets encoder or uses existing, defaults to None
         :type encoder: Encoder, optional
         :raises RuntimeError: No encoder set or no stream
         """
+        _encoder = None
         if encoder is not None:
-            self.encoder = encoder
+            _encoder = encoder
+        else:
+            if len(self._encoders) > 1:
+                raise RuntimeError("Multiple possible encoders, need to pass encoder")
+            elif len(self._encoders) == 1:
+                _encoder = list(self._encoders)[0]
+        if _encoder is None:
+            raise RuntimeError("No encoder specified")
         if output is not None:
             if isinstance(output, str):
                 output = FileOutput(output, pts=pts)
-            encoder.output = output
+            _encoder.output = output
         streams = self.camera_configuration()
-        if self.encoder is None:
-            raise RuntimeError("No encoder specified")
-        name = self.encode_stream_name
+        if name is None:
+            name = self.encode_stream_name
         if streams.get(name, None) is None:
             raise RuntimeError(f"Encode stream {name} was not defined")
-        self.encoder.width, self.encoder.height = streams[name]['size']
-        self.encoder.format = streams[name]['format']
-        self.encoder.stride = streams[name]['stride']
+        _encoder.name = name
+        _encoder.width, _encoder.height = streams[name]['size']
+        _encoder.format = streams[name]['format']
+        _encoder.stride = streams[name]['stride']
         # Also give the encoder a nominal framerate, which we'll peg at 30fps max
         # in case we only have a dummy value
         min_frame_duration = self.camera_ctrl_info["FrameDurationLimits"][1].min
         min_frame_duration = max(min_frame_duration, 33333)
-        self.encoder.framerate = 1000000 / min_frame_duration
+        _encoder.framerate = 1000000 / min_frame_duration
         # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
-        self.encoder._setup(quality)
-        self.encoder.start()
+        _encoder._setup(quality)
+        _encoder.start()
+        with self.lock:
+            self._encoders.add(_encoder)
 
-    def stop_encoder(self) -> None:
+    def stop_encoder(self, encoders=None) -> None:
         """Stops the encoder"""
-        self.encoder.stop()
+        remove = []
+        if encoders is None:
+            for encoder in self._encoders:
+                encoder.stop()
+                remove += [encoder]
+        elif isinstance(encoders, Encoder):
+            encoders.stop()
+            remove += [encoders]
+        elif isinstance(encoders, list) or isinstance(encoders, set):
+            for encoder in encoders:
+                encoder.stop()
+                remove += [encoder]
+        with self.lock:
+            for encoder in remove:
+                self._encoders.remove(encoder)
 
     @property
-    def encoder(self) -> Optional[Encoder]:
-        """Extract current Encoder object
+    def encoders(self) -> set[Encoder]:
+        """Extract current Encoder objects
 
-        :return: Encoder
-        :rtype: Encoder
+        :return: Set of encoders
+        :rtype: set
         """
-        return self._encoder
+        return self._encoders
 
-    @encoder.setter
-    def encoder(self, value):
+    @encoders.setter
+    def encoders(self, value):
         """Set Encoder to be used
 
         :param value: Encoder to be set
         :type value: Encoder
         :raises RuntimeError: Fail to pass Encoder
         """
-        if not isinstance(value, Encoder):
-            raise RuntimeError("Must pass encoder instance")
-        self._encoder = value
+        if isinstance(value, Encoder):
+            self._encoders.add(value)
+        elif isinstance(value, set):
+            self._encoders.update(value)
+        else:
+            raise RuntimeError("Must pass Encoder or set of")
 
-    def start_recording(self, encoder, output, pts=None, config=None, quality=Quality.MEDIUM) -> None:
+    def start_recording(self, encoder, output, pts=None, config=None, quality=Quality.MEDIUM, name=None) -> None:
         """Start recording a video using the given encoder and to the given output.
 
         Output may be a string in which case the correspondingly named file is opened.
@@ -1504,7 +1524,7 @@ class Picamera2:
             config = "video"
         if config is not None:
             self.configure(config)
-        self.start_encoder(encoder, output, pts=pts, quality=quality)
+        self.start_encoder(encoder, output, pts=pts, quality=quality, name=name)
         self.start()
 
     def stop_recording(self) -> None:

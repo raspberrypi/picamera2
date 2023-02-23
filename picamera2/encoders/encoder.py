@@ -35,6 +35,7 @@ class Encoder:
         self._format = None
         self._output = []
         self._running = False
+        self._name = None
         self._lock = threading.Lock()
         self.firsttimestamp = None
 
@@ -185,6 +186,27 @@ class Encoder:
             raise RuntimeError("Must pass Output")
         self._output = value
 
+    @property
+    def name(self):
+        """Gets stream name
+
+        :return: Name
+        :rtype: str
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """Sets stream name
+
+        :param value: Name
+        :type value: str
+        :raises RuntimeError: Failed to set name
+        """
+        if not isinstance(value, str):
+            raise RuntimeError("Name must be string")
+        self._name = value
+
     def encode(self, stream, request):
         """Encode a frame
 
@@ -199,7 +221,7 @@ class Encoder:
     def _encode(self, stream, request):
         fb = request.request.buffers[stream]
         timestamp_us = self._timestamp(fb)
-        with _MappedBuffer(request, request.picam2.encode_stream_name) as b:
+        with _MappedBuffer(request, self.name) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
     def start(self):
