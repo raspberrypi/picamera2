@@ -283,7 +283,7 @@ class Helpers:
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)
 
-        camera = Picamera2Camera(config, metadata)
+        camera = Picamera2Camera(config.copy(), metadata)
         r = PICAM2DNG(camera)
 
         dng_compress_level = self.picam2.options.get("compress_level", 0)
