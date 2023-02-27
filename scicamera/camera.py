@@ -270,8 +270,9 @@ class Camera(RequestMachinery):
 
     def __del__(self):
         """Without this libcamera will complain if we shut down without closing the camera."""
-        _log.warning(f"__del__ call responsible for cleanup of {self}")
-        self.close()
+        if self.is_open: 
+            _log.warning(f"__del__ call responsible for cleanup of {self}")
+            self.close()
 
     def _grab_camera(self, idx: str | int):
         if isinstance(idx, str):
