@@ -6,6 +6,32 @@
 
 ### Changed
 
+## 0.3.9 Beta Release 8
+
+## Unreleased (on "next" branch)
+
+### Added
+
+* MJPEG server example added that uses the hardware MJPEG encoder.
+* Example showing previews from two cameras in a single Qt app.
+* H264 encoder can accept a frame time interval to be put in the SPS headers.
+* H264 encoder should now advertise the correct level in streams for higher bitrates.
+* Exif DateTime and DateTimeOriginal tags are now added.
+* H264 encoder now supports a constant quality parameter.
+
+### Changed
+
+* JpegEncoder chooses pixel format automatically from the stream format.
+* Work around OpenGL import error on 64-bit OS Lite images.
+* FFmpeg: use the audio_samplerate parameter correctly.
+* camera_controls are converted to native Python types (tuples, not libcamera.Rectangle objects).
+* Camera configuration will fail if an encoder is still running.
+* Encoder interface tidied to make it easier to run a second encode "by hand" (example included).
+* Picamera2 updated for the latest libcamera which changes colour space handling.
+* Encoder outputs no longer close files that they didn't open.
+* CircularOutput class now flushes the fifo correctly when outputs are closed.
+* Bug fix when capturing several DNG files back to back.
+
 ## 0.3.8 Beta Release 7
 
 ### Added
