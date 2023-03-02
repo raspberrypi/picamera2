@@ -63,3 +63,4 @@ tests/preview_cycle_test.py
 tests/preview_location_test.py
 tests/preview_start_stop.py
 tests/qt_gl_preview_test.py
+tests/stop_slow_framerate.py
