@@ -11,7 +11,8 @@ Rules-Requires-Root: no
 
 Package: python3-picamera2
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3-kms++, python3-libcamera (>= 0~git20230105+5df5b72c-1)
+Depends: ${python3:Depends}, ${misc:Depends}, python3-kms++, python3-libcamera (>= 0~git20230302+923f5d70-1),
+ python3-v4l2 (>= 0.3.2)
 Recommends: python3-pyqt5, python3-opengl
 Description: Libcamera based python library 
  Libcamera-based replacement for Picamera which was a Python interface to the
