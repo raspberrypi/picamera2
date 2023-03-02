@@ -130,32 +130,35 @@ if __name__ == '__main__':
                         default='/home/pi/picamera2_tests', help='Folder in which to run tests')
     parser.add_argument('--picamera2-dir', '-p', action='store', type=directoryexists,
                         default='/home/pi/picamera2', help='Location of picamera2 folder')
-    parser.add_argument('--test-list-file', '-t', action='store',
-                        default='tests/test_list.txt', help='File containing list of tests to run')
-    parser.add_argument('--test-list-file-drm', '-t2', action='store',
-                        default='tests/test_list_drm.txt', help='File containing list of tests to run')
+    parser.add_argument('--test-list-files', '-t', action='store',
+                        default='test_list_drm.txt, test_list.txt',
+                        help='Comma-separated list of files, each containing a list of tests to run')
     args = parser.parse_args()
 
     dir = args.dir
     picamera2_dir = args.picamera2_dir
-    test_list_file_x = os.path.join(picamera2_dir, args.test_list_file)
-    test_list_file_drm = os.path.join(picamera2_dir, args.test_list_file_drm)
+    test_dir = os.path.join(picamera2_dir, "tests")
+    test_list_files = [os.path.join(test_dir, file.strip()) for file in args.test_list_files.split(",")]
 
     print("dir:", dir)
     print("Picamera2 dir:", picamera2_dir)
-    print("Test list file X:", test_list_file_x)
-    print("Test list file DRM:", test_list_file_drm)
+    print("Test list files:", test_list_files)
 
-    xtests = load_test_list(test_list_file_x, picamera2_dir)
-    drmtests = load_test_list(test_list_file_drm, picamera2_dir)
+    all_tests = [load_test_list(file, picamera2_dir) for file in test_list_files]
 
     if not os.path.exists(dir):
         os.makedirs(dir)
     os.chdir(dir)
 
-    print("Running", len(xtests) + len(drmtests), "tests")
+    print("Running", sum([len(tests) for tests in all_tests]), "tests")
     print()
-    num_failed = run_tests(drmtests, xserver=False) + run_tests(xtests, xserver=True)
+
+    num_failed = 0
+    for name, tests in zip(test_list_files, all_tests):
+        print("Running tests in", name)
+        # There is a convention here that tests with "drm" in the name will run without X
+        xserver = "drm" not in name
+        num_failed += run_tests(tests, xserver=xserver)
     print()
     if num_failed == 0:
         print("ALL TESTS PASSED!")
