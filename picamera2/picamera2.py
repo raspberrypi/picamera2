@@ -1145,6 +1145,10 @@ class Picamera2:
         for job in finished_jobs:
             job.signal()
 
+    def _run_process_requests(self):
+        """Cause the process_requests method to run in the event loop again."""
+        os.write(self.notifyme_w, b"\x00")
+
     def wait(self, job):
         """Wait for the given job to finish (if necessary) and return its final result.
 
@@ -1154,7 +1158,7 @@ class Picamera2:
         """
         return job.get_result()
 
-    def dispatch_functions(self, functions, wait, signal_function=None) -> None:
+    def dispatch_functions(self, functions, wait, signal_function=None, immediate=False) -> None:
         """The main thread should use this to dispatch a number of operations for the event loop to perform.
 
         When there are multiple items each will be processed on a separate
@@ -1164,8 +1168,16 @@ class Picamera2:
         if wait is None:
             wait = signal_function is None
         with self.lock:
+            only_job = not self._job_list
             job = Job(functions, signal_function)
             self._job_list.append(job)
+            # If we're the only job now, and there are completed_requests queued up, then
+            # it's worth prodding the event loop immediately as that request may be all we
+            # need. We also prod the event loop if "immediate" is set, which can happen for
+            # operations that begin by stopping the camera (such as mode switches, or simple
+            # stop commands, for which no requests are needed).
+            if only_job and (self.completed_requests or immediate):
+                self._run_process_requests()
         return job.get_result() if wait else job
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
