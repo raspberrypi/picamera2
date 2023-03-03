@@ -1109,10 +1109,12 @@ class Picamera2:
             # See if we have a job to do. When executed, if it returns True then it's done and
             # we can discard it. Otherwise it remains here to be tried again next time.
             finished_jobs = []
-            while self._job_list and self.completed_requests:
+            while self._job_list:
                 _log.debug(f"Execute job: {self._job_list[0]}")
                 if self._job_list[0].execute():
                     finished_jobs.append(self._job_list.pop(0))
+                else:
+                    break
 
             if self.encode_stream_name in self.stream_map:
                 stream = self.stream_map[self.encode_stream_name]
@@ -1167,6 +1169,8 @@ class Picamera2:
         return job.get_result() if wait else job
 
     def capture_file_(self, file_output, name: str, format=None) -> dict:
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         if name == "raw" and formats.is_raw(self.camera_config["raw"]["format"]):
             request.save_dng(file_output)
@@ -1255,6 +1259,8 @@ class Picamera2:
 
     def capture_request_(self):
         # The "use" of this request is transferred from the completed_requests list to the caller.
+        if not self.completed_requests:
+            return (False, None)
         return (True, self.completed_requests.pop(0))
 
     def capture_request(self, wait=None, signal_function=None):
@@ -1270,7 +1276,9 @@ class Picamera2:
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
 
         def capture_request_and_stop_(self):
-            _, result = self.capture_request_()
+            done, result = self.capture_request_()
+            if not done:
+                return (False, None)
             self.stop_()
             return (True, result)
 
@@ -1279,6 +1287,8 @@ class Picamera2:
         return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_metadata_(self):
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         result = request.get_metadata()
         request.release()
@@ -1290,6 +1300,8 @@ class Picamera2:
         return self._execute_or_dispatch(function, wait, signal_function)
 
     def capture_buffer_(self, name):
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         result = request.make_buffer(name)
         request.release()
@@ -1300,6 +1312,8 @@ class Picamera2:
         return self._execute_or_dispatch(partial(self.capture_buffer_, name), wait, signal_function)
 
     def capture_buffers_and_metadata_(self, names) -> Tuple[List[np.ndarray], dict]:
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         result = ([request.make_buffer(name) for name in names], request.get_metadata())
         request.release()
@@ -1342,6 +1356,8 @@ class Picamera2:
         return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_array_(self, name):
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         result = request.make_array(name)
         request.release()
@@ -1352,6 +1368,8 @@ class Picamera2:
         return self._execute_or_dispatch(partial(self.capture_array_, name), wait, signal_function)
 
     def capture_arrays_and_metadata_(self, names) -> Tuple[List[np.ndarray], Dict[str, Any]]:
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         result = ([request.make_array(name) for name in names], request.get_metadata())
         request.release()
@@ -1399,6 +1417,8 @@ class Picamera2:
         :param name: Stream name
         :type name: str
         """
+        if not self.completed_requests:
+            return (False, None)
         request = self.completed_requests.pop(0)
         result = request.make_image(name)
         request.release()
@@ -1680,6 +1700,8 @@ class Picamera2:
         self.set_controls({"AfMode": controls.AfModeEnum.Auto, "AfTrigger": controls.AfTriggerEnum.Start})
 
         def wait_for_af_state(self, states):
+            if not self.completed_requests:
+                return (False, None)
             af_state = self.completed_requests[0].get_metadata()['AfState']
             self.completed_requests.pop(0).release()
             return (af_state in states, af_state == controls.AfStateEnum.Focused)
