@@ -1193,22 +1193,6 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def _execute_or_dispatch(self, function, wait, signal_function):
-        if wait is None:
-            wait = signal_function is None
-        finished_job = None
-        with self.lock:
-            job = Job([function], signal_function)
-            # We can only run right now if we're the only job in the queue.
-            only_job = not self._job_list
-            self._job_list.append(job)
-            if only_job and self.completed_requests:
-                if job.execute():
-                    finished_job = self._job_list.pop(0)
-        if finished_job:
-            finished_job.signal()
-        return job.get_result() if wait else job
-
     def capture_file(
             self,
             file_output,
@@ -1220,8 +1204,8 @@ class Picamera2:
 
         Return the metadata for the frame captured.
         """
-        return self._execute_or_dispatch(partial(self.capture_file_, file_output, name, format=format),
-                                         wait, signal_function)
+        functions = [partial(self.capture_file_, file_output, name, format=format)]
+        return self.dispatch_functions(functions, wait, signal_function)
 
     def switch_mode_(self, camera_config):
         self.stop_()
@@ -1281,8 +1265,8 @@ class Picamera2:
         You will be holding a reference to this request so you must release it again to return it
         to the camera system.
         """
-        function = self.capture_request_
-        return self._execute_or_dispatch(function, wait, signal_function)
+        functions = [self.capture_request_]
+        return self.dispatch_functions(functions, wait, signal_function)
 
     def switch_mode_capture_request_and_stop(self, camera_config, wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
@@ -1308,8 +1292,8 @@ class Picamera2:
 
     def capture_metadata(self, wait=None, signal_function=None):
         """Fetch the metadata from the next camera frame."""
-        function = self.capture_metadata_
-        return self._execute_or_dispatch(function, wait, signal_function)
+        functions = [self.capture_metadata_]
+        return self.dispatch_functions(functions, wait, signal_function)
 
     def capture_buffer_(self, name):
         if not self.completed_requests:
@@ -1321,7 +1305,7 @@ class Picamera2:
 
     def capture_buffer(self, name="main", wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame in the named stream."""
-        return self._execute_or_dispatch(partial(self.capture_buffer_, name), wait, signal_function)
+        return self.dispatch_functions([partial(self.capture_buffer_, name)], wait, signal_function)
 
     def capture_buffers_and_metadata_(self, names) -> Tuple[List[np.ndarray], dict]:
         if not self.completed_requests:
@@ -1333,7 +1317,7 @@ class Picamera2:
 
     def capture_buffers(self, names=["main"], wait=None, signal_function=None):
         """Make a 1d numpy array from the next frame for each of the named streams."""
-        return self._execute_or_dispatch(partial(self.capture_buffers_and_metadata_, names), wait, signal_function)
+        return self.dispatch_functions([partial(self.capture_buffers_and_metadata_, names)], wait, signal_function)
 
     def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the first buffer.
@@ -1377,7 +1361,7 @@ class Picamera2:
 
     def capture_array(self, name="main", wait=None, signal_function=None):
         """Make a 2d image from the next frame in the named stream."""
-        return self._execute_or_dispatch(partial(self.capture_array_, name), wait, signal_function)
+        return self.dispatch_functions([partial(self.capture_array_, name)], wait, signal_function)
 
     def capture_arrays_and_metadata_(self, names) -> Tuple[List[np.ndarray], Dict[str, Any]]:
         if not self.completed_requests:
@@ -1389,7 +1373,7 @@ class Picamera2:
 
     def capture_arrays(self, names=["main"], wait=None, signal_function=None):
         """Make 2d image arrays from the next frames in the named streams."""
-        return self._execute_or_dispatch(partial(self.capture_arrays_and_metadata_, names), wait, signal_function)
+        return self.dispatch_functions([partial(self.capture_arrays_and_metadata_, names)], wait, signal_function)
 
     def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None):
         """Switch the camera into a new (capture) mode, capture the image array data.
@@ -1448,7 +1432,7 @@ class Picamera2:
         :return: PIL Image
         :rtype: Image
         """
-        return self._execute_or_dispatch(partial(self.capture_image_, name), wait, signal_function)
+        return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
     def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None,
                                       signal_function=None) -> Image:
