@@ -1075,8 +1075,6 @@ class Picamera2:
         with self._requestslock:
             requests = self._requests
             self._requests = []
-        if requests == []:
-            return
         self.frames += len(requests)
         # It works like this:
         # * We maintain a list of the requests that libcamera has completed (completed_requests).
@@ -1097,8 +1095,10 @@ class Picamera2:
             self.completed_requests += requests
 
             # This is the request we'll hand back to be displayed. This counts as a "use" too.
-            display_request = self.completed_requests[-1]
-            display_request.acquire()
+            display_request = None
+            if requests:
+                display_request = requests[-1]
+                display_request.acquire()
 
             if self.pre_callback:
                 for req in requests:
@@ -1134,10 +1134,11 @@ class Picamera2:
 
         # If one of the functions we ran reconfigured the camera since this request came out,
         # then we don't want it going back to the application as the memory is not valid.
-        if display_request.configure_count == self.configure_count and \
-           display_request.config['display'] is not None:
-            display.render_request(display_request)
-        display_request.release()
+        if display_request is not None:
+            if display_request.configure_count == self.configure_count and \
+               display_request.config['display'] is not None:
+                display.render_request(display_request)
+            display_request.release()
 
         for job in finished_jobs:
             job.signal()
