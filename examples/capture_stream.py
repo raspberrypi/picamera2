@@ -17,11 +17,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     sock.bind(("0.0.0.0", 10001))
     sock.listen()
 
-    picam2.encoder = encoder
+    picam2.encoders = encoder
 
     conn, addr = sock.accept()
     stream = conn.makefile("wb")
-    picam2.encoder.output = FileOutput(stream)
+    encoder.output = FileOutput(stream)
     picam2.start_encoder()
     picam2.start()
     time.sleep(20)
