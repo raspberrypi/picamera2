@@ -11,6 +11,7 @@ examples/capture_png.py
 examples/capture_to_buffer.py
 examples/capture_video.py
 examples/capture_video_multiple.py
+examples/capture_video_multiple_2.py
 examples/controls.py
 examples/controls_2.py
 examples/display_transform_qtgl.py
