@@ -1461,7 +1461,11 @@ class Picamera2:
         # in case we only have a dummy value
         min_frame_duration = self.camera_ctrl_info["FrameDurationLimits"][1].min
         min_frame_duration = max(min_frame_duration, 33333)
-        _encoder.framerate = 1000000 / min_frame_duration
+        try:
+            if _encoder.framerate is None:
+                _encoder.framerate = 1000000 / min_frame_duration
+        except AttributeError:
+            pass
         # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
         _encoder._setup(quality)
         _encoder.start()

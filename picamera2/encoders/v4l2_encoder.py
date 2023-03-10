@@ -30,7 +30,8 @@ class V4L2Encoder(Encoder):
         self._pixformat = pixformat
         self._controls = []
         self.vd = None
-        self._framerate = None
+        self.framerate = None
+        self._enable_framerate = False
 
     def _start(self):
         self.vd = open('/dev/video11', 'rb+', buffering=0)
@@ -74,14 +75,14 @@ class V4L2Encoder(Encoder):
         fmt.fmt.pix_mp.plane_fmt[0].sizeimage = 512 << 10
         fcntl.ioctl(self.vd, VIDIOC_S_FMT, fmt)
 
-        if self._framerate is not None and self._enable_framerate:
+        if self.framerate is not None and self._enable_framerate:
             # Some codecs, such as H264, support this parameter. Our other codecs do not,
-            # and do not allow you to set the _framerate property.
+            # and do not allow you to set the framerate property.
             sparm = v4l2_streamparm()
             sparm.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
             sparm.parm.output.capabilities = V4L2_CAP_TIMEPERFRAME
             sparm.parm.output.timeperframe.numerator = 1000
-            sparm.parm.output.timeperframe.denominator = round(self._framerate * 1000)
+            sparm.parm.output.timeperframe.denominator = round(self.framerate * 1000)
             fcntl.ioctl(self.vd, VIDIOC_S_PARM, sparm)
 
         if len(self._controls) > 0:
