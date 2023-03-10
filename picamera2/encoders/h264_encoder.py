@@ -37,7 +37,7 @@ class H264Encoder(V4L2Encoder):
         self.qp = qp
         # The framerate can be reported in the sequence headers if enable_sps_framerate is set,
         # but there's no guarantee that frames will be delivered to the codec at that rate!
-        self._framerate = framerate
+        self.framerate = framerate
         self._enable_framerate = enable_sps_framerate
 
     def _start(self):
@@ -51,8 +51,8 @@ class H264Encoder(V4L2Encoder):
         codec_level = 40
         # We may need to up the codec level to 4.2 if we have a guidance framerate and the
         # required macroblocks per second is too high.
-        if self._framerate is not None:
-            mbs_per_sec = ((self._width + 15) // 16) * ((self._height + 15) // 16) * self._framerate
+        if self.framerate is not None:
+            mbs_per_sec = ((self._width + 15) // 16) * ((self._height + 15) // 16) * self.framerate
             if mbs_per_sec > 245760:
                 self._controls += [(V4L2_CID_MPEG_VIDEO_H264_LEVEL, V4L2_MPEG_VIDEO_H264_LEVEL_4_2)]
                 codec_level = 42
