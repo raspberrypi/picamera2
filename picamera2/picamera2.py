@@ -650,7 +650,8 @@ class Picamera2:
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
-        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
+        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
+                                               raw, self._raw_stream_ignore_list)
         # Let the framerate span the entire possible range of the sensor.
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
@@ -678,7 +679,8 @@ class Picamera2:
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
-        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]}, raw)
+        raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
+                                               raw, self._raw_stream_ignore_list)
         if colour_space is None:
             # Choose default colour space according to the video resolution.
             if main["size"][0] < 1280 or main["size"][1] < 720:
