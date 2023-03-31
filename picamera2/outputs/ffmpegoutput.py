@@ -76,7 +76,7 @@ class FfmpegOutput(Output):
         super().stop()
         if self.ffmpeg is not None:
             self.ffmpeg.stdin.close()  # FFmpeg needs this to shut down tidily
-            self.ffmpeg.terminate()
+            self.ffmpeg.wait()
             self.ffmpeg = None
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
