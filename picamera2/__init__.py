@@ -1,3 +1,5 @@
+import os
+
 import libcamera
 
 from .configuration import CameraConfiguration, StreamConfiguration
@@ -6,6 +8,21 @@ from .converters import YUV420_to_RGB
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .request import CompletedRequest, MappedArray
+
+
+def _set_configuration_file(filename):
+    user = os.environ.get('USER', "pi")
+    dirs = [os.path.join("/home", user, "libcamera/src/libcamera/pipeline/rpi/vc4/data"),
+            "/usr/local/share/libcamera/pipeline/rpi/vc4",
+            "/usr/share/libcamera/pipeline/rpi/vc4"]
+    for dir in dirs:
+        file = os.path.join(dir, filename)
+        if os.path.isfile(file):
+            os.environ['LIBCAMERA_RPI_CONFIG_FILE'] = file
+            break
+
+
+_set_configuration_file("rpi_apps.yaml")
 
 
 def libcamera_transforms_eq(t1, t2):

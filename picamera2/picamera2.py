@@ -603,6 +603,10 @@ class Picamera2:
                 raise ValueError(f"Bad key {key!r}: valid stream configuration keys are {valid}")
         return stream_config
 
+    def _is_rpi_camera(self):
+        """Is this camera handled by Raspberry Pi code or not (e.g. a USB cam)"""
+        return 'ColorFilterArrangement' in self.camera_properties
+
     @staticmethod
     def _add_display_and_encode(config, display, encode) -> None:
         if display is not None and config.get(display, None) is None:
@@ -614,12 +618,15 @@ class Picamera2:
 
     _raw_stream_ignore_list = ["bit_depth", "crop_limits", "exposure_limits", "fps", "unpacked"]
 
-    def create_preview_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(),
+    def create_preview_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                      colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={},
                                      display="main", encode="main", queue=True) -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
+        # USB cams can't deliver a raw stream.
+        if not self._is_rpi_camera():
+            raw = None
         main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
         self.align_stream(main, optimal=False)
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
@@ -643,12 +650,15 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
-    def create_still_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(),
+    def create_still_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={},
                                    display=None, encode=None, queue=True) -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
+        # USB cams can't deliver a raw stream.
+        if not self._is_rpi_camera():
+            raw = None
         main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
         self.align_stream(main, optimal=False)
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
@@ -672,12 +682,15 @@ class Picamera2:
         self._add_display_and_encode(config, display, encode)
         return config
 
-    def create_video_configuration(self, main={}, lores=None, raw=None, transform=libcamera.Transform(),
+    def create_video_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=None, buffer_count=6, controls={}, display="main",
                                    encode="main", queue=True) -> dict:
         """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
+        # USB cams can't deliver a raw stream.
+        if not self._is_rpi_camera():
+            raw = None
         main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
         self.align_stream(main, optimal=False)
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
