@@ -481,6 +481,8 @@ class Picamera2:
         return self.sensor_modes_
 
     def attach_preview(self, preview) -> None:
+        if self._preview:
+            raise RuntimeError("Preview is already running")
         self._preview = preview
         self._event_loop_running = True
 
