@@ -33,6 +33,17 @@ class V4L2Encoder(Encoder):
         self.framerate = None
         self._enable_framerate = False
 
+    @property
+    def _v4l2_format(self):
+        """The input format to the codec, as a V4L2 type."""
+        FORMAT_TABLE = {"RGB888": V4L2_PIX_FMT_BGR24,
+                        "XBGR8888": V4L2_PIX_FMT_BGR32,
+                        "XRGB8888": V4L2_PIX_FMT_RGBA32,
+                        "YUV420": V4L2_PIX_FMT_YUV420}
+        if self._format not in FORMAT_TABLE:
+            raise RuntimeError("Unrecognised format", self._format, "for V4L2")
+        return FORMAT_TABLE[self._format]
+
     def _start(self):
         self.vd = open('/dev/video11', 'rb+', buffering=0)
 
@@ -56,7 +67,7 @@ class V4L2Encoder(Encoder):
         fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
         fmt.fmt.pix_mp.width = self._width
         fmt.fmt.pix_mp.height = self._height
-        fmt.fmt.pix_mp.pixelformat = self.format
+        fmt.fmt.pix_mp.pixelformat = self._v4l2_format
         fmt.fmt.pix_mp.plane_fmt[0].bytesperline = self.stride
         fmt.fmt.pix_mp.field = V4L2_FIELD_ANY
         fmt.fmt.pix_mp.colorspace = V4L2_COLORSPACE_JPEG

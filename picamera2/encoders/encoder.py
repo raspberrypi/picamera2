@@ -3,8 +3,6 @@
 import threading
 from enum import Enum
 
-from v4l2 import *
-
 import picamera2.formats as formats
 
 from ..outputs import Output
@@ -144,19 +142,8 @@ class Encoder:
         :type value: str
         :raises RuntimeError: Invalid format
         """
-        if value == "RGB888":
-            self._format = V4L2_PIX_FMT_BGR24
-        elif value == "BGR888":
-            self._format = V4L2_PIX_FMT_RGB24
-        elif value == "YUV420":
-            self._format = V4L2_PIX_FMT_YUV420
-        elif value == "XBGR8888":
-            self._format = V4L2_PIX_FMT_BGR32
-        elif value == "XRGB8888":
-            self._format = V4L2_PIX_FMT_RGBA32
-        else:
-            formats.assert_format_valid(value)
-            self._format = value
+        formats.assert_format_valid(value)
+        self._format = value
 
     @property
     def output(self):
