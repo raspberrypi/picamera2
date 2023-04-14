@@ -300,6 +300,8 @@ class QGlPicamera2(QWidget):
     def set_overlay(self, overlay):
         if self.picamera2.camera_config is None:
             raise RuntimeError("Camera must be configured before setting overlay")
+        if self.picamera2.camera_config['buffer_count'] < 2:
+            raise RuntimeError("Need at least buffer_count=2 to set overlay")
 
         with self.lock:
             eglMakeCurrent(self.egl.display, self.surface, self.surface, self.egl.context)
