@@ -246,8 +246,7 @@ class V4L2Encoder(Encoder):
         request.acquire()
 
         buf = v4l2_buffer()
-        # fb.metadata.timestamp is in nanoseconds, so convert to usecs
-        timestamp_us = self._timestamp(fb)
+        timestamp_us = self._timestamp(request)
 
         # Pass frame to video 4 linux, to encode
         planes = v4l2_plane * VIDEO_MAX_PLANES

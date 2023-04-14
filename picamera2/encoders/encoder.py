@@ -3,6 +3,8 @@
 import threading
 from enum import Enum
 
+from libcamera import controls
+
 import picamera2.formats as formats
 
 from ..outputs import Output
@@ -251,8 +253,9 @@ class Encoder:
     def _setup(self, quality):
         pass
 
-    def _timestamp(self, fb):
-        ts = int(fb.metadata.timestamp / 1000)
+    def _timestamp(self, request):
+        # The sensor timestamp is the most accurate one, so we'll fetch that.
+        ts = int(request.request.metadata[controls.SensorTimestamp] / 1000)  # ns to us
         if self.firsttimestamp is None:
             self.firsttimestamp = ts
             timestamp_us = 0

@@ -53,8 +53,7 @@ class MultiEncoder(Encoder):
         :param request: Request
         :return: Buffer
         """
-        fb = request.request.buffers[stream]
-        timestamp_us = self._timestamp(fb)
+        timestamp_us = self._timestamp(request)
         buffer = self.encode_func(request, self.name)
         request.release()
         return (buffer, timestamp_us)

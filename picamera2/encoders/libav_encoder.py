@@ -76,8 +76,7 @@ class LibavEncoder(Encoder):
         self._container.close()
 
     def _encode(self, stream, request):
-        fb = request.request.buffers[stream]
-        timestamp_us = self._timestamp(fb)
+        timestamp_us = self._timestamp(request)
         with MappedArray(request, self.name) as m:
             frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format)
             frame.pts = timestamp_us
