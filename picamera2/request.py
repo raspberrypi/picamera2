@@ -292,7 +292,7 @@ class Helpers:
         dng_compress_level = self.picam2.options.get("compress_level", 0)
 
         r.options(compress=dng_compress_level)
-        r.convert(raw, filename)
+        r.convert(raw, str(filename))
 
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {filename}.")
