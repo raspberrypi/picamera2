@@ -3,6 +3,7 @@ import logging
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import piexif
@@ -248,8 +249,10 @@ class Helpers:
             format_str = format.lower()
         elif isinstance(file_output, str):
             format_str = file_output.split('.')[-1].lower()
+        elif isinstance(file_output, Path):
+            format_str = file_output.suffix.lower()
         else:
-            raise RuntimeError("Cannot detemine format to save")
+            raise RuntimeError("Cannot determine format to save")
         if format_str in ('jpg', 'jpeg'):
             if img.mode == "RGBA":
                 # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
