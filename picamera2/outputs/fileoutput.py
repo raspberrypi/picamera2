@@ -3,6 +3,7 @@
 import io
 import socket
 import types
+from pathlib import Path
 
 from .output import Output
 
@@ -14,7 +15,7 @@ class FileOutput(Output):
         """Initialise file output
 
         :param file: File to write frames to, defaults to None
-        :type file: str or BufferedIOBase, optional
+        :type file: str or BufferedIOBase or Path, optional
         :param pts: File to write timestamps to, defaults to None
         :type pts: str or BufferedWriter, optional
         :param split: Max transmission size of data, only applies to datagrams, defaults to None
@@ -42,7 +43,7 @@ class FileOutput(Output):
         if file is None:
             self._fileoutput = None
         else:
-            if isinstance(file, str):
+            if isinstance(file, str) or isinstance(file, Path):
                 self._fileoutput = open(file, "wb")
                 self._needs_close = True
             elif isinstance(file, io.BufferedIOBase):
