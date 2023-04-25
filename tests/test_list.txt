@@ -47,6 +47,7 @@ tests/app_full_test.py
 tests/app_test.py
 tests/autofocus_test.py
 tests/async_test.py
+tests/bitrate_check.py
 tests/check_timestamps.py
 tests/close_test.py
 tests/close_test_multiple.py
