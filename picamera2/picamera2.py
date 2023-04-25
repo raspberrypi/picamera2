@@ -1448,7 +1448,7 @@ class Picamera2:
                      partial(capture_image_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def start_encoder(self, encoder=None, output=None, pts=None, quality=Quality.MEDIUM, name=None) -> None:
+    def start_encoder(self, encoder=None, output=None, pts=None, quality=None, name=None) -> None:
         """Start encoder
 
         :param encoder: Sets encoder or uses existing, defaults to None
@@ -1488,6 +1488,12 @@ class Picamera2:
         except AttributeError:
             pass
         # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
+        if quality is not None:
+            # Override any bitrate if a quality was explicitly given.
+            _encoder.bitrate = None
+        else:
+            # Otherwise default to medium, though any preset bitrate will take precedence.
+            quality = Quality.MEDIUM
         _encoder._setup(quality)
         _encoder.start()
         with self.lock:
@@ -1535,7 +1541,7 @@ class Picamera2:
         else:
             raise RuntimeError("Must pass Encoder or set of")
 
-    def start_recording(self, encoder, output, pts=None, config=None, quality=Quality.MEDIUM, name=None) -> None:
+    def start_recording(self, encoder, output, pts=None, config=None, quality=None, name=None) -> None:
         """Start recording a video using the given encoder and to the given output.
 
         Output may be a string in which case the correspondingly named file is opened.

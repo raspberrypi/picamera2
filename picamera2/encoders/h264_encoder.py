@@ -69,7 +69,7 @@ class H264Encoder(V4L2Encoder):
         super()._start()
 
     def _setup(self, quality):
-        if getattr(self, "bitrate", None) is None and getattr(self, "qt", None) is not None:
+        if getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None:
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 2,
                              Quality.LOW: 4,
