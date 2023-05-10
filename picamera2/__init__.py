@@ -9,6 +9,10 @@ from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .request import CompletedRequest, MappedArray
 
+if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
+    # The code here works through the X wayland layer, but not otherwise.
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
+
 
 def _set_configuration_file(filename):
     dirs = [
