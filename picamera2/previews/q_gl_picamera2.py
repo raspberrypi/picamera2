@@ -2,12 +2,9 @@ import os
 import threading
 import time
 
-from libcamera import Transform
-from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QWidget
-
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
+from libcamera import Transform
 from OpenGL.EGL.EXT.image_dma_buf_import import *
 from OpenGL.EGL.KHR.image import *
 from OpenGL.EGL.VERSION.EGL_1_0 import *
@@ -18,6 +15,8 @@ from OpenGL.GLES2.OES.EGL_image import *
 from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
+from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QWidget
 
 from picamera2.previews.gl_helpers import *
 
@@ -201,10 +200,13 @@ class QGlPicamera2(QWidget):
             }
         """
 
-        self.program_image = shaders.compileProgram(
-            shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
-            shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
-        )
+        vertex_shader = shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
+        # For some reason I seem to be getting a 1 element tuple back. Absolutely no clue why.
+        if isinstance(vertex_shader, tuple):
+            vertex_shader = vertex_shader[0]
+        fragment_shader = shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
+        self.program_image = shaders.compileProgram(vertex_shader, fragment_shader)
+
         self.program_overlay = shaders.compileProgram(
             shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
             shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER)
@@ -369,6 +371,10 @@ class QGlPicamera2(QWidget):
 
     def render_request(self, completed_request):
         """Draw the camera image using Qt and OpenGL/GLES."""
+        # For reasons not terribly well understood, eglMakeCurrent hangs in the X-Wayland world if the
+        # window is being closed. This appears to stop it.
+        if not self.isVisible():
+            return
         if self.title_function is not None:
             self.setWindowTitle(self.title_function(completed_request.get_metadata()))
         with self.lock:
