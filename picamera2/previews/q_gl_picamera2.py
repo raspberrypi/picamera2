@@ -111,10 +111,14 @@ class QGlPicamera2(QWidget):
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
                                                QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
+        # Must always run cleanup when this widget goes away.
+        self.destroyed.connect(lambda: self.cleanup())
         self.running = True
 
     def cleanup(self):
         with self.lock:
+            if not self.running:
+                return
             self.running = False
             self.camera_notifier.deleteLater()
             eglDestroySurface(self.egl.display, self.surface)
