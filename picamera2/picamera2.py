@@ -1228,7 +1228,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_and_switch_back_(self, file_output, preview_config, format):
-            _, result = self.capture_file_(file_output, name, format=format)
+            done, result = self.capture_file_(file_output, name, format=format)
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
@@ -1246,7 +1248,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_and_switch_back_(self, preview_config):
-            _, result = self.capture_request_()
+            done, result = self.capture_request_()
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
@@ -1328,7 +1332,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_buffer_and_switch_back_(self, preview_config, name):
-            _, result = self.capture_buffer_(name)
+            done, result = self.capture_buffer_(name)
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
@@ -1344,7 +1350,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_buffers_and_switch_back_(self, preview_config, names):
-            _, result = self.capture_buffers_and_metadata_(names)
+            done, result = self.capture_buffers_and_metadata_(names)
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
@@ -1384,7 +1392,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_array_and_switch_back_(self, preview_config, name):
-            _, result = self.capture_array_(name)
+            done, result = self.capture_array_(name)
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
@@ -1400,7 +1410,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_arrays_and_switch_back_(self, preview_config, names):
-            _, result = self.capture_arrays_and_metadata_(names)
+            done, result = self.capture_arrays_and_metadata_(names)
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
@@ -1444,7 +1456,9 @@ class Picamera2:
         preview_config = self.camera_config
 
         def capture_image_and_switch_back_(self, preview_config, name) -> Image:
-            _, result = self.capture_image_(name)
+            done, result = self.capture_image_(name)
+            if not done:
+                return (False, None)
             self.switch_mode_(preview_config)
             return (True, result)
 
