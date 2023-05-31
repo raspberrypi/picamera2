@@ -116,23 +116,21 @@ class QGlPicamera2(QWidget):
         self.running = True
 
     def cleanup(self):
-        with self.lock:
-            if not self.running:
-                return
-            self.running = False
-            self.camera_notifier.deleteLater()
-            eglDestroySurface(self.egl.display, self.surface)
-            self.surface = None
-            # We may be hanging on to a request, return it to the camera system.
-            if self.current_request is not None and self.own_current:
-                self.current_request.release()
-            self.current_request = None
-            # We have to tell both the preview window and the Picamera2 object that we have
-            # disappeared.
-            if self.picamera2 is not None:
-                self.picamera2.detach_preview()
-            if self.preview_window is not None:
-                self.preview_window.qpicamera2 = None
+        if not self.running:
+            return
+        self.running = False
+        self.camera_notifier.deleteLater()
+        eglDestroySurface(self.egl.display, self.surface)
+        self.surface = None
+        # We may be hanging on to a request, return it to the camera system.
+        if self.current_request is not None and self.own_current:
+            self.current_request.release()
+        self.current_request = None
+        # We have to tell both the preview window and the Picamera2 object that we have
+        # disappeared.
+        self.picamera2.detach_preview()
+        if self.preview_window is not None:  # will be none when a proper Qt app
+            self.preview_window.qpicamera2 = None
 
     def closeEvent(self, event):
         self.cleanup()
@@ -387,6 +385,8 @@ class QGlPicamera2(QWidget):
 
     @pyqtSlot()
     def handle_requests(self):
+        if not self.running:
+            return
         self.picamera2.notifymeread.read()
         self.picamera2.process_requests(self)
 
