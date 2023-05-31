@@ -276,6 +276,7 @@ class Picamera2:
         self.completed_requests: List[CompletedRequest] = []
         self.lock = threading.Lock()  # protects the _job_list and completed_requests fields
         self._event_loop_running = False
+        self._preview_stopped = threading.Event()
         self.camera_properties_ = {}
         self.controls = Controls(self)
         self.sensor_modes_ = None
@@ -525,11 +526,13 @@ class Picamera2:
             pass
 
         # The preview windows call the attach_preview method.
+        self._preview_stopped.clear()
         preview.start(self)
 
     def detach_preview(self) -> None:
         self._preview = None
         self._event_loop_running = False
+        self._preview_stopped.set()
 
     def stop_preview(self) -> None:
         """Stop preview
@@ -542,6 +545,7 @@ class Picamera2:
         try:
             # The preview windows call the detach_preview method.
             self._preview.stop()
+            self._preview_stopped.wait()
         except Exception:
             raise RuntimeError("Unable to stop preview.")
 

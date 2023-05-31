@@ -45,16 +45,21 @@ class QPicamera2(QGraphicsView):
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
                                                QSocketNotifier.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
+        # Must always run cleanup when this widget goes away.
+        self.destroyed.connect(lambda: self.cleanup())
+        self.running = True
 
     def cleanup(self):
+        if not self.running:
+            return
+        self.running = False
         del self.scene
         del self.overlay
         self.camera_notifier.deleteLater()
         # We have to tell both the preview window and the Picamera2 object that we have
         # disappeared.
-        if self.picamera2 is not None:
-            self.picamera2.detach_preview()
-        if self.preview_window is not None:
+        self.picamera2.detach_preview()
+        if self.preview_window is not None:  # will be none when a proper Qt app
             self.preview_window.qpicamera2 = None
 
     def closeEvent(self, event):
@@ -199,5 +204,7 @@ class QPicamera2(QGraphicsView):
 
     @pyqtSlot()
     def handle_requests(self):
+        if not self.running:
+            return
         self.picamera2.notifymeread.read()
         self.picamera2.process_requests(self)
