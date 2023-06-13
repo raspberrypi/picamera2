@@ -437,9 +437,8 @@ class Picamera2:
         if not self._initialize_camera():
             raise RuntimeError("Failed to initialize camera")
 
-        acq_code = self.camera.acquire()
-        if acq_code != 0:
-            raise RuntimeError(f"camera.acquire() returned unexpected code: {acq_code}")
+        # This now throws an error if it can't open the camera.
+        self.camera.acquire()
 
         self.is_open = True
         _log.info("Camera now open.")
@@ -560,9 +559,8 @@ class Picamera2:
             return
 
         self.stop()
-        release_code = self.camera.release()
-        if release_code < 0:
-            raise RuntimeError(f"Failed to release camera ({release_code})")
+        # camera.release() now throws an error if it fails.
+        self.camera.release()
         self._cm.cleanup(self.camera_idx)
         self.is_open = False
         self.streams = None
@@ -844,8 +842,8 @@ class Picamera2:
                 raise RuntimeError("Could not create request")
 
             for stream in self.streams:
-                if request.add_buffer(stream, self.allocator.buffers(stream)[i]) < 0:
-                    raise RuntimeError("Failed to set request buffer")
+                # This now throws an error if it fails.
+                request.add_buffer(stream, self.allocator.buffers(stream)[i])
             requests.append(request)
         return requests
 
@@ -996,14 +994,12 @@ class Picamera2:
             return
         controls = self.controls.get_libcamera_controls()
         self.controls = Controls(self)
-        if self.camera.start(controls) >= 0:
-            for request in self._make_requests():
-                self.camera.queue_request(request)
-            _log.info("Camera started")
-            self.started = True
-        else:
-            _log.error("Camera did not start properly.")
-            raise RuntimeError("Camera did not start properly.")
+        # camera.start() now throws an error if it fails.
+        self.camera.start(controls)
+        for request in self._make_requests():
+            self.camera.queue_request(request)
+        _log.info("Camera started")
+        self.started = True
 
     def start(self, config=None, show_preview=False) -> None:
         """
