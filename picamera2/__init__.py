@@ -7,6 +7,7 @@ from .controls import Controls
 from .converters import YUV420_to_RGB
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
+from .platform import Platform
 from .request import CompletedRequest, MappedArray
 
 if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":

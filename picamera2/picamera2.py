@@ -20,6 +20,7 @@ from PIL import Image
 
 import picamera2.formats as formats
 import picamera2.utils as utils
+import picamera2.platform as Platform
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
@@ -108,6 +109,8 @@ class CameraManager:
 
 class Picamera2:
     """Welcome to the PiCamera2 class."""
+
+    platform = Platform.get_platform()
 
     DEBUG = logging.DEBUG
     INFO = logging.INFO
