@@ -6,6 +6,21 @@
 
 ### Changed
 
+## 0.3.10 Beta Release 9
+
+### Added
+
+* Support for running multiple encoders, either on the same or different streams.
+* Pathlib objects now supported.
+
+### Changed
+
+* The camera can be stopped more quickly.
+* Fix problem passing modes from the sensor mode list to the configure methods.
+* H264 encoder quality was having no effect on bitrate - fixed.
+* ffmpegoutput - wait correctly for it to finish when we stop it.
+* Amount of CMA memory required is reduced for many use cases.
+
 ## 0.3.9 Beta Release 8
 
 ## Unreleased (on "next" branch)
