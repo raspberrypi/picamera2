@@ -11,12 +11,16 @@ from .request import CompletedRequest, MappedArray
 
 
 def _set_configuration_file(filename):
-    user = os.environ.get('USER', "pi")
-    dirs = [os.path.join("/home", user, "libcamera/src/libcamera/pipeline/rpi/vc4/data"),
-            "/usr/local/share/libcamera/pipeline/rpi/vc4",
-            "/usr/share/libcamera/pipeline/rpi/vc4"]
-    for dir in dirs:
-        file = os.path.join(dir, filename)
+    dirs = [
+        os.path.expanduser(
+            "~/libcamera/src/libcamera/pipeline/rpi/vc4/data"
+        ),
+        "/usr/local/share/libcamera/pipeline/rpi/vc4",
+        "/usr/share/libcamera/pipeline/rpi/vc4"]
+
+    for directory in dirs:
+        file = os.path.join(directory, filename)
+
         if os.path.isfile(file):
             os.environ['LIBCAMERA_RPI_CONFIG_FILE'] = file
             break
