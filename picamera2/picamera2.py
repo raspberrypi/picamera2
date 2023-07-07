@@ -164,11 +164,11 @@ class Picamera2:
         if dir is not None:
             dirs = [dir]
         else:
-            dirs = ["/home/pi/libcamera/src/ipa/raspberrypi/data",
-                    "/usr/local/share/libcamera/ipa/raspberrypi",
-                    "/usr/share/libcamera/ipa/raspberrypi"]
-        for dir in dirs:
-            file = os.path.join(dir, tuning_file)
+            dirs = [os.path.expanduser("~/libcamera/src/ipa/rpi/vc4/data"),
+                    "/usr/local/share/libcamera/ipa/rpi/vc4",
+                    "/usr/share/libcamera/ipa/rpi/vc4"]
+        for directory in dirs:
+            file = os.path.join(directory, tuning_file)
             if os.path.isfile(file):
                 with open(file, 'r') as fp:
                     return json.load(fp)
