@@ -6,6 +6,15 @@
 
 ### Changed
 
+## 0.3.11 Beta Release 10
+
+### Added
+
+### Changed
+
+* The search path for tuning files (after the libcamera re-organisation) has been fixed.
+* The built-in configuration objects (picamera2.preview_configuration etc.) are updated to work better with raw streams now that the latest libcamera is more efficient when we use them.
+
 ## 0.3.10 Beta Release 9
 
 ### Added
