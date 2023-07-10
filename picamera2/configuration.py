@@ -98,6 +98,10 @@ class CameraConfiguration(Configuration):
         # Can't convert "controls" dicts to Controls objects automatically, so do it here:
         d = {k: v if k != "controls" else Controls(picam2, v) for k, v in d.items()}
         super().__init__(d)
+        # Latest libcamera versions work better if we enable raw streams by default. Users
+        # can delete the raw stream if they wish.
+        if 'raw' not in d:
+            self.enable_raw()
 
     def enable_lores(self, onoff=True):
         if onoff:
@@ -107,7 +111,7 @@ class CameraConfiguration(Configuration):
 
     def enable_raw(self, onoff=True):
         if onoff:
-            self.raw = StreamConfiguration({"size": self.main.size, "format": None})
+            self.raw = StreamConfiguration({"size": None, "format": None})
         else:
             self.raw = None
 

@@ -241,9 +241,14 @@ class Picamera2:
         try:
             self._open_camera()
             _log.debug(f"{self.camera_manager}")
+            # We deliberately make raw streams with no size so that it will be filled in
+            # later once the main stream size has been set.
             self.preview_configuration = self.create_preview_configuration()
+            self.preview_configuration.enable_raw()
             self.still_configuration = self.create_still_configuration()
+            self.still_configuration.enable_raw()
             self.video_configuration = self.create_video_configuration()
+            self.video_configuration.enable_raw()
         except Exception:
             _log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -903,8 +908,12 @@ class Picamera2:
         elif isinstance(initial_config, dict):
             camera_config = camera_config.copy()
         if isinstance(camera_config, CameraConfiguration):
-            if camera_config.raw is not None and camera_config.raw.format is None:
-                camera_config.raw.format = self.sensor_format
+            if camera_config.raw is not None:
+                # For raw streams, patch up the format/size now if they haven't been set.
+                if camera_config.raw.format is None:
+                    camera_config.raw.format = self.sensor_format
+                if camera_config.raw.size is None:
+                    camera_config.raw.size = camera_config.main.size
             # We expect values to have been set for any lores/raw streams.
             camera_config = camera_config.make_dict()
         if camera_config is None:
