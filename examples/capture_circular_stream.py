@@ -18,7 +18,7 @@ picam2.start_preview()
 encoder = H264Encoder(1000000, repeat=True)
 circ = CircularOutput()
 encoder.output = [circ]
-picam2.encoder = encoder
+picam2.encoders = encoder
 picam2.start()
 picam2.start_encoder()
 
@@ -40,7 +40,7 @@ def server():
             stream = conn.makefile("wb")
             filestream = FileOutput(stream)
             filestream.start()
-            picam2.encoder.output = [circ, filestream]
+            encoder.output = [circ, filestream]
             filestream.connectiondead = lambda _: event.set()  # noqa
             event.wait()
 

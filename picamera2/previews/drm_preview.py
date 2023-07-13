@@ -87,10 +87,15 @@ class DrmPreview(NullPreview):
         self.overlay_fb = None
         self.overlay_new_fb = None
         self.lock = threading.Lock()
+        self.display_stream_name = None
 
     def set_overlay(self, overlay):
         if self.picam2 is None:
-            raise RuntimeError("Preview must be started before settings an overlay")
+            raise RuntimeError("Preview must be started before setting an overlay")
+        if self.picam2.camera_config is None:
+            raise RuntimeError("Preview must be configured before setting an overlay")
+        if self.picam2.camera_config['buffer_count'] < 2:
+            raise RuntimeError("Need at least buffer_count=2 to set overlay")
 
         if overlay is None:
             self.overlay_new_fb = None
@@ -104,15 +109,17 @@ class DrmPreview(NullPreview):
 
         if self.picam2.display_stream_name is not None:
             with self.lock:
-                self.render_drm(self.picam2, self.current)
+                self.render_drm(self.picam2, None)
 
     def render_drm(self, picam2, completed_request):
         if completed_request is not None:
-            display_stream_name = completed_request.config['display']
-            stream = completed_request.stream_map[display_stream_name]
+            self.display_stream_name = completed_request.config['display']
+            stream = completed_request.stream_map[self.display_stream_name]
         else:
-            display_stream_name = picam2.display_stream_name
-            stream = picam2.stream_map[display_stream_name]
+            if self.display_stream_name is None:
+                self.display_stream_name = picam2.display_stream_name
+            stream = picam2.stream_map[self.display_stream_name]
+
         cfg = stream.configuration
         pixel_format = str(cfg.pixel_format)
         width, height = (cfg.size.width, cfg.size.height)
@@ -157,7 +164,7 @@ class DrmPreview(NullPreview):
             fb = completed_request.request.buffers[stream]
 
             if pixel_format == "MJPEG":
-                img = completed_request.make_array(display_stream_name).tobytes()
+                img = completed_request.make_array(self.display_stream_name).tobytes()
                 self.mem.seek(0)
                 self.mem.write(img)
                 fd = self.fd
@@ -210,6 +217,7 @@ class DrmPreview(NullPreview):
         if self.current is not None and self.own_current:
             self.current.release()
         self.current = None
+        self.display_stream_name = None
         # Seem to need some of this in order to be able to create another DrmPreview.
         self.drmfbs = {}
         self.overlay_new_fb = None

@@ -27,7 +27,10 @@ def check(raw_config, fps):
     # Check we got the correct raw format
     assert picam2.camera_configuration()["raw"]["size"] == raw_config["size"]
     set_format = SensorFormat(picam2.camera_configuration()["raw"]["format"])
-    set_format.transform(Transform(rotation=picam2.camera_properties["Rotation"]))
+    # For now, assume all our cameras are rotated 180 degrees. These seems to be no easy
+    # way to get this information from libcamera any more.
+    rotation = 180  # picam2.camera_properties["Rotation"]
+    set_format.transform(Transform(rotation=rotation))
     assert set_format.format == raw_config["format"], \
         f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
     picam2.set_controls({"FrameRate": fps})

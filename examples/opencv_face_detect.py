@@ -23,3 +23,4 @@ while True:
         cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0))
 
     cv2.imshow("Camera", im)
+    cv2.waitKey(1)
