@@ -1,3 +1,9 @@
+picamera2 (0.3.11-1) bullseye; urgency=medium
+
+  * New upstream release
+
+ -- Serge Schneider <serge@raspberrypi.com>  Thu, 13 Jul 2023 14:37:07 +0100
+
 picamera2 (0.3.9-1) bullseye; urgency=medium
 
   * New upstream release
