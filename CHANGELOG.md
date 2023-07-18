@@ -6,6 +6,14 @@
 
 ### Changed
 
+## 0.3.12 Beta Release 11
+
+### Added
+
+### Changed
+
+* Small bug that prevented the configuration of USB cams fixed.
+
 ## 0.3.11 Beta Release 10
 
 ### Added

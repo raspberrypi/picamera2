@@ -244,11 +244,11 @@ class Picamera2:
             # We deliberately make raw streams with no size so that it will be filled in
             # later once the main stream size has been set.
             self.preview_configuration = self.create_preview_configuration()
-            self.preview_configuration.enable_raw()
+            self.preview_configuration.enable_raw()  # causes the size to be reset to None
             self.still_configuration = self.create_still_configuration()
-            self.still_configuration.enable_raw()
+            self.still_configuration.enable_raw()  # ditto
             self.video_configuration = self.create_video_configuration()
-            self.video_configuration.enable_raw()
+            self.video_configuration.enable_raw()  # ditto
         except Exception:
             _log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -918,6 +918,9 @@ class Picamera2:
             camera_config = camera_config.make_dict()
         if camera_config is None:
             camera_config = self.create_preview_configuration()
+        # Be 100% sure that non-Pi cameras aren't asking for a raw stream.
+        if not self._is_rpi_camera():
+            camera_config['raw'] = None
 
         # Mark ourselves as unconfigured.
         self.libcamera_config = None
