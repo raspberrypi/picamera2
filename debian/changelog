@@ -1,3 +1,9 @@
+picamera2 (0.3.12-2) bullseye; urgency=medium
+
+  * Import ToT commits
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 25 Jul 2023 15:57:08 +0100
+
 picamera2 (0.3.12-1) bullseye; urgency=medium
 
   * New upstream release
