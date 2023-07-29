@@ -193,13 +193,13 @@ class DrmPreview(NullPreview):
                 self.drmfbs[fb] = drmfb
 
             drmfb = self.drmfbs[fb]
-            self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
-            # An "atomic commit" would probably be better, but I can't get this to work...
-            # ctx = pykms.AtomicReq(self.card)
-            # ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
-            #                      "SRC_W": width << 16, "SRC_H": height << 16,
-            #                      "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
-            # ctx.commit()
+            # self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
+            # Use an atomic commit to render
+            ctx = pykms.AtomicReq(self.card)
+            ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
+                                 "SRC_W": width << 16, "SRC_H": height << 16,
+                                 "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
+            ctx.commit_sync()
 
         overlay_new_fb = self.overlay_new_fb
         if overlay_new_fb != self.overlay_fb:
