@@ -774,7 +774,7 @@ class Picamera2:
             lores_w, lores_h = camera_config["lores"]["size"]
             if lores_w > main_w or lores_h > main_h:
                 raise RuntimeError("lores stream dimensions may not exceed main stream")
-            if not formats.is_YUV(camera_config["lores"]["format"]):
+            if Picamera2.platform == Platform.Platform.VC4 and not formats.is_YUV(camera_config["lores"]["format"]):
                 raise RuntimeError("lores stream must be YUV")
         if camera_config["raw"] is not None:
             self.check_stream_config(camera_config["raw"], "raw")
