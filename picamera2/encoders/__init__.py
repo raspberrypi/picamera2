@@ -1,7 +1,7 @@
 import fcntl
 import v4l2
 
-_h264_hw_encoder_available = False
+_hw_encoder_available = False
 try:
     with open('/dev/video11', 'rb', buffering=0) as fd:
         caps = v4l2.v4l2_capability()
@@ -11,7 +11,7 @@ except Exception as e:
     pass
 
 from .encoder import Encoder, Quality
-if _h264_hw_encoder_available:
+if _hw_encoder_available:
     from .h264_encoder import H264Encoder
 else:
     from .libav_encoder import LibavEncoder as H264Encoder

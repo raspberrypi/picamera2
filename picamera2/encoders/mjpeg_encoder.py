@@ -4,7 +4,7 @@ from math import sqrt
 
 from v4l2 import V4L2_PIX_FMT_MJPEG
 
-from picamera2.encoders import Quality
+from picamera2.encoders import Quality, _hw_encoder_available
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
 
 
@@ -17,6 +17,8 @@ class MJPEGEncoder(V4L2Encoder):
         :param bitrate: Bitrate, default None
         :type bitrate: int
         """
+        if not _hw_encoder_available:
+            raise RuntimeError("Hardware MJPEG not available on this platform")
         super().__init__(bitrate, V4L2_PIX_FMT_MJPEG)
 
     def _setup(self, quality):
