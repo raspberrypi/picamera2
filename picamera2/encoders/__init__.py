@@ -14,8 +14,12 @@ from .encoder import Encoder, Quality
 if _hw_encoder_available:
     from .h264_encoder import H264Encoder
 else:
-    from .libav_encoder import LibavEncoder as H264Encoder
+    from .libav_h264_encoder import LibavH264Encoder as H264Encoder
 from .jpeg_encoder import JpegEncoder
-from .mjpeg_encoder import MJPEGEncoder
+if _hw_encoder_available:
+    from .mjpeg_encoder import MJPEGEncoder
+else:
+    from .libav_mjpeg_encoder import LibavMjpegEncoder as MJPEGEncoder
 from .multi_encoder import MultiEncoder
-from .libav_encoder import LibavEncoder
+from .libav_h264_encoder import LibavH264Encoder
+from .libav_mjpeg_encoder import LibavMjpegEncoder

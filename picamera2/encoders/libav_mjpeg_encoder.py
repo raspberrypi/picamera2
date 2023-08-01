@@ -4,13 +4,11 @@ import av
 
 from fractions import Fraction
 
-from math import sqrt
-
 from picamera2.encoders.encoder import Encoder, Quality
 from ..request import MappedArray
 
 
-class LibavEncoder(Encoder):
+class LibavMjpegEncoder(Encoder):
     """
     Encoder class that uses libx264 for h.264 encoding.
     """
@@ -19,7 +17,7 @@ class LibavEncoder(Encoder):
         """Initialise
         """
         super().__init__()
-        self._codec = "h264" # for now only support h264
+        self._codec = "mjpeg" # for now only support h264
         self.repeat = repeat
         self.bitrate = bitrate
         self.iperiod = iperiod
@@ -29,15 +27,15 @@ class LibavEncoder(Encoder):
     def _setup(self, quality):
         if getattr(self, "bitrate", None) is None:
             # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 2,
-                             Quality.LOW: 3,
-                             Quality.MEDIUM: 5,
-                             Quality.HIGH: 8,
-                             Quality.VERY_HIGH: 12}
+            BITRATE_TABLE = {Quality.VERY_LOW: 7,
+                             Quality.LOW: 11,
+                             Quality.MEDIUM: 16,
+                             Quality.HIGH: 20,
+                             Quality.VERY_HIGH: 25}
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * self.framerate
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
+            self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)
 
     def _start(self):
         self._container = av.open("/dev/null", "w", format="null")
@@ -50,16 +48,20 @@ class LibavEncoder(Encoder):
         self._stream.height = self.height
         self._stream.pix_fmt = "yuv420p"
 
-        self._stream.codec_context.bit_rate = self.bitrate
-        self._stream.codec_context.gop_size = self.iperiod
-        self._stream.codec_context.options["preset"] = "ultrafast"
-        self._stream.codec_context.options["deblock"] = "1"
-        # Absence of the "global header" flags means that SPS/PPS headers get repeated.
-        if not self.repeat:
-            self._stream.codec_context.flags |= av.codec.context.Flags.GLOBAL_HEADER
-        if self._qp is not None:
-            self._stream.codec_context.qmin = self._qp
-            self._stream.codec_context.qmax = self._qp
+        # This is all rather arbitrary but comes out with a vaguely plausible a quantiser. I
+        # found that the sqrt of the quantiser times the bitrate was approximately constant with
+        # the value 64000000 for a 1080p30 stream, though obviously it will depend on content,
+        # and probably the phase of the moon.
+        if self._qp is None:
+            reference_complexity = 1920 * 1080 * 30
+            actual_complexity = self.width * self.height * self.framerate
+            reference_bitrate = self.bitrate * reference_complexity / actual_complexity
+            self._qp = max(min(round(64000000 / reference_bitrate) ** 2, 127), 1)
+
+        self._stream.codec_context.qmin = self._qp
+        self._stream.codec_context.qmax = self._qp
+        self._stream.codec_context.color_range = 2 # JPEG (full range)
+        self._stream.codec_context.flags |= av.codec.context.Flags.QSCALE
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)
 
