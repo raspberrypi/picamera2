@@ -96,7 +96,6 @@ class DrmPreview(NullPreview):
             raise RuntimeError("Preview must be configured before setting an overlay")
         if self.picam2.camera_config['buffer_count'] < 2:
             raise RuntimeError("Need at least buffer_count=2 to set overlay")
-
         if overlay is None:
             self.overlay_new_fb = None
         else:
@@ -112,6 +111,9 @@ class DrmPreview(NullPreview):
                 self.render_drm(self.picam2, None)
 
     def render_drm(self, picam2, completed_request):
+        # Use an atomic commit to render
+        ctx = pykms.AtomicReq(self.card)
+
         if completed_request is not None:
             self.display_stream_name = completed_request.config['display']
             stream = completed_request.stream_map[self.display_stream_name]
@@ -159,7 +161,6 @@ class DrmPreview(NullPreview):
                 self.overlay_plane.set_prop("pixel blend mode", 1)
             except RuntimeError:
                 pass
-
         if completed_request is not None:
             fb = completed_request.request.buffers[stream]
 
@@ -191,23 +192,23 @@ class DrmPreview(NullPreview):
                 else:
                     drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
                 self.drmfbs[fb] = drmfb
-
             drmfb = self.drmfbs[fb]
-            # self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
-            # Use an atomic commit to render
-            ctx = pykms.AtomicReq(self.card)
             ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
                                  "SRC_W": width << 16, "SRC_H": height << 16,
                                  "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
-            ctx.commit_sync()
 
+        # Render an overlay if present
         overlay_new_fb = self.overlay_new_fb
         if overlay_new_fb != self.overlay_fb:
             overlay_old_fb = self.overlay_fb  # Must hang on to this momentarily to avoid a "wink"
             self.overlay_fb = overlay_new_fb
         if self.overlay_fb is not None:
             width, height = self.overlay_fb.width, self.overlay_fb.height
-            self.crtc.set_plane(self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height)
+            ctx.add(self.overlay_plane, {"FB_ID": self.overlay_fb.id, "CRTC_ID": self.crtc.id,
+                                         "SRC_W": width << 16, "SRC_H": height << 16,
+                                         "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
+
+        ctx.commit_sync()
         overlay_old_fb = None  # noqa  The new one has been sent so it's safe to let this go now
         old_drmfbs = None  # noqa  Can chuck these away now too
 
