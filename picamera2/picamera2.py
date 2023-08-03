@@ -167,9 +167,10 @@ class Picamera2:
         if dir is not None:
             dirs = [dir]
         else:
-            dirs = [os.path.expanduser("~/libcamera/src/ipa/rpi/vc4/data"),
-                    "/usr/local/share/libcamera/ipa/rpi/vc4",
-                    "/usr/share/libcamera/ipa/rpi/vc4"]
+            platform_dir = "vc4" if Picamera2.platform == Platform.Platform.VC4 else "pisp"
+            dirs = [os.path.expanduser("~/libcamera/src/ipa/rpi/" + platform_dir + "/data"),
+                    "/usr/local/share/libcamera/ipa/rpi/" + platform_dir,
+                    "/usr/share/libcamera/ipa/rpi/" + platform_dir]
         for directory in dirs:
             file = os.path.join(directory, tuning_file)
             if os.path.isfile(file):
