@@ -22,7 +22,8 @@ _log = logging.getLogger(__name__)
 
 class _MappedBuffer:
     def __init__(self, request, stream):
-        stream = request.stream_map[stream]
+        if isinstance(stream, str):
+            stream = request.stream_map[stream]
         self.__fb = request.request.buffers[stream]
 
     def __enter__(self):
@@ -60,10 +61,17 @@ class MappedArray:
         array = np.array(b, copy=False, dtype=np.uint8)
 
         if self.__reshape:
-            config = self.__request.config[self.__stream]
-            fmt = config["format"]
-            w, h = config["size"]
-            stride = config["stride"]
+            if isinstance(self.__stream, str):
+                config = self.__request.config[self.__stream]
+                fmt = config["format"]
+                w, h = config["size"]
+                stride = config["stride"]
+            else:
+                config = self.__stream.configuration
+                fmt = str(config.pixel_format)
+                w = config.size.width
+                h = config.size.height
+                stride = config.stride
 
             # Turning the 1d array into a 2d image-like array only works if the
             # image stride (which is in bytes) is a whole number of pixels. Even

@@ -54,7 +54,7 @@ class MultiEncoder(Encoder):
         :return: Buffer
         """
         timestamp_us = self._timestamp(request)
-        buffer = self.encode_func(request, self.name)
+        buffer = self.encode_func(request, stream)
         request.release()
         return (buffer, timestamp_us)
 

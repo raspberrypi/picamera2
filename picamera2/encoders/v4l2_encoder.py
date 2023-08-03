@@ -240,6 +240,8 @@ class V4L2Encoder(Encoder):
             return
         if self.vd is None or self.vd.closed:
             return
+        if isinstance(stream, str):
+            stream = request.stream_map[stream]
         cfg = stream.configuration
         fb = request.request.buffers[stream]
         fd = fb.planes[0].fd

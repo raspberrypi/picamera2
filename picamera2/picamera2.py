@@ -1173,7 +1173,7 @@ class Picamera2:
 
                 for encoder in self._encoders:
                     if encoder.name in self.stream_map:
-                        encoder.encode(self.stream_map[encoder.name], req)
+                        encoder.encode(encoder.name, req)
 
                 req.release()
 

@@ -79,7 +79,7 @@ class LibavMjpegEncoder(Encoder):
 
     def _encode(self, stream, request):
         timestamp_us = self._timestamp(request)
-        with MappedArray(request, self.name) as m:
+        with MappedArray(request, stream) as m:
             frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
