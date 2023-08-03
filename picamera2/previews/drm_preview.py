@@ -106,9 +106,9 @@ class DrmPreview(NullPreview):
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
 
-        if self.picam2.display_stream_name is not None:
-            with self.lock:
-                self.render_drm(self.picam2, None)
+        # if self.picam2.display_stream_name is not None:
+        #     with self.lock:
+        #         self.render_drm(self.picam2, None)
 
     def render_drm(self, picam2, completed_request):
         # Use an atomic commit to render
