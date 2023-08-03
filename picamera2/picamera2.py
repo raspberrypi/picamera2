@@ -424,9 +424,10 @@ class Picamera2:
             self.camera_properties_[k.name] = utils.convert_from_libcamera_type(v)
 
         # These next lines could be placed elsewhere?
-        raw_mode = self.camera.generate_configuration([RAW]).at(0)
-        self.sensor_resolution = (raw_mode.size.width, raw_mode.size.height)
-        self.sensor_format = str(raw_mode.pixel_format)
+        self._raw_modes = self._get_raw_modes()
+        self._native_mode = self._select_native_mode(self._raw_modes)
+        self.sensor_resolution = self._native_mode['size']
+        self.sensor_format = self._native_mode['format']
 
         _log.info('Initialization successful.')
         return True
@@ -487,6 +488,27 @@ class Picamera2:
                 cam_mode["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
                 self.sensor_modes_.append(cam_mode)
         return self.sensor_modes_
+
+    def _get_raw_modes(self) -> list:
+        raw_config = self.camera.generate_configuration([libcamera.StreamRole.Raw])
+        raw_formats = raw_config.at(0).formats
+        raw_modes = []
+        for pix in raw_formats.pixel_formats:
+            fmt = str(pix)
+            raw_modes += [{'format': fmt, 'size': (size.width, size.height)} for size in raw_formats.sizes(pix)]
+        return raw_modes
+
+    def _select_native_mode(self, modes):
+        best_mode = modes[0]
+        is_rpi_camera = self._is_rpi_camera()
+        def area(sz):
+            return sz[0] * sz[1]
+        for mode in modes[1:]:
+            if area(mode['size']) > area(best_mode['size']) or \
+               (is_rpi_camera and area(mode['size']) == area(best_mode['size']) and \
+                SensorFormat(mode['format']).bit_depth > SensorFormat(best_mode['format']).bit_depth):
+                best_mode = mode
+        return best_mode
 
     def attach_preview(self, preview) -> None:
         if self._preview:

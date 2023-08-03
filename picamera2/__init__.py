@@ -9,6 +9,7 @@ from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .platform import Platform
 from .request import CompletedRequest, MappedArray
+from .sensor_format import SensorFormat
 
 if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
     # The code here works through the X wayland layer, but not otherwise.
