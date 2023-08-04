@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """picamera2 main class"""
 
+import atexit
 import json
 import logging
 import os
@@ -259,6 +260,9 @@ class Picamera2:
         finally:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
+        # Quitting Python without stopping the camera sometimes causes crashes, with Boost logging
+        # apparently being the principal culprit. Anyway, this seems to prevent the problem.
+        atexit.register(self.close)
 
     @property
     def camera_manager(self):
@@ -584,6 +588,7 @@ class Picamera2:
 
         :raises RuntimeError: Closing failed
         """
+        atexit.unregister(self.close)
         if self._preview:
             self.stop_preview()
         if not self.is_open:
