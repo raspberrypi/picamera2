@@ -51,6 +51,7 @@ tests/bitrate_check.py
 tests/check_timestamps.py
 tests/close_test.py
 tests/close_test_multiple.py
+tests/codecs.py
 tests/colour_spaces.py
 tests/configurations.py
 tests/context_test.py
