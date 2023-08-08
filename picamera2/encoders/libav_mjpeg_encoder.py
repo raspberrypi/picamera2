@@ -30,11 +30,11 @@ class LibavMjpegEncoder(Encoder):
         if quality is not None or \
            (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
             quality = Quality.MEDIUM if quality is None else quality
-            QP_TABLE = {Quality.VERY_LOW: 63,
-                        Quality.LOW: 31,
-                        Quality.MEDIUM: 15,
-                        Quality.HIGH: 0,
-                        Quality.VERY_HIGH: 5}
+            QP_TABLE = {Quality.VERY_LOW: 31,
+                        Quality.LOW: 15,
+                        Quality.MEDIUM: 10,
+                        Quality.HIGH: 5,
+                        Quality.VERY_HIGH: 3}
             self.qp = QP_TABLE[quality]
 
     def _start(self):

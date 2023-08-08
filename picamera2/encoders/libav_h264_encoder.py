@@ -33,11 +33,11 @@ class LibavH264Encoder(Encoder):
            (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
             quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 2,
-                             Quality.LOW: 3,
-                             Quality.MEDIUM: 5,
-                             Quality.HIGH: 8,
-                             Quality.VERY_HIGH: 12}
+            BITRATE_TABLE = {Quality.VERY_LOW: 3,
+                             Quality.LOW: 4,
+                             Quality.MEDIUM: 7,
+                             Quality.HIGH: 10,
+                             Quality.VERY_HIGH: 14}
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000

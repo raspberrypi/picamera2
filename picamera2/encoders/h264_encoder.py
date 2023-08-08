@@ -1,7 +1,5 @@
 """H264 encoder functionality"""
 
-from math import sqrt
-
 from v4l2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
                   V4L2_CID_MPEG_VIDEO_H264_LEVEL,
                   V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
@@ -83,4 +81,4 @@ class H264Encoder(V4L2Encoder):
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
+            self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)
