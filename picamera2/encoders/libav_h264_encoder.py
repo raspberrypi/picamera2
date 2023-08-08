@@ -24,10 +24,14 @@ class LibavH264Encoder(Encoder):
         self.bitrate = bitrate
         self.iperiod = iperiod
         self.framerate = framerate
-        self._qp = qp
+        self.qp = qp
 
     def _setup(self, quality):
-        if getattr(self, "bitrate", None) is None:
+        # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
+        # the user may have set for themselves.
+        if quality is not None or \
+           (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
+            quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 2,
                              Quality.LOW: 3,
@@ -35,7 +39,7 @@ class LibavH264Encoder(Encoder):
                              Quality.HIGH: 8,
                              Quality.VERY_HIGH: 12}
             reference_complexity = 1920 * 1080 * 30
-            actual_complexity = self.width * self.height * self.framerate
+            actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
             self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
 
@@ -50,16 +54,17 @@ class LibavH264Encoder(Encoder):
         self._stream.height = self.height
         self._stream.pix_fmt = "yuv420p"
 
-        self._stream.codec_context.bit_rate = self.bitrate
+        if self.bitrate is not None:
+            self._stream.codec_context.bit_rate = self.bitrate
         self._stream.codec_context.gop_size = self.iperiod
         self._stream.codec_context.options["preset"] = "ultrafast"
         self._stream.codec_context.options["deblock"] = "1"
         # Absence of the "global header" flags means that SPS/PPS headers get repeated.
         if not self.repeat:
             self._stream.codec_context.flags |= av.codec.context.Flags.GLOBAL_HEADER
-        if self._qp is not None:
-            self._stream.codec_context.qmin = self._qp
-            self._stream.codec_context.qmax = self._qp
+        if self.qp is not None:
+            self._stream.codec_context.qmin = self.qp
+            self._stream.codec_context.qmax = self.qp
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)
 

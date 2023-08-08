@@ -1557,15 +1557,7 @@ class Picamera2:
                 _encoder.framerate = 1000000 / min_frame_duration
         except AttributeError:
             pass
-        # Finally the encoder must set up any remaining unknown parameters (e.g. bitrate).
-        if quality is not None:
-            # Override any bitrate if a quality was explicitly given.
-            _encoder.bitrate = None
-        else:
-            # Otherwise default to medium, though any preset bitrate will take precedence.
-            quality = Quality.MEDIUM
-        _encoder._setup(quality)
-        _encoder.start()
+        _encoder.start(quality=quality)
         with self.lock:
             self._encoders.add(_encoder)
 

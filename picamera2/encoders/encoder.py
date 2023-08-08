@@ -215,10 +215,11 @@ class Encoder:
         with _MappedBuffer(request, stream) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
-    def start(self):
+    def start(self, quality=None):
         with self._lock:
             if self._running:
                 raise RuntimeError("Encoder already running")
+            self._setup(quality)
             self._running = True
             for out in self._output:
                 out.start()

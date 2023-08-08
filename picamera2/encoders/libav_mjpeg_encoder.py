@@ -22,20 +22,20 @@ class LibavMjpegEncoder(Encoder):
         self.bitrate = bitrate
         self.iperiod = iperiod
         self.framerate = framerate
-        self._qp = qp
+        self.qp = qp
 
     def _setup(self, quality):
-        if getattr(self, "bitrate", None) is None:
-            # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 7,
-                             Quality.LOW: 11,
-                             Quality.MEDIUM: 16,
-                             Quality.HIGH: 20,
-                             Quality.VERY_HIGH: 25}
-            reference_complexity = 1920 * 1080 * 30
-            actual_complexity = self.width * self.height * self.framerate
-            reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)
+        # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
+        # the user may have set for themselves.
+        if quality is not None or \
+           (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
+            quality = Quality.MEDIUM if quality is None else quality
+            QP_TABLE = {Quality.VERY_LOW: 63,
+                        Quality.LOW: 31,
+                        Quality.MEDIUM: 15,
+                        Quality.HIGH: 0,
+                        Quality.VERY_HIGH: 5}
+            self.qp = QP_TABLE[quality]
 
     def _start(self):
         self._container = av.open("/dev/null", "w", format="null")
@@ -52,14 +52,14 @@ class LibavMjpegEncoder(Encoder):
         # found that the sqrt of the quantiser times the bitrate was approximately constant with
         # the value 64000000 for a 1080p30 stream, though obviously it will depend on content,
         # and probably the phase of the moon.
-        if self._qp is None:
+        if self.qp is None:
             reference_complexity = 1920 * 1080 * 30
-            actual_complexity = self.width * self.height * self.framerate
+            actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = self.bitrate * reference_complexity / actual_complexity
-            self._qp = max(min(round(64000000 / reference_bitrate) ** 2, 127), 1)
+            self.qp = max(min(round(64000000 / reference_bitrate) ** 2, 127), 1)
 
-        self._stream.codec_context.qmin = self._qp
-        self._stream.codec_context.qmax = self._qp
+        self._stream.codec_context.qmin = self.qp
+        self._stream.codec_context.qmax = self.qp
         self._stream.codec_context.color_range = 2 # JPEG (full range)
         self._stream.codec_context.flags |= av.codec.context.Flags.QSCALE
 

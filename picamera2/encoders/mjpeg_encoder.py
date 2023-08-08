@@ -22,7 +22,10 @@ class MJPEGEncoder(V4L2Encoder):
         super().__init__(bitrate, V4L2_PIX_FMT_MJPEG)
 
     def _setup(self, quality):
-        if getattr(self, "bitrate", None) is None:
+        # If an explicit quality was specified, use it, otherwise try to preserve any bitrate
+        # the user may have set for themselves.
+        if quality is not None or getattr(self, "bitrate", None) is None:
+            quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 6,
                              Quality.LOW: 12,
@@ -30,6 +33,6 @@ class MJPEGEncoder(V4L2Encoder):
                              Quality.HIGH: 27,
                              Quality.VERY_HIGH: 45}
             reference_complexity = 1920 * 1080 * 30
-            actual_complexity = self.width * self.height * self.framerate
+            actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
             self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
