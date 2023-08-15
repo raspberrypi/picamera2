@@ -146,6 +146,8 @@ class Encoder:
         """
         if value == "RGB888":
             self._format = V4L2_PIX_FMT_BGR24
+        elif value == "BGR888":
+            self._format = V4L2_PIX_FMT_RGB24
         elif value == "YUV420":
             self._format = V4L2_PIX_FMT_YUV420
         elif value == "XBGR8888":
