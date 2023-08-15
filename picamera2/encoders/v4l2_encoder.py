@@ -37,6 +37,7 @@ class V4L2Encoder(Encoder):
     def _v4l2_format(self):
         """The input format to the codec, as a V4L2 type."""
         FORMAT_TABLE = {"RGB888": V4L2_PIX_FMT_BGR24,
+                        "BGR888": V4L2_PIX_FMT_RGB24,
                         "XBGR8888": V4L2_PIX_FMT_BGR32,
                         "XRGB8888": V4L2_PIX_FMT_RGBA32,
                         "YUV420": V4L2_PIX_FMT_YUV420}
