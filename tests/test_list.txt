@@ -56,6 +56,7 @@ tests/configurations.py
 tests/context_test.py
 tests/display_transform_null.py
 tests/display_transform_qt.py
+tests/easy_video2.py
 tests/encoder_start_stop.py
 tests/large_datagram.py
 tests/mjpeg_server.py
