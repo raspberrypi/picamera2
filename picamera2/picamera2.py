@@ -656,7 +656,7 @@ class Picamera2:
 
     def create_preview_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                      colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={},
-                                     display="main", encode="main", queue=True) -> dict:
+                                     display="main", encode="main", queue=True, sensor={}) -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -682,13 +682,14 @@ class Picamera2:
                   "main": main,
                   "lores": lores,
                   "raw": raw,
-                  "controls": controls}
+                  "controls": controls,
+                  "sensor": sensor}
         self._add_display_and_encode(config, display, encode)
         return config
 
     def create_still_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={},
-                                   display=None, encode=None, queue=True) -> dict:
+                                   display=None, encode=None, queue=True, sensor={}) -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -714,13 +715,14 @@ class Picamera2:
                   "main": main,
                   "lores": lores,
                   "raw": raw,
-                  "controls": controls}
+                  "controls": controls,
+                  "sensor": sensor}
         self._add_display_and_encode(config, display, encode)
         return config
 
     def create_video_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=None, buffer_count=6, controls={}, display="main",
-                                   encode="main", queue=True) -> dict:
+                                   encode="main", queue=True, sensor={}) -> dict:
         """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -751,7 +753,8 @@ class Picamera2:
                   "main": main,
                   "lores": lores,
                   "raw": raw,
-                  "controls": controls}
+                  "controls": controls,
+                  "sensor": sensor}
         self._add_display_and_encode(config, display, encode)
         return config
 
@@ -794,6 +797,12 @@ class Picamera2:
             raise RuntimeError("Colour space has incorrect type")
         if not isinstance(camera_config["transform"], libcamera._libcamera.Transform):
             raise RuntimeError("Transform has incorrect type")
+
+        if 'sensor' in camera_config and camera_config['sensor'] is not None:
+            allowed_keys = {'bit_depth', 'output_size'}
+            bad_keys = set(camera_config['sensor'].keys()).difference(allowed_keys)
+            if bad_keys:
+                raise RuntimeError("Unexpected keys {} in sensor configuration".bad_keys)
 
         self.check_stream_config(camera_config["main"], "main")
         if camera_config["lores"] is not None:
@@ -849,6 +858,43 @@ class Picamera2:
         if self.raw_index >= 0:
             self._update_libcamera_stream_config(libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count)
             libcamera_config.at(self.raw_index).color_space = libcamera.ColorSpace.Raw()
+
+        # We're always going to set up the sensor config fully.
+        bit_depth = 0
+        if 'bit_depth' in camera_config['sensor']:
+            bit_depth = camera_config['sensor']['bit_depth']
+        elif 'raw' in camera_config and camera_config['raw'] is not None and 'format' in camera_config['raw']:
+            bit_depth = SensorFormat(camera_config['raw']['format']).bit_depth
+        else:
+            bit_depth = SensorFormat(self.sensor_format).bit_depth
+
+        output_size = None
+        if 'output_size' in camera_config['sensor']:
+            output_size = camera_config['sensor']['output_size']
+        elif 'raw' in camera_config and camera_config['raw'] is not None and 'size' in camera_config['raw']:
+            output_size = camera_config['raw']['size']
+        else:
+            output_size = camera_config['main']['size']
+
+        # Now find a camera mode that best matches these, and that's what we use.
+        # This function copies how libcamera scores modes:
+        def score_mode(mode, bit_depth, output_size):
+            mode_bit_depth = SensorFormat(mode['format']).bit_depth
+            mode_output_size = mode['size']
+            ar = output_size[0] / output_size[1]
+            mode_ar = mode_output_size[0] / mode_output_size[1]
+            def score_format(desired, actual):
+                score = desired - actual
+                return -score / 4 if score < 0 else score * 2
+            score = score_format(output_size[0], mode_output_size[0])
+            score += score_format(output_size[1], mode_output_size[1])
+            score += 1500 * score_format(ar, mode_ar)
+            score += 500 * abs(bit_depth - mode_bit_depth)
+            return score
+
+        mode = min(self._raw_modes, key=lambda x: score_mode(x, bit_depth, output_size))
+        libcamera_config.sensor_config.bit_depth = SensorFormat(mode['format']).bit_depth
+        libcamera_config.sensor_config.output_size = libcamera.Size(*mode['size'])
 
         return libcamera_config
 
@@ -919,6 +965,11 @@ class Picamera2:
         if self.raw_index >= 0:
             self._update_stream_config(camera_config["raw"], libcamera_config.at(self.raw_index))
 
+        sensor_config = {}
+        sensor_config['bit_depth'] = libcamera_config.sensor_config.bit_depth
+        sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
+        camera_config['sensor'] = sensor_config
+
     def configure_(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration.
 
@@ -960,6 +1011,7 @@ class Picamera2:
         # Check the config and turn it into a libcamera config.
         self.check_camera_config(camera_config)
         libcamera_config = self._make_libcamera_config(camera_config)
+        self.libcamera_config = libcamera_config
 
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()

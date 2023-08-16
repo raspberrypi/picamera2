@@ -463,6 +463,8 @@ class controlSlider(QWidget):
 
     def setValue(self, val, emit=False):
         self.blockAllSignals(True)
+        if val is None:
+            val = 0
         self.box.setValue(val)
         self.slider.setValue(int(val / self.precision))
         self.blockAllSignals(False)
