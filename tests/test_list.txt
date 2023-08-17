@@ -61,6 +61,7 @@ tests/easy_video2.py
 tests/encoder_start_stop.py
 tests/large_datagram.py
 tests/mjpeg_server.py
+tests/null_encoder.py
 tests/mode_test.py
 tests/multicamera.py
 tests/multicamera_2.py
