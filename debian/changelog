@@ -1,3 +1,12 @@
+picamera2 (0.3.12+pi5-1) bookworm; urgency=medium
+
+  * pi5 build
+  * Add build dependencies
+    - python3-v4l2 python3-av python3-pil python3-prctl python3-piexif
+      python3-pidng
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 22 Aug 2023 11:16:54 +0000
+
 picamera2 (0.3.12-2) bullseye; urgency=medium
 
   * Import ToT commits
