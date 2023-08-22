@@ -90,7 +90,7 @@ class StreamConfiguration(Configuration):
 
 class CameraConfiguration(Configuration):
     _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space",
-                       "controls", "main", "lores", "raw", "queue")
+                       "controls", "main", "lores", "raw", "queue", "sensor")
     _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
 

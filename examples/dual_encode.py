@@ -21,14 +21,13 @@ mjpeg_encoder.format = config["lores"]["format"]
 mjpeg_encoder.bitrate = 5000000
 mjpeg_encoder.output = FileOutput("out.mjpeg")
 mjpeg_encoder.start()
-lores_stream = picam2.stream_map["lores"]
 
 picam2.start_recording(h264_encoder, h264_output)
 
 start = time.time()
 while time.time() - start < 5:
     request = picam2.capture_request()
-    mjpeg_encoder.encode(lores_stream, request)
+    mjpeg_encoder.encode("lores", request)
     request.release()
 
 mjpeg_encoder.stop()

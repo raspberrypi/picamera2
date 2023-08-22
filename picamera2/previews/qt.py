@@ -10,6 +10,6 @@ from .q_picamera2 import QPicamera2
 _log = getLogger(__name__)
 
 try:
-    from .q_gl_picamera2 import EglState, QGlPicamera2
+    from .q_gl_picamera2 import QGlPicamera2
 except Exception:
     _log.warning("OpenGL will not be available")
