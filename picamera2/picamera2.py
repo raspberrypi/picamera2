@@ -1202,7 +1202,7 @@ class Picamera2:
                 self._run_process_requests()
         return job.get_result() if wait else job
 
-    def capture_file_(self, file_output, name: str, format=None, exif_data={}) -> dict:
+    def capture_file_(self, file_output, name: str, format=None, exif_data=None) -> dict:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
@@ -1222,7 +1222,7 @@ class Picamera2:
             format=None,
             wait=None,
             signal_function=None,
-            exif_data={}) -> dict:
+            exif_data=None) -> dict:
         """Capture an image to a file in the current camera mode.
 
         Return the metadata for the frame captured.
@@ -1246,7 +1246,7 @@ class Picamera2:
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
     def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None,
-                                     wait=None, signal_function=None, exif_data={}):
+                                     wait=None, signal_function=None, exif_data=None):
         """Switch the camera into a new (capture) mode, capture an image to file.
 
         Then return back to the initial camera mode.
@@ -1265,7 +1265,7 @@ class Picamera2:
 
         functions = [partial(self.switch_mode_, camera_config),
                      partial(capture_and_switch_back_, self, file_output, preview_config, format,
-                             exif_data=exif_data})]
+                             exif_data=exif_data)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
     def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None):
@@ -1629,7 +1629,7 @@ class Picamera2:
     def start_and_capture_files(self, name: str = "image{:03d}.jpg",
                                 initial_delay=1, preview_mode="preview",
                                 capture_mode="still", num_files=1, delay=1,
-                                show_preview=True, exif_data={}):
+                                show_preview=True, exif_data=None):
         """This function makes capturing multiple images more convenient.
 
         Should only be used in command line line applications (not from a Qt application, for example).
