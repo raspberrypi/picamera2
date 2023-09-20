@@ -235,9 +235,9 @@ class Encoder:
             if not self._running:
                 raise RuntimeError("Encoder already stopped")
             self._running = False
+            self._stop()
             for out in self._output:
                 out.stop()
-            self._stop()
 
     def _stop(self):
         pass

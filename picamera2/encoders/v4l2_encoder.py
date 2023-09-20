@@ -179,7 +179,7 @@ class V4L2Encoder(Encoder):
         pollit = select.poll()
         pollit.register(self.vd, select.POLLIN)
 
-        while self._running:
+        while self._running or self.buf_frame.qsize() > 0:
             for _, event in pollit.poll(200):
                 if event & select.POLLIN:
                     buf = v4l2_buffer()
