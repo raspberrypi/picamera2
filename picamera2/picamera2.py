@@ -4,6 +4,7 @@
 import atexit
 import json
 import logging
+import mmap
 import os
 import selectors
 import sys
@@ -28,6 +29,7 @@ from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
 from .configuration import CameraConfiguration
 from .controls import Controls
+from .dma_heap import DmaHeap, Span
 from .job import Job
 from .request import CompletedRequest, Helpers
 from .sensor_format import SensorFormat
@@ -243,6 +245,9 @@ class Picamera2:
         self.verbose_console = verbose_console
         self._reset_flags()
         self.helpers = Helpers(self)
+        self.dmaHeap = DmaHeap()
+        self.mapped_buffers = {}
+        self.frame_buffers = {}
         try:
             self._open_camera()
             _log.debug(f"{self.camera_manager}")
@@ -611,7 +616,6 @@ class Picamera2:
         self.preview_configuration_ = None
         self.still_configuration_ = None
         self.video_configuration_ = None
-        self.allocator = None
         self.notifymeread.close()
         os.close(self.notifyme_w)
         _log.info('Camera closed successfully.')
@@ -935,7 +939,7 @@ class Picamera2:
         :return: requests
         :rtype: List[libcamera.Request]
         """
-        num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
+        num_requests = min([len(self.frame_buffers[stream]) for stream in self.streams])
         requests = []
         for i in range(num_requests):
             request = self.camera.create_request(self.camera_idx)
@@ -944,7 +948,7 @@ class Picamera2:
 
             for stream in self.streams:
                 # This now throws an error if it fails.
-                request.add_buffer(stream, self.allocator.buffers(stream)[i])
+                request.add_buffer(stream, self.frame_buffers[stream][i])
             requests.append(request)
         return requests
 
@@ -1067,12 +1071,26 @@ class Picamera2:
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
-        self.allocator = libcamera.FrameBufferAllocator(self.camera)
-        for i, stream in enumerate(self.streams):
-            if self.allocator.allocate(stream) < 0:
-                _log.critical("Failed to allocate buffers.")
-                raise RuntimeError("Failed to allocate buffers.")
-            msg = f"Allocated {len(self.allocator.buffers(stream))} buffers for stream {i}."
+        for stream_config in libcamera_config:
+            stream = stream_config.stream
+            fb = []
+            for i in range(stream_config.buffer_count):
+                fd = self.dmaHeap.alloc(f"picamera2-{i}", stream_config.frame_size)
+
+                if not fd.isValid():
+                    raise RuntimeError("failed to allocate capture buffers for stream")
+            
+                plane = [libcamera.FrameBuffer.Plane()]
+                plane[0].fd = fd.get()
+                plane[0].offset = 0
+                plane[0].length = stream_config.frame_size
+
+                fb.append(libcamera.FrameBuffer(plane))
+                memory = mmap.mmap(plane[0].fd, stream_config.frame_size, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+                self.mapped_buffers.setdefault(fb[-1], []).append(Span(memory, stream_config.frame_size))
+
+            self.frame_buffers[stream] = fb
+            msg = f"Allocated {len(self.mapped_buffers[fb[-1]])} buffers for stream {i}."
             _log.debug(msg)
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
