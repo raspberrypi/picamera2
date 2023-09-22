@@ -14,6 +14,7 @@ from PIL import Image
 import picamera2.formats as formats
 
 from .controls import Controls
+from .buffer_sync import BufferSync
 from .sensor_format import SensorFormat
 from .utils import convert_from_libcamera_type
 
@@ -21,10 +22,11 @@ _log = logging.getLogger(__name__)
 
 
 class _MappedBuffer:
-    def __init__(self, request, stream):
+    def __init__(self, request, stream, write=True):
         if isinstance(stream, str):
             stream = request.stream_map[stream]
         self.__fb = request.request.buffers[stream]
+        self.__sync = BufferSync(request.picam2, self.__fb, write)
 
     def __enter__(self):
         import mmap
@@ -41,18 +43,20 @@ class _MappedBuffer:
                 raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
 
         self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+        self.__sync.__enter__()
         return self.__mm
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.__sync.__exit__(exc_type, exc_value, exc_traceback)
         if self.__mm is not None:
             self.__mm.close()
 
 
 class MappedArray:
-    def __init__(self, request, stream, reshape=True):
+    def __init__(self, request, stream, reshape=True, write=True):
         self.__request = request
         self.__stream = stream
-        self.__buffer = _MappedBuffer(request, stream)
+        self.__buffer = _MappedBuffer(request, stream, write=write)
         self.__array = None
         self.__reshape = reshape
 
@@ -153,7 +157,7 @@ class CompletedRequest:
         """Make a 1d numpy array from the named stream's buffer."""
         if self.stream_map.get(name, None) is None:
             raise RuntimeError(f'Stream {name!r} is not defined')
-        with _MappedBuffer(self, name) as b:
+        with _MappedBuffer(self, name, write=False) as b:
             return np.array(b, dtype=np.uint8)
 
     def get_metadata(self):
