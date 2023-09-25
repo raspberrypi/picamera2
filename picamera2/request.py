@@ -26,30 +26,14 @@ class _MappedBuffer:
         if isinstance(stream, str):
             stream = request.stream_map[stream]
         self.__fb = request.request.buffers[stream]
-        self.__sync = BufferSync(request.picam2, self.__fb, write)
+        self.__sync = request.picam2.allocator.sync(request.picam2.allocator, self.__fb, write)
 
     def __enter__(self):
-        import mmap
-
-        # Check if the buffer is contiguous and find the total length.
-        fd = self.__fb.planes[0].fd
-        planes_metadata = self.__fb.metadata.planes
-        buflen = 0
-        for p, p_metadata in zip(self.__fb.planes, planes_metadata):
-            # bytes_used is the same as p.length for regular frames, but correctly reflects
-            # the compressed image size for MJPEG cameras.
-            buflen = buflen + p_metadata.bytes_used
-            if fd != p.fd:
-                raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
-
-        self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
-        self.__sync.__enter__()
+        self.__mm = self.__sync.__enter__()
         return self.__mm
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__sync.__exit__(exc_type, exc_value, exc_traceback)
-        if self.__mm is not None:
-            self.__mm.close()
 
 
 class MappedArray:
@@ -125,6 +109,9 @@ class CompletedRequest:
         self.configure_count = picam2.configure_count
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
+        self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False) for buffer in self.request.buffers.values()]
+        self.picam2.allocator.acquire(self.request.buffers)
+        [sync.__enter__() for sync in self.syncs]
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to the camera system."""
@@ -149,6 +136,8 @@ class CompletedRequest:
                         self.request.set_control(id, value)
                     self.picam2.controls = Controls(self.picam2)
                     self.picam2.camera.queue_request(self.request)
+                [sync.__exit__() for sync in self.syncs]
+                self.picam2.allocator.release(self.request.buffers)
                 self.request = None
                 self.config = None
                 self.stream_map = None
