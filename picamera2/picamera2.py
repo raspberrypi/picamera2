@@ -4,7 +4,6 @@
 import atexit
 import json
 import logging
-import mmap
 import os
 import selectors
 import sys
@@ -23,13 +22,13 @@ from PIL import Image
 import picamera2.formats as formats
 import picamera2.platform as Platform
 import picamera2.utils as utils
+from picamera2.allocators import DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
 from .configuration import CameraConfiguration
 from .controls import Controls
-from .dma_heap import DmaHeap, Span
 from .job import Job
 from .request import CompletedRequest, Helpers
 from .sensor_format import SensorFormat
@@ -245,9 +244,6 @@ class Picamera2:
         self.verbose_console = verbose_console
         self._reset_flags()
         self.helpers = Helpers(self)
-        self.dmaHeap = DmaHeap()
-        self.mapped_buffers = {}
-        self.frame_buffers = {}
         try:
             self._open_camera()
             _log.debug(f"{self.camera_manager}")
@@ -268,6 +264,8 @@ class Picamera2:
         # Quitting Python without stopping the camera sometimes causes crashes, with Boost logging
         # apparently being the principal culprit. Anyway, this seems to prevent the problem.
         atexit.register(self.close)
+        # Set Allocator
+        self.allocator = DmaAllocator()
 
     @property
     def camera_manager(self):
@@ -939,7 +937,7 @@ class Picamera2:
         :return: requests
         :rtype: List[libcamera.Request]
         """
-        num_requests = min([len(self.frame_buffers[stream]) for stream in self.streams])
+        num_requests = min([len(self.allocator.buffers(stream)) for stream in self.streams])
         requests = []
         for i in range(num_requests):
             request = self.camera.create_request(self.camera_idx)
@@ -948,7 +946,7 @@ class Picamera2:
 
             for stream in self.streams:
                 # This now throws an error if it fails.
-                request.add_buffer(stream, self.frame_buffers[stream][i])
+                request.add_buffer(stream, self.allocator.buffers(stream)[i])
             requests.append(request)
         return requests
 
@@ -1071,27 +1069,7 @@ class Picamera2:
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
-        for stream_config in libcamera_config:
-            stream = stream_config.stream
-            fb = []
-            for i in range(stream_config.buffer_count):
-                fd = self.dmaHeap.alloc(f"picamera2-{i}", stream_config.frame_size)
-
-                if not fd.isValid():
-                    raise RuntimeError("failed to allocate capture buffers for stream")
-            
-                plane = [libcamera.FrameBuffer.Plane()]
-                plane[0].fd = fd.get()
-                plane[0].offset = 0
-                plane[0].length = stream_config.frame_size
-
-                fb.append(libcamera.FrameBuffer(plane))
-                memory = mmap.mmap(plane[0].fd, stream_config.frame_size, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
-                self.mapped_buffers.setdefault(fb[-1], []).append(Span(memory, stream_config.frame_size))
-
-            self.frame_buffers[stream] = fb
-            msg = f"Allocated {len(self.mapped_buffers[fb[-1]])} buffers for stream {i}."
-            _log.debug(msg)
+        self.allocator.allocate(libcamera_config)
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
@@ -1178,6 +1156,8 @@ class Picamera2:
             self.started = False
             with self._requestslock:
                 self._requests = []
+            while len(self.completed_requests) > 0:
+                self.completed_requests.pop(0).release()
             self.completed_requests = []
             _log.info("Camera stopped")
         return (True, None)
