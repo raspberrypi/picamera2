@@ -212,7 +212,6 @@ class Encoder:
     def _encode(self, stream, request):
         if isinstance(stream, str):
             stream = request.stream_map[stream]
-        fb = request.request.buffers[stream]
         timestamp_us = self._timestamp(request)
         with _MappedBuffer(request, stream) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)

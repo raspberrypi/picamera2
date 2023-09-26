@@ -20,8 +20,8 @@ from libcamera import controls
 from PIL import Image
 
 import picamera2.formats as formats
-import picamera2.utils as utils
 import picamera2.platform as Platform
+import picamera2.utils as utils
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
@@ -507,12 +507,14 @@ class Picamera2:
     def _select_native_mode(self, modes):
         best_mode = modes[0]
         is_rpi_camera = self._is_rpi_camera()
+
         def area(sz):
             return sz[0] * sz[1]
+
         for mode in modes[1:]:
             if area(mode['size']) > area(best_mode['size']) or \
-               (is_rpi_camera and area(mode['size']) == area(best_mode['size']) and \
-                SensorFormat(mode['format']).bit_depth > SensorFormat(best_mode['format']).bit_depth):
+               (is_rpi_camera and area(mode['size']) == area(best_mode['size']) and
+                   SensorFormat(mode['format']).bit_depth > SensorFormat(best_mode['format']).bit_depth):
                 best_mode = mode
         return best_mode
 
@@ -803,7 +805,7 @@ class Picamera2:
             allowed_keys = {'bit_depth', 'output_size'}
             bad_keys = set(camera_config['sensor'].keys()).difference(allowed_keys)
             if bad_keys:
-                raise RuntimeError("Unexpected keys {} in sensor configuration".bad_keys)
+                raise RuntimeError(f"Unexpected keys {bad_keys} in sensor configuration")
 
         self.check_stream_config(camera_config["main"], "main")
         if camera_config["lores"] is not None:
@@ -884,9 +886,11 @@ class Picamera2:
             mode_output_size = mode['size']
             ar = output_size[0] / output_size[1]
             mode_ar = mode_output_size[0] / mode_output_size[1]
+
             def score_format(desired, actual):
                 score = desired - actual
                 return -score / 4 if score < 0 else score * 2
+
             score = score_format(output_size[0], mode_output_size[0])
             score += score_format(output_size[1], mode_output_size[1])
             score += 1500 * score_format(ar, mode_ar)
@@ -1288,7 +1292,7 @@ class Picamera2:
         return job.get_result() if wait else job
 
     def set_frame_drops_(self, num_frames):
-        """Only for use within the camera event loop prior to calling drop_frames_."""
+        """Only for use within the camera event loop before calling drop_frames_."""  # noqa
         self._frame_drops = num_frames
         return (True, None)
 

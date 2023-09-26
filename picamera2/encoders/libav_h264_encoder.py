@@ -1,25 +1,22 @@
 """This is a base class for a multi-threaded software encoder."""
 
-import av
-
 from fractions import Fraction
-
 from math import sqrt
 
+import av
+
 from picamera2.encoders.encoder import Encoder, Quality
+
 from ..request import MappedArray
 
 
 class LibavH264Encoder(Encoder):
-    """
-    Encoder class that uses libx264 for h.264 encoding.
-    """
+    """Encoder class that uses libx264 for h.264 encoding."""
 
     def __init__(self, bitrate=None, repeat=True, iperiod=30, framerate=30, qp=None):
-        """Initialise
-        """
+        """Initialise"""
         super().__init__()
-        self._codec = "h264" # for now only support h264
+        self._codec = "h264"  # for now only support h264
         self.repeat = repeat
         self.bitrate = bitrate
         self.iperiod = iperiod

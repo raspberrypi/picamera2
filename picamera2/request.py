@@ -319,11 +319,10 @@ class Helpers:
     def decompress(self, array):
         """Decompress an image buffer that has been compressed with a PiSP compression format."""
         # These are the standard configurations used in the drivers.
-        mode = 1
         offset = 2048
 
-        words = array.view(np.int32) # Assume all Pis are little-endian. Note signed arithmetic is used!
-        words = words.reshape((words.shape[0], words.shape[1] // 2, 2)) # pairs of words by component
+        words = array.view(np.int32)  # Assume all Pis are little-endian. Note signed arithmetic is used!
+        words = words.reshape((words.shape[0], words.shape[1] // 2, 2))  # pairs of words by component
         qmode = words & 3
         pix0 = (words >> 2) & 511
         pix1 = ((words >> 11) & 127) - 64
@@ -331,24 +330,24 @@ class Helpers:
         pix3 = (words >> 25) & 127
         q1 = np.copy(pix0)
         q2 = pix1 + 448
-        np.maximum(pix0, pix0 - pix1, where=(qmode*pix0 < 768), out=q1)
-        np.maximum(pix0, pix0 + pix1, where=(qmode*pix0 < 768), out=q2)
+        np.maximum(pix0, pix0 - pix1, where=(qmode * pix0 < 768), out=q1)
+        np.maximum(pix0, pix0 + pix1, where=(qmode * pix0 < 768), out=q2)
         q0 = np.minimum(1536 >> qmode, np.maximum(0, q1 - 64)) + pix2
         q3 = np.minimum(1536 >> qmode, np.maximum(0, q2 - 64)) + pix3
-        np.maximum(np.maximum(16*q0, 32*(q0-160)), 64*qmode*q0, out=pix0)
-        np.maximum(np.maximum(16*q1, 32*(q1-160)), 64*qmode*q1, out=pix1)
-        np.maximum(np.maximum(16*q2, 32*(q2-160)), 64*qmode*q2, out=pix2)
-        np.maximum(np.maximum(16*q3, 32*(q3-160)), 64*qmode*q3, out=pix3)
+        np.maximum(np.maximum(16 * q0, 32 * (q0 - 160)), 64 * qmode * q0, out=pix0)
+        np.maximum(np.maximum(16 * q1, 32 * (q1 - 160)), 64 * qmode * q1, out=pix1)
+        np.maximum(np.maximum(16 * q2, 32 * (q2 - 160)), 64 * qmode * q2, out=pix2)
+        np.maximum(np.maximum(16 * q3, 32 * (q3 - 160)), 64 * qmode * q3, out=pix3)
         q2 = (words >> 2) & 32767
         q3 = (words >> 17) & 32767
-        q0 = (q2 & 15) + 16*((q2 >> 8) // 11)
+        q0 = (q2 & 15) + 16 * ((q2 >> 8) // 11)
         q1 = (q2 >> 4) % 176
-        q2 = (q3 & 15) + 16*((q3 >> 8) // 11)
+        q2 = (q3 & 15) + 16 * ((q3 >> 8) // 11)
         q3 = (q3 >> 4) % 176
-        np.maximum(256*q0, 512*(q0-47), out=pix0, where=(qmode==3))
-        np.maximum(256*q1, 512*(q1-47), out=pix1, where=(qmode==3))
-        np.maximum(256*q2, 512*(q2-47), out=pix2, where=(qmode==3))
-        np.maximum(256*q3, 512*(q3-47), out=pix3, where=(qmode==3))
+        np.maximum(256 * q0, 512 * (q0 - 47), out=pix0, where=(qmode == 3))
+        np.maximum(256 * q1, 512 * (q1 - 47), out=pix1, where=(qmode == 3))
+        np.maximum(256 * q2, 512 * (q2 - 47), out=pix2, where=(qmode == 3))
+        np.maximum(256 * q3, 512 * (q3 - 47), out=pix3, where=(qmode == 3))
         res = np.stack((pix0, pix1, pix2, pix3), axis=2).reshape(array.shape)
 
         res = np.clip(res + offset, 0, 65535).astype(np.uint16)
