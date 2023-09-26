@@ -294,6 +294,7 @@ class Picamera2:
         self.controls = Controls(self)
         self.sensor_modes_ = None
         self._title_fields = None
+        self._frame_drops = 0
 
     @property
     def preview_configuration(self) -> CameraConfiguration:
@@ -1286,6 +1287,25 @@ class Picamera2:
                 self._run_process_requests()
         return job.get_result() if wait else job
 
+    def set_frame_drops_(self, num_frames):
+        """Only for use within the camera event loop prior to calling drop_frames_."""
+        self._frame_drops = num_frames
+        return (True, None)
+
+    def drop_frames_(self):
+        if not self.completed_requests:
+            return (False, None)
+        if self._frame_drops == 0:
+            return (True, None)
+        self.completed_requests.pop(0).release()
+        self._frame_drops -= 1
+        return (False, None)
+
+    def drop_frames(self, num_frames, wait=None, signal_function=None):
+        """Drop num_frames frames from the camera."""
+        functions = [partial(self.set_frame_drops_, num_frames), self.drop_frames_]
+        return self.dispatch_functions(functions, wait, signal_function, immediate=True)
+
     def capture_file_(self, file_output, name: str, format=None) -> dict:
         if not self.completed_requests:
             return (False, None)
@@ -1324,8 +1344,14 @@ class Picamera2:
         functions = [partial(self.switch_mode_, camera_config)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
+    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait=None, signal_function=None):
+        """Switch the camera into the mode given by camera_config and drop the first num_frames frames."""
+        functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, num_frames), self.drop_frames_]
+        return self.dispatch_functions(functions, wait, signal_function, immediate=True)
+
     def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None,
-                                     wait=None, signal_function=None):
+                                     wait=None, signal_function=None, delay=0):
         """Switch the camera into a new (capture) mode, capture an image to file.
 
         Then return back to the initial camera mode.
@@ -1340,10 +1366,11 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_and_switch_back_, self, file_output, preview_config, format)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None):
+    def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None, delay=0):
         """Switch the camera into a new (capture) mode and capture a request, then switch back.
 
         Applications should use this with care because it may increase the risk of CMA heap
@@ -1360,6 +1387,7 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_and_switch_back_, self, preview_config)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
@@ -1429,7 +1457,7 @@ class Picamera2:
         """Make a 1d numpy array from the next frame for each of the named streams."""
         return self.dispatch_functions([partial(self.capture_buffers_and_metadata_, names)], wait, signal_function)
 
-    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None):
+    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None, delay=0):
         """Switch the camera into a new (capture) mode, capture the first buffer.
 
         Then return back to the initial camera mode.
@@ -1444,10 +1472,11 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_buffer_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait=None, signal_function=None):
+    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait=None, signal_function=None, delay=0):
         """Switch the camera into a new (capture) mode, capture the first buffers.
 
         Then return back to the initial camera mode.
@@ -1462,6 +1491,7 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_buffers_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
@@ -1489,7 +1519,7 @@ class Picamera2:
         """Make 2d image arrays from the next frames in the named streams."""
         return self.dispatch_functions([partial(self.capture_arrays_and_metadata_, names)], wait, signal_function)
 
-    def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None):
+    def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None, delay=0):
         """Switch the camera into a new (capture) mode, capture the image array data.
 
         Then return back to the initial camera mode.
@@ -1504,10 +1534,11 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_array_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait=None, signal_function=None):
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait=None, signal_function=None, delay=0):
         """Switch the camera into a new (capture) mode, capture the image arrays.
 
         Then return back to the initial camera mode.
@@ -1522,6 +1553,7 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_arrays_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
@@ -1553,7 +1585,7 @@ class Picamera2:
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
     def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None,
-                                      signal_function=None) -> Image:
+                                      signal_function=None, delay=0) -> Image:
         """Switch the camera into a new (capture) mode, capture the image.
 
         Then return back to the initial camera mode.
@@ -1568,6 +1600,7 @@ class Picamera2:
             return (True, result)
 
         functions = [partial(self.switch_mode_, camera_config),
+                     partial(self.set_frame_drops_, delay), self.drop_frames_,
                      partial(capture_image_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
