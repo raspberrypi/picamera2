@@ -6,8 +6,8 @@ from v4l2 import _IOWR, _IOW
 
 _log = logging.getLogger("picamera2")
 heapNames = [
-    "/dev/dma_heap/linux,cma",
-    "/dev/dma_heap/reserved"
+    "/dev/dma_heap/vidbuf_cached",
+    "/dev/dma_heap/linux,cma"
 ]
 
 
@@ -62,29 +62,24 @@ class UniqueFD:
     
     def isValid(self):
         return self.__fd >= 0
-    
-
-class Span:
-    """Libcamera Span Class"""
-    def __init__(self, memory, size):
-        self.memory = memory
-        self.size = size
 
 
 class DmaHeap:
     """DmaHeap"""
     def __init__(self):
+        self.__dmaHeapHandle = UniqueFD()
         for name in heapNames:
-            ret = os.open(name, os.O_CLOEXEC | os.O_RDWR)
-            if ret < 0:
-                _log.warning(f"Failed to open {name}: {ret}")
+            try:
+                ret = os.open(name, os.O_CLOEXEC | os.O_RDWR)
+            except FileNotFoundError:
+                _log.info(f"Failed to open {name}")
                 continue
 
             self.__dmaHeapHandle = UniqueFD(ret)
             break
 
         if not self.__dmaHeapHandle.isValid():
-            _log.error("Could not open any dmaHeap device")
+            raise RuntimeError("Could not open any dmaHeap device")
 
     @property
     def isValid(self):
