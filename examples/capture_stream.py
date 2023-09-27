@@ -22,7 +22,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     conn, addr = sock.accept()
     stream = conn.makefile("wb")
     encoder.output = FileOutput(stream)
-    picam2.start_encoder()
+    picam2.start_encoder(encoder)
     picam2.start()
     time.sleep(20)
     picam2.stop()

@@ -890,7 +890,6 @@ class Picamera2:
             score += score_format(output_size[1], mode_output_size[1])
             score += 1500 * score_format(ar, mode_ar)
             score += 500 * abs(bit_depth - mode_bit_depth)
-            print(mode, score)
             return score
 
         mode = min(self._raw_modes, key=lambda x: score_mode(x, bit_depth, output_size))
@@ -1207,6 +1206,7 @@ class Picamera2:
             if requests:
                 display_request = requests[-1]
                 display_request.acquire()
+                display_request.display = True  # display requests by default
 
             if self.pre_callback:
                 for req in requests:
@@ -1244,7 +1244,7 @@ class Picamera2:
         # then we don't want it going back to the application as the memory is not valid.
         if display_request is not None:
             if display_request.configure_count == self.configure_count and \
-               display_request.config['display'] is not None:
+               display_request.config['display'] is not None and display_request.display:
                 display.render_request(display_request)
             display_request.release()
 

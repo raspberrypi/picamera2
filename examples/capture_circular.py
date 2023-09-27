@@ -15,9 +15,8 @@ picam2.configure(video_config)
 picam2.start_preview()
 encoder = H264Encoder(1000000, repeat=True)
 encoder.output = CircularOutput()
-picam2.encoder = encoder
 picam2.start()
-picam2.start_encoder()
+picam2.start_encoder(encoder)
 
 w, h = lsize
 prev = None
