@@ -898,6 +898,7 @@ class Picamera2:
             return score
 
         mode = min(self._raw_modes, key=lambda x: score_mode(x, bit_depth, output_size))
+        libcamera_config.sensor_config = libcamera.SensorConfiguration()
         libcamera_config.sensor_config.bit_depth = SensorFormat(mode['format']).bit_depth
         libcamera_config.sensor_config.output_size = libcamera.Size(*mode['size'])
 
