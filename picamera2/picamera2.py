@@ -668,6 +668,7 @@ class Picamera2:
         # USB cams can't deliver a raw stream.
         if not self._is_rpi_camera():
             raw = None
+            sensor = None
         main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
         self.align_stream(main, optimal=False)
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
@@ -701,6 +702,7 @@ class Picamera2:
         # USB cams can't deliver a raw stream.
         if not self._is_rpi_camera():
             raw = None
+            sensor = None
         main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
         self.align_stream(main, optimal=False)
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
@@ -734,6 +736,7 @@ class Picamera2:
         # USB cams can't deliver a raw stream.
         if not self._is_rpi_camera():
             raw = None
+            sensor = None
         main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
         self.align_stream(main, optimal=False)
         lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
@@ -864,6 +867,9 @@ class Picamera2:
             self._update_libcamera_stream_config(libcamera_config.at(self.raw_index), camera_config["raw"], buffer_count)
             libcamera_config.at(self.raw_index).color_space = libcamera.ColorSpace.Raw()
 
+        if not self._is_rpi_camera():
+            return libcamera_config
+
         # We're always going to set up the sensor config fully.
         bit_depth = 0
         if 'bit_depth' in camera_config['sensor']:
@@ -973,10 +979,11 @@ class Picamera2:
         if self.raw_index >= 0:
             self._update_stream_config(camera_config["raw"], libcamera_config.at(self.raw_index))
 
-        sensor_config = {}
-        sensor_config['bit_depth'] = libcamera_config.sensor_config.bit_depth
-        sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
-        camera_config['sensor'] = sensor_config
+        if libcamera_config.sensor_config is not None:
+            sensor_config = {}
+            sensor_config['bit_depth'] = libcamera_config.sensor_config.bit_depth
+            sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
+            camera_config['sensor'] = sensor_config
 
     def configure_(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration.
