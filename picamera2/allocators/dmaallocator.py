@@ -1,10 +1,14 @@
+import fcntl
 import logging
 import mmap
+import os
 
 import libcamera
 
 from picamera2.allocators.allocator import Allocator, Sync
-from picamera2.dma_heap import *
+from picamera2.dma_heap import (DMA_BUF_IOCTL_SYNC, DMA_BUF_SYNC_END,
+                                DMA_BUF_SYNC_READ, DMA_BUF_SYNC_RW,
+                                DMA_BUF_SYNC_START, DmaHeap, dma_buf_sync)
 
 _log = logging.getLogger("picamera2")
 
@@ -47,7 +51,7 @@ class DmaAllocator(Allocator):
                 plane[0].fd = fd.get()
                 plane[0].offset = 0
                 plane[0].length = stream_config.frame_size
-                
+
                 self.libcamera_fds.append(plane[0].fd)
                 self.mapped_buffers_used[plane[0].fd] = False
 
@@ -82,7 +86,6 @@ class DmaAllocator(Allocator):
                 del self.mapped_buffers_used[fd]
         for k in [k for k, v in self.mapped_buffers.items() if v.closed]:
             del self.mapped_buffers[k]
-
 
     class DmaSync(Sync):
         """Dma Buffer Sync"""

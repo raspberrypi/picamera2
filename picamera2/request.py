@@ -14,7 +14,6 @@ from PIL import Image
 import picamera2.formats as formats
 
 from .controls import Controls
-from .buffer_sync import BufferSync
 from .sensor_format import SensorFormat
 from .utils import convert_from_libcamera_type
 
