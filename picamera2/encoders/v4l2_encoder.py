@@ -33,6 +33,18 @@ class V4L2Encoder(Encoder):
         self.framerate = None
         self._enable_framerate = False
 
+    @property
+    def _v4l2_format(self):
+        """The input format to the codec, as a V4L2 type."""
+        FORMAT_TABLE = {"RGB888": V4L2_PIX_FMT_BGR24,
+                        "BGR888": V4L2_PIX_FMT_RGB24,
+                        "XBGR8888": V4L2_PIX_FMT_BGR32,
+                        "XRGB8888": V4L2_PIX_FMT_RGBA32,
+                        "YUV420": V4L2_PIX_FMT_YUV420}
+        if self._format not in FORMAT_TABLE:
+            raise RuntimeError("Unrecognised format", self._format, "for V4L2")
+        return FORMAT_TABLE[self._format]
+
     def _start(self):
         self.vd = open('/dev/video11', 'rb+', buffering=0)
 
@@ -56,7 +68,7 @@ class V4L2Encoder(Encoder):
         fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
         fmt.fmt.pix_mp.width = self._width
         fmt.fmt.pix_mp.height = self._height
-        fmt.fmt.pix_mp.pixelformat = self.format
+        fmt.fmt.pix_mp.pixelformat = self._v4l2_format
         fmt.fmt.pix_mp.plane_fmt[0].bytesperline = self.stride
         fmt.fmt.pix_mp.field = V4L2_FIELD_ANY
         fmt.fmt.pix_mp.colorspace = V4L2_COLORSPACE_JPEG
@@ -167,7 +179,7 @@ class V4L2Encoder(Encoder):
         pollit = select.poll()
         pollit.register(self.vd, select.POLLIN)
 
-        while self._running:
+        while self._running or self.buf_frame.qsize() > 0:
             for _, event in pollit.poll(200):
                 if event & select.POLLIN:
                     buf = v4l2_buffer()
@@ -229,14 +241,15 @@ class V4L2Encoder(Encoder):
             return
         if self.vd is None or self.vd.closed:
             return
+        if isinstance(stream, str):
+            stream = request.stream_map[stream]
         cfg = stream.configuration
         fb = request.request.buffers[stream]
         fd = fb.planes[0].fd
         request.acquire()
 
         buf = v4l2_buffer()
-        # fb.metadata.timestamp is in nanoseconds, so convert to usecs
-        timestamp_us = self._timestamp(fb)
+        timestamp_us = self._timestamp(request)
 
         # Pass frame to video 4 linux, to encode
         planes = v4l2_plane * VIDEO_MAX_PLANES

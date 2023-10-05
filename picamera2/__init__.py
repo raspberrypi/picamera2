@@ -7,7 +7,9 @@ from .controls import Controls
 from .converters import YUV420_to_RGB
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
+from .platform import Platform, get_platform
 from .request import CompletedRequest, MappedArray
+from .sensor_format import SensorFormat
 
 if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
     # The code here works through the X wayland layer, but not otherwise.
@@ -15,12 +17,13 @@ if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
 
 
 def _set_configuration_file(filename):
+    platform_dir = "vc4" if get_platform() == Platform.VC4 else "pisp"
     dirs = [
         os.path.expanduser(
-            "~/libcamera/src/libcamera/pipeline/rpi/vc4/data"
+            "~/libcamera/src/libcamera/pipeline/rpi/" + platform_dir + "/data"
         ),
-        "/usr/local/share/libcamera/pipeline/rpi/vc4",
-        "/usr/share/libcamera/pipeline/rpi/vc4"]
+        "/usr/local/share/libcamera/pipeline/rpi/" + platform_dir,
+        "/usr/share/libcamera/pipeline/rpi/" + platform_dir]
 
     for directory in dirs:
         file = os.path.join(directory, filename)

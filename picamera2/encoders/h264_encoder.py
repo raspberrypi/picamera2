@@ -1,7 +1,5 @@
 """H264 encoder functionality"""
 
-from math import sqrt
-
 from v4l2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
                   V4L2_CID_MPEG_VIDEO_H264_LEVEL,
                   V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
@@ -69,7 +67,11 @@ class H264Encoder(V4L2Encoder):
         super()._start()
 
     def _setup(self, quality):
-        if getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None:
+        # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
+        # the user may have set for themselves.
+        if quality is not None or \
+           (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
+            quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
             BITRATE_TABLE = {Quality.VERY_LOW: 2,
                              Quality.LOW: 4,
@@ -77,6 +79,6 @@ class H264Encoder(V4L2Encoder):
                              Quality.HIGH: 9,
                              Quality.VERY_HIGH: 15}
             reference_complexity = 1920 * 1080 * 30
-            actual_complexity = self.width * self.height * self.framerate
+            actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
+            self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)

@@ -49,11 +49,14 @@ class JpegEncoder(MultiEncoder):
                                       colorsubsampling=self.colour_subsampling)
 
     def _setup(self, quality):
-        if getattr(self, "q", None) is None:
+        # If an explicit quality was specified, use it, otherwise try to preserve any q value
+        # the user may have set for themselves.
+        if quality is not None or getattr(self, "q", None) is None:
+            quality = Quality.MEDIUM if quality is None else quality
             # Image size and framerate isn't an issue here, you just get what you get.
-            Q_TABLE = {Quality.VERY_LOW: 20,
-                       Quality.LOW: 40,
-                       Quality.MEDIUM: 60,
-                       Quality.HIGH: 75,
-                       Quality.VERY_HIGH: 90}
+            Q_TABLE = {Quality.VERY_LOW: 25,
+                       Quality.LOW: 35,
+                       Quality.MEDIUM: 50,
+                       Quality.HIGH: 65,
+                       Quality.VERY_HIGH: 80}
             self.q = Q_TABLE[quality]

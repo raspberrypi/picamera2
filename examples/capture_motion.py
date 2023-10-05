@@ -14,7 +14,6 @@ video_config = picam2.create_video_configuration(main={"size": (1280, 720), "for
                                                  lores={"size": lsize, "format": "YUV420"})
 picam2.configure(video_config)
 encoder = H264Encoder(1000000)
-picam2.encoder = encoder
 picam2.start()
 
 w, h = lsize
@@ -32,7 +31,7 @@ while True:
         if mse > 7:
             if not encoding:
                 encoder.output = FileOutput(f"{int(time.time())}.h264")
-                picam2.start_encoder()
+                picam2.start_encoder(encoder)
                 encoding = True
                 print("New Motion", mse)
             ltime = time.time()

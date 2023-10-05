@@ -1,10 +1,8 @@
 """MJPEG encoder functionality utilising V4L2"""
 
-from math import sqrt
-
 from v4l2 import V4L2_PIX_FMT_MJPEG
 
-from picamera2.encoders import Quality
+from picamera2.encoders import Quality, _hw_encoder_available
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
 
 
@@ -17,17 +15,22 @@ class MJPEGEncoder(V4L2Encoder):
         :param bitrate: Bitrate, default None
         :type bitrate: int
         """
+        if not _hw_encoder_available:
+            raise RuntimeError("Hardware MJPEG not available on this platform")
         super().__init__(bitrate, V4L2_PIX_FMT_MJPEG)
 
     def _setup(self, quality):
-        if getattr(self, "bitrate", None) is None:
+        # If an explicit quality was specified, use it, otherwise try to preserve any bitrate
+        # the user may have set for themselves.
+        if quality is not None or getattr(self, "bitrate", None) is None:
+            quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 6,
-                             Quality.LOW: 12,
-                             Quality.MEDIUM: 18,
-                             Quality.HIGH: 27,
-                             Quality.VERY_HIGH: 45}
+            BITRATE_TABLE = {Quality.VERY_LOW: 16,
+                             Quality.LOW: 20,
+                             Quality.MEDIUM: 30,
+                             Quality.HIGH: 40,
+                             Quality.VERY_HIGH: 50}
             reference_complexity = 1920 * 1080 * 30
-            actual_complexity = self.width * self.height * self.framerate
+            actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
-            self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
+            self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)

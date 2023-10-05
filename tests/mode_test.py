@@ -25,13 +25,21 @@ def check(raw_config, fps):
     )
     picam2.configure("video")
     # Check we got the correct raw format
-    assert picam2.camera_configuration()["raw"]["size"] == raw_config["size"]
-    set_format = SensorFormat(picam2.camera_configuration()["raw"]["format"])
-    # For now, assume all our cameras are rotated 180 degrees. These seems to be no easy
-    # way to get this information from libcamera any more.
+    camera_config = picam2.camera_configuration()
+    assert camera_config["raw"]["size"] == raw_config["size"]
+    set_format = SensorFormat(camera_config["raw"]["format"])
+    requested_format = SensorFormat(raw_config["format"])
+    # For now, assume all our cameras are rotated 180 degrees.
     rotation = 180  # picam2.camera_properties["Rotation"]
     set_format.transform(Transform(rotation=rotation))
-    assert set_format.format == raw_config["format"], \
+    # Bayer order should match, as should bit depth (taking it from the sensor config
+    # if present). Insist that there either is packing of some form on both, or none.
+    if 'sensor' in camera_config and camera_config['sensor'] is not None:
+        if 'bit_depth' in camera_config['sensor']:
+            set_format.bit_depth = camera_config['sensor']['bit_depth']
+    assert set_format.bayer_order == requested_format.bayer_order and \
+        set_format.bit_depth == requested_format.bit_depth and \
+        (set_format.packing == '') == (requested_format.packing == ''), \
         f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
     picam2.set_controls({"FrameRate": fps})
     picam2.start(show_preview=True)

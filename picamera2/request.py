@@ -14,43 +14,32 @@ from PIL import Image
 import picamera2.formats as formats
 
 from .controls import Controls
+from .sensor_format import SensorFormat
 from .utils import convert_from_libcamera_type
 
 _log = logging.getLogger(__name__)
 
 
 class _MappedBuffer:
-    def __init__(self, request, stream):
-        stream = request.stream_map[stream]
+    def __init__(self, request, stream, write=True):
+        if isinstance(stream, str):
+            stream = request.stream_map[stream]
         self.__fb = request.request.buffers[stream]
+        self.__sync = request.picam2.allocator.sync(request.picam2.allocator, self.__fb, write)
 
     def __enter__(self):
-        import mmap
-
-        # Check if the buffer is contiguous and find the total length.
-        fd = self.__fb.planes[0].fd
-        planes_metadata = self.__fb.metadata.planes
-        buflen = 0
-        for p, p_metadata in zip(self.__fb.planes, planes_metadata):
-            # bytes_used is the same as p.length for regular frames, but correctly reflects
-            # the compressed image size for MJPEG cameras.
-            buflen = buflen + p_metadata.bytes_used
-            if fd != p.fd:
-                raise RuntimeError('_MappedBuffer: Cannot map non-contiguous buffer!')
-
-        self.__mm = mmap.mmap(fd, buflen, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+        self.__mm = self.__sync.__enter__()
         return self.__mm
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        if self.__mm is not None:
-            self.__mm.close()
+        self.__sync.__exit__(exc_type, exc_value, exc_traceback)
 
 
 class MappedArray:
-    def __init__(self, request, stream, reshape=True):
+    def __init__(self, request, stream, reshape=True, write=True):
         self.__request = request
         self.__stream = stream
-        self.__buffer = _MappedBuffer(request, stream)
+        self.__buffer = _MappedBuffer(request, stream, write=write)
         self.__array = None
         self.__reshape = reshape
 
@@ -59,10 +48,17 @@ class MappedArray:
         array = np.array(b, copy=False, dtype=np.uint8)
 
         if self.__reshape:
-            config = self.__request.config[self.__stream]
-            fmt = config["format"]
-            w, h = config["size"]
-            stride = config["stride"]
+            if isinstance(self.__stream, str):
+                config = self.__request.config[self.__stream]
+                fmt = config["format"]
+                w, h = config["size"]
+                stride = config["stride"]
+            else:
+                config = self.__stream.configuration
+                fmt = str(config.pixel_format)
+                w = config.size.width
+                h = config.size.height
+                stride = config.stride
 
             # Turning the 1d array into a 2d image-like array only works if the
             # image stride (which is in bytes) is a whole number of pixels. Even
@@ -112,6 +108,9 @@ class CompletedRequest:
         self.configure_count = picam2.configure_count
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
+        self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False) for buffer in self.request.buffers.values()]
+        self.picam2.allocator.acquire(self.request.buffers)
+        [sync.__enter__() for sync in self.syncs]
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to the camera system."""
@@ -136,6 +135,8 @@ class CompletedRequest:
                         self.request.set_control(id, value)
                     self.picam2.controls = Controls(self.picam2)
                     self.picam2.camera.queue_request(self.request)
+                [sync.__exit__() for sync in self.syncs]
+                self.picam2.allocator.release(self.request.buffers)
                 self.request = None
                 self.config = None
                 self.stream_map = None
@@ -144,7 +145,7 @@ class CompletedRequest:
         """Make a 1d numpy array from the named stream's buffer."""
         if self.stream_map.get(name, None) is None:
             raise RuntimeError(f'Stream {name!r} is not defined')
-        with _MappedBuffer(self, name) as b:
+        with _MappedBuffer(self, name, write=False) as b:
             return np.array(b, dtype=np.uint8)
 
     def get_metadata(self):
@@ -299,8 +300,17 @@ class Helpers:
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)
+        config = config.copy()
 
-        camera = Picamera2Camera(config.copy(), metadata)
+        fmt = SensorFormat(config['format'])
+        if fmt.packing == 'PISP_COMP1':
+            raw = self.decompress(raw)
+            fmt.bit_depth = 16
+            config['format'] = fmt.unpacked
+            config['stride'] = raw.shape[1]
+            config['framesize'] = raw.shape[0] * raw.shape[1]
+
+        camera = Picamera2Camera(config, metadata)
         r = PICAM2DNG(camera)
 
         dng_compress_level = self.picam2.options.get("compress_level", 0)
@@ -311,3 +321,40 @@ class Helpers:
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {filename}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+
+    def decompress(self, array):
+        """Decompress an image buffer that has been compressed with a PiSP compression format."""
+        # These are the standard configurations used in the drivers.
+        offset = 2048
+
+        words = array.view(np.int32)  # Assume all Pis are little-endian. Note signed arithmetic is used!
+        words = words.reshape((words.shape[0], words.shape[1] // 2, 2))  # pairs of words by component
+        qmode = words & 3
+        pix0 = (words >> 2) & 511
+        pix1 = ((words >> 11) & 127) - 64
+        pix2 = (words >> 18) & 127
+        pix3 = (words >> 25) & 127
+        q1 = np.copy(pix0)
+        q2 = pix1 + 448
+        np.maximum(pix0, pix0 - pix1, where=(qmode * pix0 < 768), out=q1)
+        np.maximum(pix0, pix0 + pix1, where=(qmode * pix0 < 768), out=q2)
+        q0 = np.minimum(1536 >> qmode, np.maximum(0, q1 - 64)) + pix2
+        q3 = np.minimum(1536 >> qmode, np.maximum(0, q2 - 64)) + pix3
+        np.maximum(np.maximum(16 * q0, 32 * (q0 - 160)), 64 * qmode * q0, out=pix0)
+        np.maximum(np.maximum(16 * q1, 32 * (q1 - 160)), 64 * qmode * q1, out=pix1)
+        np.maximum(np.maximum(16 * q2, 32 * (q2 - 160)), 64 * qmode * q2, out=pix2)
+        np.maximum(np.maximum(16 * q3, 32 * (q3 - 160)), 64 * qmode * q3, out=pix3)
+        q2 = (words >> 2) & 32767
+        q3 = (words >> 17) & 32767
+        q0 = (q2 & 15) + 16 * ((q2 >> 8) // 11)
+        q1 = (q2 >> 4) % 176
+        q2 = (q3 & 15) + 16 * ((q3 >> 8) // 11)
+        q3 = (q3 >> 4) % 176
+        np.maximum(256 * q0, 512 * (q0 - 47), out=pix0, where=(qmode == 3))
+        np.maximum(256 * q1, 512 * (q1 - 47), out=pix1, where=(qmode == 3))
+        np.maximum(256 * q2, 512 * (q2 - 47), out=pix2, where=(qmode == 3))
+        np.maximum(256 * q3, 512 * (q3 - 47), out=pix3, where=(qmode == 3))
+        res = np.stack((pix0, pix1, pix2, pix3), axis=2).reshape(array.shape)
+
+        res = np.clip(res + offset, 0, 65535).astype(np.uint16)
+        return res.view(np.uint8)

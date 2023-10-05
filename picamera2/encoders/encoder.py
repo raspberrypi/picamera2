@@ -3,7 +3,7 @@
 import threading
 from enum import Enum
 
-from v4l2 import *
+from libcamera import controls
 
 import picamera2.formats as formats
 
@@ -144,17 +144,8 @@ class Encoder:
         :type value: str
         :raises RuntimeError: Invalid format
         """
-        if value == "RGB888":
-            self._format = V4L2_PIX_FMT_BGR24
-        elif value == "YUV420":
-            self._format = V4L2_PIX_FMT_YUV420
-        elif value == "XBGR8888":
-            self._format = V4L2_PIX_FMT_BGR32
-        elif value == "XRGB8888":
-            self._format = V4L2_PIX_FMT_RGBA32
-        else:
-            formats.assert_format_valid(value)
-            self._format = value
+        formats.assert_format_valid(value)
+        self._format = value
 
     @property
     def output(self):
@@ -219,15 +210,17 @@ class Encoder:
             self._encode(stream, request)
 
     def _encode(self, stream, request):
-        fb = request.request.buffers[stream]
-        timestamp_us = self._timestamp(fb)
-        with _MappedBuffer(request, self.name) as b:
+        if isinstance(stream, str):
+            stream = request.stream_map[stream]
+        timestamp_us = self._timestamp(request)
+        with _MappedBuffer(request, stream) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
-    def start(self):
+    def start(self, quality=None):
         with self._lock:
             if self._running:
                 raise RuntimeError("Encoder already running")
+            self._setup(quality)
             self._running = True
             for out in self._output:
                 out.start()
@@ -241,9 +234,9 @@ class Encoder:
             if not self._running:
                 raise RuntimeError("Encoder already stopped")
             self._running = False
+            self._stop()
             for out in self._output:
                 out.stop()
-            self._stop()
 
     def _stop(self):
         pass
@@ -262,8 +255,9 @@ class Encoder:
     def _setup(self, quality):
         pass
 
-    def _timestamp(self, fb):
-        ts = int(fb.metadata.timestamp / 1000)
+    def _timestamp(self, request):
+        # The sensor timestamp is the most accurate one, so we'll fetch that.
+        ts = int(request.request.metadata[controls.SensorTimestamp] / 1000)  # ns to us
         if self.firsttimestamp is None:
             self.firsttimestamp = ts
             timestamp_us = 0
