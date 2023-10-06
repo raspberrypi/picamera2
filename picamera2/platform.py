@@ -1,4 +1,5 @@
 import fcntl
+import os
 from enum import Enum
 
 import v4l2
@@ -11,11 +12,18 @@ class Platform(Enum):
 
 _platform = Platform.VC4
 try:
-    with open('/dev/video0', 'rb+', buffering=0) as fd:
-        caps = v4l2.v4l2_capability()
-        fcntl.ioctl(fd, v4l2.VIDIOC_QUERYCAP, caps)
-        if caps.card.decode('utf-8') == "rp1-cfe":
-            _platform = Platform.PISP
+    for num in range(5):
+        device = '/dev/video' + str(num)
+        if os.path.exists(device):
+            with open(device, 'rb+', buffering=0) as fd:
+                caps = v4l2.v4l2_capability()
+                fcntl.ioctl(fd, v4l2.VIDIOC_QUERYCAP, caps)
+                decoded = caps.card.decode('utf-8')
+                if decoded == "rp1-cfe":
+                    _platform = Platform.PISP
+                    break
+                elif decoded == "unicam":
+                    break
 except Exception:
     pass
 
