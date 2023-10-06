@@ -9,7 +9,10 @@ from picamera2 import Picamera2, Preview
 
 tuning = Picamera2.load_tuning_file("imx477.json")
 algo = Picamera2.find_tuning_algo(tuning, "rpi.agc")
-algo["exposure_modes"]["normal"] = {"shutter": [100, 66666], "gain": [1.0, 8.0]}
+if "channels" in algo:
+    algo["channels"][0]["exposure_modes"]["normal"] = {"shutter": [100, 66666], "gain": [1.0, 8.0]}
+else:
+    algo["exposure_modes"]["normal"] = {"shutter": [100, 66666], "gain": [1.0, 8.0]}
 
 picam2 = Picamera2(tuning=tuning)
 picam2.configure(picam2.create_preview_configuration())
