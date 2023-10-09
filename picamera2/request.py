@@ -1,6 +1,5 @@
 import io
 import logging
-import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -102,15 +101,17 @@ class CompletedRequest:
     def __init__(self, request, picam2):
         self.request = request
         self.ref_count = 1
-        self.lock = threading.Lock()
+        self.lock = picam2.request_lock
         self.picam2 = picam2
         self.stop_count = picam2.stop_count
         self.configure_count = picam2.configure_count
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
-        self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False) for buffer in self.request.buffers.values()]
-        self.picam2.allocator.acquire(self.request.buffers)
-        [sync.__enter__() for sync in self.syncs]
+        with self.lock:
+            self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False)
+                          for buffer in self.request.buffers.values()]
+            self.picam2.allocator.acquire(self.request.buffers)
+            [sync.__enter__() for sync in self.syncs]
 
     def acquire(self):
         """Acquire a reference to this completed request, which stops it being recycled back to the camera system."""
