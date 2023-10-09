@@ -237,6 +237,7 @@ class Picamera2:
         self.notifymeread = os.fdopen(self.notifyme_r, 'rb')
         self._cm.add(camera_num, self)
         self.camera_idx = camera_num
+        self.request_lock = threading.Lock()  # global lock used by requests
         self._requestslock = threading.Lock()
         self._requests = []
         if verbose_console is None:
