@@ -203,11 +203,14 @@ class Picamera2:
         Ordered correctly by camera number. Also return the location and rotation
         of the camera when known, as these may help distinguish which is which.
         """
-        def describe_camera(cam):
+        def describe_camera(cam, num):
             info = {k.name: v for k, v in cam.properties.items() if k.name in ("Model", "Location", "Rotation")}
             info["Id"] = cam.id
+            info["Num"] = num
             return info
-        return [describe_camera(cam) for cam in libcamera.CameraManager.singleton().cameras]
+        cameras = [describe_camera(cam, i) for i, cam in enumerate(libcamera.CameraManager.singleton().cameras)]
+        # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
+        return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
 
     def __init__(self, camera_num=0, verbose_console=None, tuning=None):
         """Initialise camera system and open the camera for use.
@@ -235,6 +238,8 @@ class Picamera2:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
         self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
         self.notifymeread = os.fdopen(self.notifyme_r, 'rb')
+        # Get the real libcamera internal number.
+        camera_num = self.global_camera_info()[camera_num]['Num']
         self._cm.add(camera_num, self)
         self.camera_idx = camera_num
         self.request_lock = threading.Lock()  # global lock used by requests
