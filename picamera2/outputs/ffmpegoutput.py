@@ -43,6 +43,9 @@ class FfmpegOutput(Output):
         self.audio_samplerate = audio_samplerate
         self.audio_codec = audio_codec
         self.audio_bitrate = audio_bitrate
+        # If we run an audio stream, FFmpeg won't stop so we'll give the video stream a
+        # moment or two to flush stuff out, and then we'll have to terminate the process.
+        self.timeout = 1 if audio else None
 
     def start(self):
         general_options = ['-loglevel', 'warning',
@@ -76,7 +79,15 @@ class FfmpegOutput(Output):
         super().stop()
         if self.ffmpeg is not None:
             self.ffmpeg.stdin.close()  # FFmpeg needs this to shut down tidily
-            self.ffmpeg.wait()
+            try:
+                # Give it a moment to flush out video frames, but after that make sure we terminate it.
+                self.ffmpeg.wait(timeout=self.timeout)
+            except subprocess.TimeoutExpired:
+                # We'll always end up here when there was an audio strema. Ignore any further errors.
+                try:
+                    self.ffmpeg.terminate()
+                except Exception:
+                    pass
             self.ffmpeg = None
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
