@@ -18,7 +18,7 @@ if picam2.capture_metadata()['AfState'] != controls.AfStateEnum.Idle:
 print("AF idle")
 
 # We should be able to set the lens position and see it reported back.
-picam2.set_controls({'LensPosition': 1.5})
+picam2.set_controls({'LensPosition': 1.5, 'FrameRate': 30})
 time.sleep(0.5)
 lp = picam2.capture_metadata()['LensPosition']
 if lp < 1.45 or lp > 1.55:
@@ -44,7 +44,7 @@ for _ in range(5):
         print("Continuous AF state is", state)
     # Try "pausing" it.
     picam2.set_controls({'AfPause': controls.AfPauseEnum.Deferred})
-    time.sleep(0.2)
+    time.sleep(0.3)
     state = picam2.capture_metadata()['AfPauseState']
     if state not in (controls.AfPauseStateEnum.Paused, controls.AfPauseStateEnum.Pausing):
         print("ERROR: continuous AF pause failure, got", state)
