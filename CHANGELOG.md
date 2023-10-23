@@ -6,6 +6,14 @@
 
 ### Changed
 
+## 0.3.14 Beta Release 13
+
+### Added
+
+### Changed
+
+* All picamera2.allocators package.
+
 ## 0.3.13 Beta Release 12
 
 ### Added
