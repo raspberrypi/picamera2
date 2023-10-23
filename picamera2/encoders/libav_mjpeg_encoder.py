@@ -1,23 +1,21 @@
 """This is a base class for a multi-threaded software encoder."""
 
-import av
-
 from fractions import Fraction
 
+import av
+
 from picamera2.encoders.encoder import Encoder, Quality
+
 from ..request import MappedArray
 
 
 class LibavMjpegEncoder(Encoder):
-    """
-    Encoder class that uses libx264 for h.264 encoding.
-    """
+    """Encoder class that uses libx264 for h.264 encoding."""
 
     def __init__(self, bitrate=None, repeat=True, iperiod=30, framerate=30, qp=None):
-        """Initialise
-        """
+        """Initialise"""
         super().__init__()
-        self._codec = "mjpeg" # for now only support h264
+        self._codec = "mjpeg"
         self.repeat = repeat
         self.bitrate = bitrate
         self.iperiod = iperiod
@@ -60,7 +58,7 @@ class LibavMjpegEncoder(Encoder):
 
         self._stream.codec_context.qmin = self.qp
         self._stream.codec_context.qmax = self.qp
-        self._stream.codec_context.color_range = 2 # JPEG (full range)
+        self._stream.codec_context.color_range = 2  # JPEG (full range)
         self._stream.codec_context.flags |= av.codec.context.Flags.QSCALE
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)

@@ -6,6 +6,20 @@
 
 ### Changed
 
+## 0.3.13 Beta Release 12
+
+### Added
+
+* Pi 5 support added. Includes platform detection, new raw formats etc.
+* Libav encoders added. These will be used as the H264 and MJPEG encoder on Pi 5.
+
+### Changed
+
+* Frame buffers are now cached to improve performance.
+* Encoders should no longer drop frames when closed.
+* FfmpegOutput should stop properly when there's an audio stream.
+* Updates for the latest version of libcamera, including sensor configuration.
+
 ## 0.3.12 Beta Release 11
 
 ### Added

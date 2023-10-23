@@ -40,18 +40,20 @@ class Job:
 
         try:
             # Each function making up the Job returns two things: whether it's
-            # "done", in which case we pop it off the list so that the function
-            # in the list will run with the next frame (otherwise we leave it there
-            # to try again next time). Secondly, it returns a value that counts
-            # as its "result" once it completes.
-            done, result = self._functions[0]()
-            self.calls += 1
-            if done:
+            # "done", in which case we pop it off the list so that the next function
+            # in the list will run (otherwise we leave it there to try again next
+            # time). Secondly, it returns a value that counts as its "result" once
+            # it completes.
+            while self._functions:
+                done, result = self._functions[0]()
+                self.calls += 1
+                if not done:
+                    break
+
                 self._functions.pop(0)
 
-                # When no functions are left, the entire job is complete.
-                if not self._functions:
-                    self._result = result
+            if not self._functions:
+                self._result = result
 
         except Exception as e:
             self._future.set_exception(e)

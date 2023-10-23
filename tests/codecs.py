@@ -18,7 +18,8 @@ def do_encode_by_hand(encoder, stream_name, output_name):
         request.release()
     encoder.stop()
     print(encoder, "finished!")
-    
+
+
 def do_encode_auto(encoder, stream_name, output_name):
     print("Start encode by hand using", encoder, "to", output_name)
     picam2.start_encoder(encoder, output=output_name, name=stream_name)
@@ -51,10 +52,10 @@ do_encode_by_hand(h264_encoder, "main", "out.h264")
 
 do_encode_auto(H264Encoder(), "lores", "outb.h264")
 
-jpeg_encoder = JpegEncoder() # needs RGB
+jpeg_encoder = JpegEncoder()  # needs RGB
 jpeg_encoder.size = config["main"]["size"]
 jpeg_encoder.format = config["main"]["format"]
-jpeg_encoder.q = 50 # wants a quality parameter, not a bitrate (and no framerate)
+jpeg_encoder.q = 50  # wants a quality parameter, not a bitrate (and no framerate)
 do_encode_by_hand(jpeg_encoder, "main", "out2.mjpeg")
 
 do_encode_auto(JpegEncoder(), "main", "out2b.mjpeg")
