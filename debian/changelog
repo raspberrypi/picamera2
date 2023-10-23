@@ -1,3 +1,9 @@
+picamera2 (0.3.13-1) bookworm; urgency=medium
+
+  * New upstream release
+
+ -- Serge Schneider <serge@raspberrypi.com>  Mon, 23 Oct 2023 10:55:00 +0100
+
 picamera2 (0.3.12+pi5-1) bookworm; urgency=medium
 
   * pi5 build
