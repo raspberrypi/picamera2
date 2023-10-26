@@ -228,7 +228,7 @@ class Helpers:
             return Image.open(io.BytesIO(buffer))
         else:
             rgb = self.make_array(buffer, config)
-        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
+        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBX", "XRGB8888": "BGRX"}
         if fmt not in mode_lookup:
             raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
         mode = mode_lookup[fmt]
@@ -255,11 +255,11 @@ class Helpers:
             format_str = file_output.suffix.lower()
         else:
             raise RuntimeError("Cannot determine format to save")
+        if format_str in ('png') and img.mode == 'RGBX':
+            # It seems we can't save an RGBX png file, so make it RGBA instead. We can't use RGBA
+            # everywhere, because we can only save an RGBX jpeg, not an RGBA one.
+            img = img.convert(mode='RGBA')
         if format_str in ('jpg', 'jpeg'):
-            if img.mode == "RGBA":
-                # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
-                # doesn't like RGBA to we have to bodge that to RGBX.
-                img.mode = "RGBX"
             # Make up some extra EXIF data.
             if "AnalogueGain" in metadata and "DigitalGain" in metadata:
                 datetime_now = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
