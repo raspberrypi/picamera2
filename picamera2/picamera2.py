@@ -878,7 +878,8 @@ class Picamera2:
 
         # We're always going to set up the sensor config fully.
         bit_depth = 0
-        if 'bit_depth' in camera_config['sensor']:
+        if camera_config['sensor'] is not None and 'bit_depth' in camera_config['sensor'] and \
+           camera_config['sensor']['bit_depth'] is not None:
             bit_depth = camera_config['sensor']['bit_depth']
         elif 'raw' in camera_config and camera_config['raw'] is not None and 'format' in camera_config['raw']:
             bit_depth = SensorFormat(camera_config['raw']['format']).bit_depth
@@ -886,7 +887,8 @@ class Picamera2:
             bit_depth = SensorFormat(self.sensor_format).bit_depth
 
         output_size = None
-        if 'output_size' in camera_config['sensor']:
+        if camera_config['sensor'] is not None and 'output_size' in camera_config['sensor'] and \
+           camera_config['sensor']['output_size'] is not None:
             output_size = camera_config['sensor']['output_size']
         elif 'raw' in camera_config and camera_config['raw'] is not None and 'size' in camera_config['raw']:
             output_size = camera_config['raw']['size']
