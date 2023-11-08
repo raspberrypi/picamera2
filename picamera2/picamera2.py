@@ -859,7 +859,7 @@ class Picamera2:
         # Make the libcamera configuration, and then we'll write all our parameters over
         # the ones it gave us.
         libcamera_config = self.camera.generate_configuration(roles)
-        libcamera_config.transform = camera_config["transform"]
+        libcamera_config.orientation = utils.transform_to_orientation(camera_config["transform"])
         buffer_count = camera_config["buffer_count"]
         self._update_libcamera_stream_config(libcamera_config.at(self.main_index), camera_config["main"], buffer_count)
         libcamera_config.at(self.main_index).color_space = utils.colour_space_to_libcamera(
@@ -979,7 +979,7 @@ class Picamera2:
         :param libcamera_config: libcamera configuration
         :type libcamera_config: dict
         """
-        camera_config["transform"] = libcamera_config.transform
+        camera_config["transform"] = utils.orientation_to_transform(libcamera_config.orientation)
         camera_config["colour_space"] = utils.colour_space_from_libcamera(libcamera_config.at(0).color_space)
         self._update_stream_config(camera_config["main"], libcamera_config.at(0))
         if self.lores_index >= 0:

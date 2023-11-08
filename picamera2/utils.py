@@ -1,4 +1,4 @@
-from libcamera import ColorSpace, Rectangle, Size
+from libcamera import ColorSpace, Orientation, Rectangle, Size, Transform
 
 import picamera2.formats as formats
 
@@ -35,3 +35,40 @@ def colour_space_from_libcamera(colour_space):
         if colour_space.primaries == cs.primaries and colour_space.transferFunction == cs.transferFunction:
             return cs
     return colour_space
+
+
+_TRANSFORM_TO_ORIENTATION_TABLE = {
+    Transform(): Orientation.Rotate0,
+    Transform(hflip=1): Orientation.Rotate0Mirror,
+    Transform(vflip=1): Orientation.Rotate180Mirror,
+    Transform(hflip=1, vflip=1): Orientation.Rotate180,
+    Transform(transpose=1): Orientation.Rotate90Mirror,
+    Transform(transpose=1, hflip=1): Orientation.Rotate270,
+    Transform(transpose=1, vflip=1): Orientation.Rotate90,
+    Transform(transpose=1, hflip=1, vflip=1): Orientation.Rotate270Mirror
+}
+
+_ORIENTATION_TO_TRANSFORM_TABLE = {
+    Orientation.Rotate0: Transform(),
+    Orientation.Rotate0Mirror: Transform(hflip=1),
+    Orientation.Rotate180Mirror: Transform(vflip=1),
+    Orientation.Rotate180: Transform(hflip=1, vflip=1),
+    Orientation.Rotate90Mirror: Transform(transpose=1),
+    Orientation.Rotate270: Transform(transpose=1, hflip=1),
+    Orientation.Rotate90: Transform(transpose=1, vflip=1),
+    Orientation.Rotate270Mirror: Transform(transpose=1, hflip=1, vflip=1)
+}
+
+
+def transform_to_orientation(transform):
+    # A transform is an object and not a proper dictionary key, so must search by hand.
+    if isinstance(transform, Transform):
+        for k, v in _TRANSFORM_TO_ORIENTATION_TABLE.items():
+            if k == transform:
+                return v
+    raise RuntimeError(f"Unknown transform {transform}")
+
+
+def orientation_to_transform(orientation):
+    # Return a copy of the object.
+    return Transform(_ORIENTATION_TO_TRANSFORM_TABLE[orientation])
