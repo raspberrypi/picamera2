@@ -53,6 +53,7 @@ tests/close_test.py
 tests/close_test_multiple.py
 tests/codecs.py
 tests/colour_spaces.py
+tests/config_with_sensor.py
 tests/configurations.py
 tests/context_test.py
 tests/display_transform_null.py
