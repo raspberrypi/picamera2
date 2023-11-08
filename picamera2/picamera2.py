@@ -1309,12 +1309,24 @@ class Picamera2:
         return (True, None)
 
     def drop_frames_(self):
-        if not self.completed_requests:
-            return (False, None)
-        if self._frame_drops == 0:
+        while self.completed_requests:
+            if self._frame_drops == 0:
+                return (True, None)
+            self.completed_requests.pop(0).release()
+            self._frame_drops -= 1
+        return (False, None)
+
+    def wait_for_timestamp_(self, timestamp_ns):
+        # No wait requested. This function in the job is done.
+        if not timestamp_ns:
             return (True, None)
-        self.completed_requests.pop(0).release()
-        self._frame_drops -= 1
+        while self.completed_requests:
+            # Check if frame started being exposed after the timestamp.
+            md = self.completed_requests[0].get_metadata()
+            frame_timestamp_ns = md['SensorTimestamp'] - 1000 * md['ExposureTime']
+            if frame_timestamp_ns >= timestamp_ns:
+                return (True, None)
+            self.completed_requests.pop(0).release()
         return (False, None)
 
     def drop_frames(self, num_frames, wait=None, signal_function=None):
@@ -1413,13 +1425,17 @@ class Picamera2:
             return (False, None)
         return (True, self.completed_requests.pop(0))
 
-    def capture_request(self, wait=None, signal_function=None):
+    def capture_request(self, wait=None, signal_function=None, flush=None):
         """Fetch the next completed request from the camera system.
 
         You will be holding a reference to this request so you must release it again to return it
         to the camera system.
         """
-        functions = [self.capture_request_]
+        # flush will be the timestamp in ns that we wait for (if any)
+        if flush is True:
+            flush = time.monotonic_ns()
+        functions = [partial(self.wait_for_timestamp_, flush),
+                     self.capture_request_]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def switch_mode_capture_request_and_stop(self, camera_config, wait=None, signal_function=None):
