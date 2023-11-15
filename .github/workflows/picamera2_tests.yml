@@ -1,0 +1,29 @@
+name: picamera2 runtime tests
+
+on:
+  pull_request:
+    branches: [ main, next ]
+
+  workflow_dispatch:
+
+env:
+  LIBCAMERA_LD_LIBRARY_DIR: "/home/pi/libcamera_lkg/lib/aarch64-linux-gnu"
+
+jobs:
+  run-picamera2-tests:
+
+    runs-on: ${{matrix.camera}}
+
+    strategy:
+      matrix:
+        camera: [ imx219, imx477, imx708, pi5-imx708-imx477 ]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 1
+        clean: true
+
+    - name: Test picamera2
+      run: DISPLAY=:0.0 LD_LIBRARY_PATH=${{env.LIBCAMERA_LD_LIBRARY_DIR}} PYTHONPATH=${{env.LIBCAMERA_LD_LIBRARY_DIR}}/python3.11/site-packages/:${{github.workspace}} ${{github.workspace}}/tools/run_tests.py --picamera2-dir ${{github.workspace}}
+      timeout-minutes: 30
