@@ -6,13 +6,27 @@
 
 ### Changed
 
+## 0.3.15 Beta Release 14
+
+### Added
+
+* capture_request() allows you to specify a "no earlier than" timestamp.
+* A callback is available in case the FfmpegOutput terminates unexpectedly.
+
+### Changed
+
+* Workaround for V4L2 encoders getting stuck when trying to flush output.
+* Fix for PIL version 10.
+* Configuration objects work better with the new SensorConfiguration e.g. "picam2.still_configuration.sensor.output_size = (2028, 1520)"
+* Updates for the latest libcamera.
+
 ## 0.3.14 Beta Release 13
 
 ### Added
 
 ### Changed
 
-* All picamera2.allocators package.
+* Add picamera2.allocators package.
 
 ## 0.3.13 Beta Release 12
 
