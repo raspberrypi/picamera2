@@ -203,6 +203,12 @@ class Helpers:
                 array = array.reshape((h, stride))
                 array = np.asarray(array[:, :w * 4], order='C')
             image = array.reshape((h, w, 4))
+        elif fmt in ("BGR161616", "RGB161616"):
+            if stride != w * 6:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w * 6], order='C')
+            array = array.view(np.uint16)
+            image = array.reshape((h, w, 3))
         elif fmt in ("YUV420", "YVU420"):
             # Returning YUV420 as an image of 50% greater height (the extra bit continaing
             # the U/V data) is useful because OpenCV can convert it to RGB for us quite
