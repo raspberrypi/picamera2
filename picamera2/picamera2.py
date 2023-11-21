@@ -1170,7 +1170,10 @@ class Picamera2:
             self._cm.handle_request(self.camera_idx)
             self.started = False
             with self._requestslock:
+                unseen_requests = self._requests
                 self._requests = []
+            for r in unseen_requests:
+                r.release()
             while len(self.completed_requests) > 0:
                 self.completed_requests.pop(0).release()
             self.completed_requests = []
