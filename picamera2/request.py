@@ -129,7 +129,7 @@ class CompletedRequest:
             elif self.ref_count == 0:
                 # If the camera has been stopped since this request was returned then we
                 # can't recycle it.
-                if self.picam2.camera and self.stop_count == self.picam2.stop_count:
+                if self.picam2.camera and self.stop_count == self.picam2.stop_count and self.picam2.started:
                     self.request.reuse()
                     controls = self.picam2.controls.get_libcamera_controls()
                     for id, value in controls.items():
