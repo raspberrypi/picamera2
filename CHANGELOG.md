@@ -6,6 +6,14 @@
 
 ### Changed
 
+## 0.3.16 Beta Release 15
+
+### Added
+
+### Changed
+
+* A memory leak when using the new DmaAllocator has been fixed, allowing camera mode switches to work indefinitely again.
+
 ## 0.3.15 Beta Release 14
 
 ### Added
