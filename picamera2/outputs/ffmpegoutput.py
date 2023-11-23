@@ -46,6 +46,8 @@ class FfmpegOutput(Output):
         # If we run an audio stream, FFmpeg won't stop so we'll give the video stream a
         # moment or two to flush stuff out, and then we'll have to terminate the process.
         self.timeout = 1 if audio else None
+        # A user can set this to get notifications of FFmpeg failures.
+        self.error_callback = None
 
     def start(self):
         general_options = ['-loglevel', 'warning',
@@ -91,7 +93,14 @@ class FfmpegOutput(Output):
             self.ffmpeg = None
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
-        if self.recording:
-            self.ffmpeg.stdin.write(frame)
-            self.ffmpeg.stdin.flush()  # forces every frame to get timestamped individually
-            self.outputtimestamp(timestamp)
+        if self.recording and self.ffmpeg:
+            # Handle the case where the FFmpeg prcoess has gone away for reasons of its own.
+            try:
+                self.ffmpeg.stdin.write(frame)
+                self.ffmpeg.stdin.flush()  # forces every frame to get timestamped individually
+            except Exception as e:  # presumably a BrokenPipeError? should we check explicitly?
+                self.ffmpeg = None
+                if self.error_callback:
+                    self.error_callback(e)
+            else:
+                self.outputtimestamp(timestamp)

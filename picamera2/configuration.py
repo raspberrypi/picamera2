@@ -88,10 +88,17 @@ class StreamConfiguration(Configuration):
     _FORWARD_FIELDS = {}
 
 
+class SensorConfiguration(Configuration):
+    _ALLOWED_FIELDS = ("output_size", "bit_depth")
+    _FIELD_CLASS_MAP = {}
+    _FORWARD_FIELDS = {}
+
+
 class CameraConfiguration(Configuration):
     _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space",
                        "controls", "main", "lores", "raw", "queue", "sensor")
-    _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration}
+    _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration,
+                        "sensor": SensorConfiguration}
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
 
     def __init__(self, d={}, picam2=None):
@@ -102,6 +109,8 @@ class CameraConfiguration(Configuration):
         # can delete the raw stream if they wish.
         if 'raw' not in d:
             self.enable_raw()
+        if 'sensor' not in d:
+            self.sensor = SensorConfiguration()
 
     def enable_lores(self, onoff=True):
         if onoff:

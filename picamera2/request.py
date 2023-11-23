@@ -129,7 +129,7 @@ class CompletedRequest:
             elif self.ref_count == 0:
                 # If the camera has been stopped since this request was returned then we
                 # can't recycle it.
-                if self.picam2.camera and self.stop_count == self.picam2.stop_count:
+                if self.picam2.camera and self.stop_count == self.picam2.stop_count and self.picam2.started:
                     self.request.reuse()
                     controls = self.picam2.controls.get_libcamera_controls()
                     for id, value in controls.items():
@@ -203,6 +203,12 @@ class Helpers:
                 array = array.reshape((h, stride))
                 array = np.asarray(array[:, :w * 4], order='C')
             image = array.reshape((h, w, 4))
+        elif fmt in ("BGR161616", "RGB161616"):
+            if stride != w * 6:
+                array = array.reshape((h, stride))
+                array = np.asarray(array[:, :w * 6], order='C')
+            array = array.view(np.uint16)
+            image = array.reshape((h, w, 3))
         elif fmt in ("YUV420", "YVU420"):
             # Returning YUV420 as an image of 50% greater height (the extra bit continaing
             # the U/V data) is useful because OpenCV can convert it to RGB for us quite
@@ -228,7 +234,7 @@ class Helpers:
             return Image.open(io.BytesIO(buffer))
         else:
             rgb = self.make_array(buffer, config)
-        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBA", "XRGB8888": "BGRX"}
+        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBX", "XRGB8888": "BGRX"}
         if fmt not in mode_lookup:
             raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
         mode = mode_lookup[fmt]
@@ -255,11 +261,11 @@ class Helpers:
             format_str = file_output.suffix.lower()
         else:
             raise RuntimeError("Cannot determine format to save")
+        if format_str in ('png') and img.mode == 'RGBX':
+            # It seems we can't save an RGBX png file, so make it RGBA instead. We can't use RGBA
+            # everywhere, because we can only save an RGBX jpeg, not an RGBA one.
+            img = img.convert(mode='RGBA')
         if format_str in ('jpg', 'jpeg'):
-            if img.mode == "RGBA":
-                # Nasty hack. Qt doesn't understand RGBX so we have to use RGBA. But saving a JPEG
-                # doesn't like RGBA to we have to bodge that to RGBX.
-                img.mode = "RGBX"
             # Make up some extra EXIF data.
             if "AnalogueGain" in metadata and "DigitalGain" in metadata:
                 datetime_now = datetime.now().strftime("%Y:%m:%d %H:%M:%S")

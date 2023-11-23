@@ -859,7 +859,7 @@ class Picamera2:
         # Make the libcamera configuration, and then we'll write all our parameters over
         # the ones it gave us.
         libcamera_config = self.camera.generate_configuration(roles)
-        libcamera_config.transform = camera_config["transform"]
+        libcamera_config.orientation = utils.transform_to_orientation(camera_config["transform"])
         buffer_count = camera_config["buffer_count"]
         self._update_libcamera_stream_config(libcamera_config.at(self.main_index), camera_config["main"], buffer_count)
         libcamera_config.at(self.main_index).color_space = utils.colour_space_to_libcamera(
@@ -878,7 +878,8 @@ class Picamera2:
 
         # We're always going to set up the sensor config fully.
         bit_depth = 0
-        if 'bit_depth' in camera_config['sensor']:
+        if camera_config['sensor'] is not None and 'bit_depth' in camera_config['sensor'] and \
+           camera_config['sensor']['bit_depth'] is not None:
             bit_depth = camera_config['sensor']['bit_depth']
         elif 'raw' in camera_config and camera_config['raw'] is not None and 'format' in camera_config['raw']:
             bit_depth = SensorFormat(camera_config['raw']['format']).bit_depth
@@ -886,7 +887,8 @@ class Picamera2:
             bit_depth = SensorFormat(self.sensor_format).bit_depth
 
         output_size = None
-        if 'output_size' in camera_config['sensor']:
+        if camera_config['sensor'] is not None and 'output_size' in camera_config['sensor'] and \
+           camera_config['sensor']['output_size'] is not None:
             output_size = camera_config['sensor']['output_size']
         elif 'raw' in camera_config and camera_config['raw'] is not None and 'size' in camera_config['raw']:
             output_size = camera_config['raw']['size']
@@ -977,7 +979,7 @@ class Picamera2:
         :param libcamera_config: libcamera configuration
         :type libcamera_config: dict
         """
-        camera_config["transform"] = libcamera_config.transform
+        camera_config["transform"] = utils.orientation_to_transform(libcamera_config.orientation)
         camera_config["colour_space"] = utils.colour_space_from_libcamera(libcamera_config.at(0).color_space)
         self._update_stream_config(camera_config["main"], libcamera_config.at(0))
         if self.lores_index >= 0:
@@ -1168,7 +1170,10 @@ class Picamera2:
             self._cm.handle_request(self.camera_idx)
             self.started = False
             with self._requestslock:
+                unseen_requests = self._requests
                 self._requests = []
+            for r in unseen_requests:
+                r.release()
             while len(self.completed_requests) > 0:
                 self.completed_requests.pop(0).release()
             self.completed_requests = []
@@ -1309,12 +1314,24 @@ class Picamera2:
         return (True, None)
 
     def drop_frames_(self):
-        if not self.completed_requests:
-            return (False, None)
-        if self._frame_drops == 0:
+        while self.completed_requests:
+            if self._frame_drops == 0:
+                return (True, None)
+            self.completed_requests.pop(0).release()
+            self._frame_drops -= 1
+        return (False, None)
+
+    def wait_for_timestamp_(self, timestamp_ns):
+        # No wait requested. This function in the job is done.
+        if not timestamp_ns:
             return (True, None)
-        self.completed_requests.pop(0).release()
-        self._frame_drops -= 1
+        while self.completed_requests:
+            # Check if frame started being exposed after the timestamp.
+            md = self.completed_requests[0].get_metadata()
+            frame_timestamp_ns = md['SensorTimestamp'] - 1000 * md['ExposureTime']
+            if frame_timestamp_ns >= timestamp_ns:
+                return (True, None)
+            self.completed_requests.pop(0).release()
         return (False, None)
 
     def drop_frames(self, num_frames, wait=None, signal_function=None):
@@ -1413,13 +1430,17 @@ class Picamera2:
             return (False, None)
         return (True, self.completed_requests.pop(0))
 
-    def capture_request(self, wait=None, signal_function=None):
+    def capture_request(self, wait=None, signal_function=None, flush=None):
         """Fetch the next completed request from the camera system.
 
         You will be holding a reference to this request so you must release it again to return it
         to the camera system.
         """
-        functions = [self.capture_request_]
+        # flush will be the timestamp in ns that we wait for (if any)
+        if flush is True:
+            flush = time.monotonic_ns()
+        functions = [partial(self.wait_for_timestamp_, flush),
+                     self.capture_request_]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def switch_mode_capture_request_and_stop(self, camera_config, wait=None, signal_function=None):

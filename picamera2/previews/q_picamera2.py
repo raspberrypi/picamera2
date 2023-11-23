@@ -188,7 +188,8 @@ class QPicamera2(QGraphicsView):
         width = min(img.shape[1], stream_config["size"][0])
         width -= width % 4
         img = np.ascontiguousarray(img[:, :width, :3])
-        qim = QImage(img.data, width, img.shape[0], QImage.Format_RGB888)
+        fmt = QImage.Format_BGR888 if stream_config['format'] in ('RGB888', 'XRGB8888') else QImage.Format_RGB888
+        qim = QImage(img.data, width, img.shape[0], fmt)
         pix = QPixmap(qim)
         # Add the pixmap to the scene if there wasn't one, or replace it if the images have
         # changed size.

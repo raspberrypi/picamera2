@@ -110,8 +110,8 @@ class V4L2Encoder(Encoder):
             ext.ctrl_class = V4L2_CTRL_CLASS_MPEG
             fcntl.ioctl(self.vd, VIDIOC_S_EXT_CTRLS, ext)
 
-        NUM_OUTPUT_BUFFERS = 6
-        NUM_CAPTURE_BUFFERS = 12
+        NUM_OUTPUT_BUFFERS = 16
+        NUM_CAPTURE_BUFFERS = 16
 
         reqbufs = v4l2_requestbuffers()
         reqbufs.count = NUM_OUTPUT_BUFFERS
@@ -180,7 +180,18 @@ class V4L2Encoder(Encoder):
         pollit.register(self.vd, select.POLLIN)
 
         while self._running or self.buf_frame.qsize() > 0:
-            for _, event in pollit.poll(200):
+            events = pollit.poll(400)
+
+            if not events and not self._running:
+                # Occasionally it seems to happen on some platforms that, once
+                # we stop feeding frames in, the last frames don't get returned
+                # to us. Not clear why, but it's better just to give up after a
+                # few hundred ms than wait forever. Note that self.buf_frame.qsize()
+                # frames (usually just 1) are getting dropped here, and won't be
+                # encoded. I've only ever seen this on a Pi Zero.
+                break
+
+            for _, event in events:
                 if event & select.POLLIN:
                     buf = v4l2_buffer()
                     planes = v4l2_plane * VIDEO_MAX_PLANES
