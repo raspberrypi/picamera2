@@ -1,3 +1,11 @@
+picamera2 (0.3.16-1) bookworm; urgency=medium
+
+  * New upstream version 0.3.16
+  * d/watch: Use the Raspberry Pi Github tags
+  * d/gbp.conf: switch to gbp workflow
+
+ -- Serge Schneider <serge@raspberrypi.com>  Thu, 23 Nov 2023 17:42:43 +0000
+
 picamera2 (0.3.14-1) bookworm; urgency=medium
 
   * New upstream release
