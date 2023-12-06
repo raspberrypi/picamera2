@@ -70,10 +70,10 @@ class Job:
         if self._signal_function:
             self._signal_function(self)
 
-    def get_result(self):
+    def get_result(self, timeout=None):
         """This fetches the 'final result' of the job
 
         (being given by the return value of the last function executed). It will block
         if necessary for the job to complete.
         """
-        return self._future.result()
+        return self._future.result(timeout=timeout)
