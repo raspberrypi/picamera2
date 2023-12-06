@@ -1277,14 +1277,14 @@ class Picamera2:
         """Cause the process_requests method to run in the event loop again."""
         os.write(self.notifyme_w, b"\x00")
 
-    def wait(self, job):
+    def wait(self, job, timeout=None):
         """Wait for the given job to finish (if necessary) and return its final result.
 
         The job is obtained either by calling one of the Picamera2 methods asynchronously
         (passing wait=False), or as a parameter to the signal_function that can be
         supplied to those same methods.
         """
-        return job.get_result()
+        return job.get_result(timeout=timeout)
 
     def dispatch_functions(self, functions, wait, signal_function=None, immediate=False) -> None:
         """The main thread should use this to dispatch a number of operations for the event loop to perform.
