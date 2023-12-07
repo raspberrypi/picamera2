@@ -87,6 +87,18 @@ class DmaAllocator(Allocator):
         for k in [k for k, v in self.mapped_buffers.items() if v.closed]:
             del self.mapped_buffers[k]
 
+    def close(self):
+        self.libcamera_fds = []
+        self.cleanup()
+        # Close our copies of fds
+        for fd in self.open_fds:
+            os.close(fd)
+        self.frame_buffers = {}
+        self.open_fds = []
+
+    def __del__(self):
+        self.close()
+
     class DmaSync(Sync):
         """Dma Buffer Sync"""
 
