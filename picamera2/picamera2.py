@@ -22,7 +22,7 @@ from PIL import Image
 import picamera2.formats as formats
 import picamera2.platform as Platform
 import picamera2.utils as utils
-from picamera2.allocators import DmaAllocator
+from picamera2.allocators import Allocator, DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
@@ -622,6 +622,9 @@ class Picamera2:
         self.video_configuration_ = None
         self.notifymeread.close()
         os.close(self.notifyme_w)
+        # Clean up the allocator
+        del self.allocator
+        self.allocator = Allocator()
         _log.info('Camera closed successfully.')
 
     @staticmethod

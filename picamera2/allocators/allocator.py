@@ -16,6 +16,9 @@ class Allocator:
     def release(self, bufs):
         pass
 
+    def close(self):
+        pass
+
 
 class Sync:
     """Base class for allocator syncronisations"""

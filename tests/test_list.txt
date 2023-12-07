@@ -76,3 +76,4 @@ tests/quality_check.py
 tests/qt_gl_preview_test.py
 tests/stop_slow_framerate.py
 tests/allocator_test.py
+tests/allocator_leak_test.py
