@@ -18,6 +18,7 @@ examples/display_transform_qtgl.py
 examples/dual_encode.py
 examples/easy_capture.py
 examples/easy_video.py
+examples/exif_custom.py
 examples/exposure_fixed.py
 examples/frame_server.py
 examples/h264_constant_qp.py
