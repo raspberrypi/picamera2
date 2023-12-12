@@ -37,6 +37,7 @@ examples/still_capture_with_config.py
 examples/still_during_video.py
 examples/switch_mode.py
 examples/switch_mode_2.py
+examples/switch_mode_persist.py
 examples/timestamp_capture.py
 examples/title_bar.py
 examples/tuning_file.py
