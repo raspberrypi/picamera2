@@ -26,7 +26,7 @@ class DmaAllocator(Allocator):
         self.libcamera_fds = []
         self.sync = self.DmaSync
 
-    def allocate(self, libcamera_config):
+    def allocate(self, libcamera_config, _):
         # Delete old buffers
         self.libcamera_fds = []
         self.cleanup()

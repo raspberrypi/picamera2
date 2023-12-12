@@ -212,7 +212,7 @@ class Picamera2:
         # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
         return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
 
-    def __init__(self, camera_num=0, verbose_console=None, tuning=None):
+    def __init__(self, camera_num=0, verbose_console=None, tuning=None, allocator=None):
         """Initialise camera system and open the camera for use.
 
         :param camera_num: Camera index, defaults to 0
@@ -271,7 +271,7 @@ class Picamera2:
         # apparently being the principal culprit. Anyway, this seems to prevent the problem.
         atexit.register(self.close)
         # Set Allocator
-        self.allocator = DmaAllocator()
+        self.allocator = DmaAllocator() if allocator is None else allocator
 
     @property
     def camera_manager(self):
@@ -670,7 +670,7 @@ class Picamera2:
 
     def create_preview_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                      colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={},
-                                     display="main", encode="main", queue=True, sensor={}) -> dict:
+                                     display="main", encode="main", queue=True, sensor={}, use_case="preview") -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -689,7 +689,7 @@ class Picamera2:
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
                         "FrameDurationLimits": (100, 83333)} | controls
-        config = {"use_case": "preview",
+        config = {"use_case": use_case,
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
@@ -704,7 +704,7 @@ class Picamera2:
 
     def create_still_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={},
-                                   display=None, encode=None, queue=True, sensor={}) -> dict:
+                                   display=None, encode=None, queue=True, sensor={}, use_case="still") -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -723,7 +723,7 @@ class Picamera2:
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
                         "FrameDurationLimits": (100, 1000000 * 1000)} | controls
-        config = {"use_case": "still",
+        config = {"use_case": use_case,
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
@@ -738,7 +738,7 @@ class Picamera2:
 
     def create_video_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=None, buffer_count=6, controls={}, display="main",
-                                   encode="main", queue=True, sensor={}) -> dict:
+                                   encode="main", queue=True, sensor={}, use_case="video") -> dict:
         """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -762,7 +762,7 @@ class Picamera2:
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
                         "FrameDurationLimits": (33333, 33333)} | controls
-        config = {"use_case": "video",
+        config = {"use_case": use_case,
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
@@ -1092,7 +1092,7 @@ class Picamera2:
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
-        self.allocator.allocate(libcamera_config)
+        self.allocator.allocate(libcamera_config, camera_config.get("use_case"))
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config

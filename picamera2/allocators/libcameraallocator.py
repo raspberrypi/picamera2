@@ -14,7 +14,7 @@ class LibcameraAllocator(Allocator):
         super().__init__()
         self.camera = camera
 
-    def allocate(self, libcamera_config):
+    def allocate(self, libcamera_config, _):
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
         streams = [stream_config.stream for stream_config in libcamera_config]
         for i, stream in enumerate(streams):
