@@ -4,7 +4,7 @@ class Allocator:
     def __init__(self):
         self.sync = Sync
 
-    def allocate(self, libcamera_config):
+    def allocate(self, libcamera_config, use_case):
         pass
 
     def buffers(self, stream):
