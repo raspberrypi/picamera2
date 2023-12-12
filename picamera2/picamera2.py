@@ -641,7 +641,7 @@ class Picamera2:
         """
         if updates is None:
             return None
-        valid = ("format", "size")
+        valid = ("format", "size", "stride")
         for key, value in updates.items():
             if isinstance(value, SensorFormat):
                 value = str(value)
@@ -839,6 +839,11 @@ class Picamera2:
         libcamera_stream_config.size = libcamera.Size(stream_config["size"][0], stream_config["size"][1])
         libcamera_stream_config.pixel_format = libcamera.PixelFormat(stream_config["format"])
         libcamera_stream_config.buffer_count = buffer_count
+        # Stride is sometimes set to None in the stream_config, so need to guard against that case
+        if stream_config.get("stride") is not None:
+            libcamera_stream_config.stride = stream_config["stride"]
+        else:
+            libcamera_stream_config.stride = 0
 
     def _make_libcamera_config(self, camera_config):
         # Make a libcamera configuration object from our Python configuration.
