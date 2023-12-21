@@ -1901,7 +1901,7 @@ class Picamera2:
                     output = FileOutput(output)
         if encoder is None:
             encoder = H264Encoder()
-        self.start_encoder(encoder, output, quality)
+        self.start_encoder(encoder=encoder, output=output, quality=quality)
         self.start(show_preview=show_preview)
         if duration:
             time.sleep(duration)
