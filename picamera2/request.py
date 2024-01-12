@@ -173,9 +173,9 @@ class CompletedRequest:
         return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output,
                                         format, exif_data)
 
-    def save_dng(self, filename, name="raw"):
+    def save_dng(self, file_output, name="raw"):
         """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.config[name], filename)
+        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.config[name], file_output)
 
 
 class Helpers:
@@ -303,7 +303,7 @@ class Helpers:
         _log.info(f"Saved {self} to file {file_output}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def save_dng(self, buffer, metadata, config, filename):
+    def save_dng(self, buffer, metadata, config, file_output):
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)
@@ -323,10 +323,15 @@ class Helpers:
         dng_compress_level = self.picam2.options.get("compress_level", 0)
 
         r.options(compress=dng_compress_level)
-        r.convert(raw, str(filename))
+        # PiDNG doesn't accpet a BytesIO, but returns a byte array if the filename is empty.
+        if isinstance(file_output, io.BytesIO):
+            buf = r.convert(raw, "")
+            file_output.write(buf)
+        else:
+            r.convert(raw, str(file_output))
 
         end_time = time.monotonic()
-        _log.info(f"Saved {self} to file {filename}.")
+        _log.info(f"Saved {self} to file {file_output}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
     def decompress(self, array):
