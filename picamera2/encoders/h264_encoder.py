@@ -4,9 +4,14 @@ from v4l2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
                   V4L2_CID_MPEG_VIDEO_H264_LEVEL,
                   V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
                   V4L2_CID_MPEG_VIDEO_H264_MIN_QP,
+                  V4L2_CID_MPEG_VIDEO_H264_PROFILE,
                   V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER,
                   V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
-                  V4L2_MPEG_VIDEO_H264_LEVEL_4_2, V4L2_PIX_FMT_H264)
+                  V4L2_MPEG_VIDEO_H264_LEVEL_4_2,
+                  V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+                  V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
+                  V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+                  V4L2_MPEG_VIDEO_H264_PROFILE_MAIN, V4L2_PIX_FMT_H264)
 
 from picamera2.encoders import Quality
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
@@ -15,7 +20,8 @@ from picamera2.encoders.v4l2_encoder import V4L2Encoder
 class H264Encoder(V4L2Encoder):
     """Uses functionality from V4L2Encoder"""
 
-    def __init__(self, bitrate=None, repeat=True, iperiod=None, framerate=None, enable_sps_framerate=False, qp=None):
+    def __init__(self, bitrate=None, repeat=True, iperiod=None, framerate=None, enable_sps_framerate=False,
+                 qp=None, profile=None):
         """H264 Encoder
 
         :param bitrate: Bitrate, default None
@@ -33,6 +39,7 @@ class H264Encoder(V4L2Encoder):
         self.iperiod = iperiod
         self.repeat = repeat
         self.qp = qp
+        self.profile = profile
         # The framerate can be reported in the sequence headers if enable_sps_framerate is set,
         # but there's no guarantee that frames will be delivered to the codec at that rate!
         self.framerate = framerate
@@ -41,6 +48,19 @@ class H264Encoder(V4L2Encoder):
     def _start(self):
         self._controls = []
 
+        # These names match what FFmpeg uses.
+        profile_lookup = {"baseline": V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+                          "constrained baseline": V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
+                          "main": V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
+                          "high": V4L2_MPEG_VIDEO_H264_PROFILE_HIGH}
+        if self.profile:
+            if not isinstance(self.profile, str):
+                raise RuntimeError("Profile should be a string value")
+            profile = self.profile.lower()
+            if profile in profile_lookup:
+                self._controls += [(V4L2_CID_MPEG_VIDEO_H264_PROFILE, profile_lookup[profile])]
+            else:
+                raise RuntimeError("Profile " + self.profile + " not recognised")
         if self.iperiod is not None:
             self._controls += [(V4L2_CID_MPEG_VIDEO_H264_I_PERIOD, self.iperiod)]
         if self.repeat:
