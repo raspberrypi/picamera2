@@ -56,7 +56,7 @@ class FfmpegOutput(Output):
         # ideal because we're likely to pick up some jitter, but works passably, and I
         # don't have a better alternative right now.
         video_input = ['-use_wallclock_as_timestamps', '1',
-                       '-thread_queue_size', '32',  # necessary to prevent warnings
+                       '-thread_queue_size', '64',  # necessary to prevent warnings
                        '-i', '-']
         video_codec = ['-c:v', 'copy']
         audio_input = []
@@ -65,7 +65,7 @@ class FfmpegOutput(Output):
             audio_input = ['-itsoffset', str(self.audio_sync),
                            '-f', 'pulse',
                            '-sample_rate', str(self.audio_samplerate),
-                           '-thread_queue_size', '512',  # necessary to prevent warnings
+                           '-thread_queue_size', '1024',  # necessary to prevent warnings
                            '-i', self.audio_device]
             audio_codec = ['-b:a', str(self.audio_bitrate),
                            '-c:a', self.audio_codec]

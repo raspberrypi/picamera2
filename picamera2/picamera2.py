@@ -22,7 +22,7 @@ from PIL import Image
 import picamera2.formats as formats
 import picamera2.platform as Platform
 import picamera2.utils as utils
-from picamera2.allocators import DmaAllocator
+from picamera2.allocators import Allocator, DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FfmpegOutput, FileOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
@@ -212,7 +212,7 @@ class Picamera2:
         # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
         return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
 
-    def __init__(self, camera_num=0, verbose_console=None, tuning=None):
+    def __init__(self, camera_num=0, verbose_console=None, tuning=None, allocator=None):
         """Initialise camera system and open the camera for use.
 
         :param camera_num: Camera index, defaults to 0
@@ -271,7 +271,7 @@ class Picamera2:
         # apparently being the principal culprit. Anyway, this seems to prevent the problem.
         atexit.register(self.close)
         # Set Allocator
-        self.allocator = DmaAllocator()
+        self.allocator = DmaAllocator() if allocator is None else allocator
 
     @property
     def camera_manager(self):
@@ -622,6 +622,9 @@ class Picamera2:
         self.video_configuration_ = None
         self.notifymeread.close()
         os.close(self.notifyme_w)
+        # Clean up the allocator
+        del self.allocator
+        self.allocator = Allocator()
         _log.info('Camera closed successfully.')
 
     @staticmethod
@@ -638,7 +641,7 @@ class Picamera2:
         """
         if updates is None:
             return None
-        valid = ("format", "size")
+        valid = ("format", "size", "stride")
         for key, value in updates.items():
             if isinstance(value, SensorFormat):
                 value = str(value)
@@ -667,7 +670,7 @@ class Picamera2:
 
     def create_preview_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                      colour_space=libcamera.ColorSpace.Sycc(), buffer_count=4, controls={},
-                                     display="main", encode="main", queue=True, sensor={}) -> dict:
+                                     display="main", encode="main", queue=True, sensor={}, use_case="preview") -> dict:
         """Make a configuration suitable for camera preview."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -686,7 +689,7 @@ class Picamera2:
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Minimal,
                         "FrameDurationLimits": (100, 83333)} | controls
-        config = {"use_case": "preview",
+        config = {"use_case": use_case,
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
@@ -701,7 +704,7 @@ class Picamera2:
 
     def create_still_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=libcamera.ColorSpace.Sycc(), buffer_count=1, controls={},
-                                   display=None, encode=None, queue=True, sensor={}) -> dict:
+                                   display=None, encode=None, queue=True, sensor={}, use_case="still") -> dict:
         """Make a configuration suitable for still image capture. Default to 2 buffers, as the Gl preview would need them."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -720,7 +723,7 @@ class Picamera2:
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.HighQuality,
                         "FrameDurationLimits": (100, 1000000 * 1000)} | controls
-        config = {"use_case": "still",
+        config = {"use_case": use_case,
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
@@ -735,7 +738,7 @@ class Picamera2:
 
     def create_video_configuration(self, main={}, lores=None, raw={}, transform=libcamera.Transform(),
                                    colour_space=None, buffer_count=6, controls={}, display="main",
-                                   encode="main", queue=True, sensor={}) -> dict:
+                                   encode="main", queue=True, sensor={}, use_case="video") -> dict:
         """Make a configuration suitable for video recording."""
         if self.camera is None:
             raise RuntimeError("Camera not opened")
@@ -759,7 +762,7 @@ class Picamera2:
         if "NoiseReductionMode" in self.camera_controls and "FrameDurationLimits" in self.camera_controls:
             controls = {"NoiseReductionMode": libcamera.controls.draft.NoiseReductionModeEnum.Fast,
                         "FrameDurationLimits": (33333, 33333)} | controls
-        config = {"use_case": "video",
+        config = {"use_case": use_case,
                   "transform": transform,
                   "colour_space": colour_space,
                   "buffer_count": buffer_count,
@@ -836,6 +839,11 @@ class Picamera2:
         libcamera_stream_config.size = libcamera.Size(stream_config["size"][0], stream_config["size"][1])
         libcamera_stream_config.pixel_format = libcamera.PixelFormat(stream_config["format"])
         libcamera_stream_config.buffer_count = buffer_count
+        # Stride is sometimes set to None in the stream_config, so need to guard against that case
+        if stream_config.get("stride") is not None:
+            libcamera_stream_config.stride = stream_config["stride"]
+        else:
+            libcamera_stream_config.stride = 0
 
     def _make_libcamera_config(self, camera_config):
         # Make a libcamera configuration object from our Python configuration.
@@ -1084,7 +1092,7 @@ class Picamera2:
 
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
-        self.allocator.allocate(libcamera_config)
+        self.allocator.allocate(libcamera_config, camera_config.get("use_case"))
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
@@ -1277,14 +1285,14 @@ class Picamera2:
         """Cause the process_requests method to run in the event loop again."""
         os.write(self.notifyme_w, b"\x00")
 
-    def wait(self, job):
+    def wait(self, job, timeout=None):
         """Wait for the given job to finish (if necessary) and return its final result.
 
         The job is obtained either by calling one of the Picamera2 methods asynchronously
         (passing wait=False), or as a parameter to the signal_function that can be
         supplied to those same methods.
         """
-        return job.get_result()
+        return job.get_result(timeout=timeout)
 
     def dispatch_functions(self, functions, wait, signal_function=None, immediate=False) -> None:
         """The main thread should use this to dispatch a number of operations for the event loop to perform.
@@ -1339,14 +1347,14 @@ class Picamera2:
         functions = [partial(self.set_frame_drops_, num_frames), self.drop_frames_]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_file_(self, file_output, name: str, format=None) -> dict:
+    def capture_file_(self, file_output, name: str, format=None, exif_data=None) -> dict:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
         if name == "raw" and formats.is_raw(self.camera_config["raw"]["format"]):
             request.save_dng(file_output)
         else:
-            request.save(name, file_output, format=format)
+            request.save(name, file_output, format=format, exif_data=exif_data)
 
         result = request.get_metadata()
         request.release()
@@ -1358,12 +1366,17 @@ class Picamera2:
             name: str = "main",
             format=None,
             wait=None,
-            signal_function=None) -> dict:
+            signal_function=None,
+            exif_data=None) -> dict:
         """Capture an image to a file in the current camera mode.
 
         Return the metadata for the frame captured.
+
+        exif_data - dictionary containing user defined exif data (based on `piexif`). This will
+            overwrite existing exif information generated by picamera2.
         """
-        functions = [partial(self.capture_file_, file_output, name, format=format)]
+        functions = [partial(self.capture_file_, file_output, name, format=format,
+                             exif_data=exif_data)]
         return self.dispatch_functions(functions, wait, signal_function)
 
     def switch_mode_(self, camera_config):
@@ -1384,15 +1397,18 @@ class Picamera2:
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
     def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None,
-                                     wait=None, signal_function=None, delay=0):
+                                     wait=None, signal_function=None, exif_data=None, delay=0):
         """Switch the camera into a new (capture) mode, capture an image to file.
 
         Then return back to the initial camera mode.
+
+        exif_data - dictionary containing user defined exif data (based on `piexif`). This will
+            overwrite existing exif information generated by picamera2.
         """
         preview_config = self.camera_config
 
-        def capture_and_switch_back_(self, file_output, preview_config, format):
-            done, result = self.capture_file_(file_output, name, format=format)
+        def capture_and_switch_back_(self, file_output, preview_config, format, exif_data=exif_data):
+            done, result = self.capture_file_(file_output, name, format=format, exif_data=exif_data)
             if not done:
                 return (False, None)
             self.switch_mode_(preview_config)
@@ -1400,7 +1416,8 @@ class Picamera2:
 
         functions = [partial(self.switch_mode_, camera_config),
                      partial(self.set_frame_drops_, delay), self.drop_frames_,
-                     partial(capture_and_switch_back_, self, file_output, preview_config, format)]
+                     partial(capture_and_switch_back_, self, file_output, preview_config, format,
+                             exif_data=exif_data)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
     def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None, delay=0):
@@ -1766,7 +1783,7 @@ class Picamera2:
     def start_and_capture_files(self, name: str = "image{:03d}.jpg",
                                 initial_delay=1, preview_mode="preview",
                                 capture_mode="still", num_files=1, delay=1,
-                                show_preview=True):
+                                show_preview=True, exif_data=None):
         """This function makes capturing multiple images more convenient.
 
         Should only be used in command line line applications (not from a Qt application, for example).
@@ -1794,6 +1811,9 @@ class Picamera2:
             with delay zero, then there may be no images shown. This parameter only has any
             effect if a preview is not already running. If it is, it would have to be stopped first
             (with the stop_preview method).
+
+        exif_data - dictionary containing user defined exif data (based on `piexif`). This will
+            overwrite existing exif information generated by picamera2.
         """
         if self.started:
             self.stop()
@@ -1803,7 +1823,7 @@ class Picamera2:
             self.start(show_preview=show_preview)
             for i in range(num_files):
                 time.sleep(initial_delay if i == 0 else delay)
-                self.switch_mode_and_capture_file(capture_mode, name.format(i))
+                self.switch_mode_and_capture_file(capture_mode, name.format(i), exif_data=exif_data)
         else:
             # No preview between captures, it's more efficient just to stay in capture mode.
             if initial_delay:
@@ -1815,14 +1835,14 @@ class Picamera2:
                 self.configure(capture_mode)
                 self.start(show_preview=show_preview)
             for i in range(num_files):
-                self.capture_file(name.format(i))
+                self.capture_file(name.format(i), exif_data=exif_data)
                 if i == num_files - 1:
                     break
                 time.sleep(delay)
         self.stop()
 
     def start_and_capture_file(self, name="image.jpg", delay=1, preview_mode="preview",
-                               capture_mode="still", show_preview=True):
+                               capture_mode="still", show_preview=True, exif_data=None):
         """This function makes capturing a single image more convenient.
 
         Should only be used in command line line applications (not from a Qt application, for example).
@@ -1844,9 +1864,14 @@ class Picamera2:
             displays an image by default during the preview phase. This parameter only has any
             effect if a preview is not already running. If it is, it would have to be stopped first
             (with the stop_preview method).
+
+        exif_data - dictionary containing user defined exif data (based on `piexif`). This will
+            overwrite existing exif information generated by picamera2.
         """
         self.start_and_capture_files(name=name, initial_delay=delay, preview_mode=preview_mode,
-                                     capture_mode=capture_mode, num_files=1, show_preview=show_preview)
+                                     capture_mode=capture_mode, num_files=1,
+                                     show_preview=show_preview,
+                                     exif_data=exif_data)
 
     def start_and_record_video(self, output, encoder=None, config=None, quality=Quality.MEDIUM,
                                show_preview=False, duration=0, audio=False):
@@ -1901,7 +1926,7 @@ class Picamera2:
                     output = FileOutput(output)
         if encoder is None:
             encoder = H264Encoder()
-        self.start_encoder(encoder, output, quality)
+        self.start_encoder(encoder=encoder, output=output, quality=quality)
         self.start(show_preview=show_preview)
         if duration:
             time.sleep(duration)

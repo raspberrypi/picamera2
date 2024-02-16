@@ -9,7 +9,7 @@ from picamera2.encoders import H264Encoder
 
 picam2 = Picamera2()
 
-# We don't really need to change anyhting, but let's mess around just as a test.
+# We don't really need to change anything, but let's mess around just as a test.
 picam2.video_configuration.size = (800, 480)
 picam2.video_configuration.format = "YUV420"
 encoder = H264Encoder(bitrate=1000000)

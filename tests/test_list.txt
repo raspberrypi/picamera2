@@ -18,6 +18,7 @@ examples/display_transform_qtgl.py
 examples/dual_encode.py
 examples/easy_capture.py
 examples/easy_video.py
+examples/exif_custom.py
 examples/exposure_fixed.py
 examples/frame_server.py
 examples/h264_constant_qp.py
@@ -37,6 +38,7 @@ examples/still_capture_with_config.py
 examples/still_during_video.py
 examples/switch_mode.py
 examples/switch_mode_2.py
+examples/switch_mode_persist.py
 examples/timestamp_capture.py
 examples/title_bar.py
 examples/tuning_file.py
@@ -76,3 +78,4 @@ tests/quality_check.py
 tests/qt_gl_preview_test.py
 tests/stop_slow_framerate.py
 tests/allocator_test.py
+tests/allocator_leak_test.py
