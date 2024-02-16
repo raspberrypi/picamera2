@@ -1,8 +1,15 @@
+import gc
 import mmap
 import threading
 
 import numpy as np
-import pykms
+
+try:
+    # If available, use pure python kms package
+    import kms as pykms
+except ImportError:
+    import pykms
+
 from libcamera import Transform
 
 from picamera2.previews.null_preview import *
@@ -35,6 +42,7 @@ class DrmManager():
                 self.crtc = None
                 self.resman = None
                 self.card = None
+                gc.collect()
 
 
 class DrmPreview(NullPreview):
@@ -140,7 +148,7 @@ class DrmPreview(NullPreview):
                 raise RuntimeError(f"Format {pixel_format} not supported by DRM preview")
             fmt = self.FMT_MAP[pixel_format]
 
-            self.plane = self.resman.reserve_overlay_plane(self.crtc, fmt)
+            self.plane = self.resman.reserve_overlay_plane(self.crtc, format=fmt)
             if self.plane is None:
                 raise RuntimeError("Failed to reserve DRM plane")
             drm_rotation = 1
@@ -150,7 +158,7 @@ class DrmPreview(NullPreview):
                 drm_rotation |= 32
             self.plane.set_prop("rotation", drm_rotation)
             # The second plane we ask for will go on top of the first.
-            self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, pykms.PixelFormat.ABGR8888)
+            self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, format=pykms.PixelFormat.ABGR8888)
             if self.overlay_plane is None:
                 raise RuntimeError("Failed to reserve DRM overlay plane")
             # Want "coverage" mode, not pre-multiplied alpha. fkms doesn't seem to have this
@@ -160,6 +168,8 @@ class DrmPreview(NullPreview):
             except RuntimeError:
                 pass
 
+        # Use an atomic commit for rendering
+        ctx = pykms.AtomicReq(self.card)
         if completed_request is not None:
             fb = completed_request.request.buffers[stream]
 
@@ -193,21 +203,17 @@ class DrmPreview(NullPreview):
                 self.drmfbs[fb] = drmfb
 
             drmfb = self.drmfbs[fb]
-            self.crtc.set_plane(self.plane, drmfb, x, y, w, h, 0, 0, width, height)
-            # An "atomic commit" would probably be better, but I can't get this to work...
-            # ctx = pykms.AtomicReq(self.card)
-            # ctx.add(self.plane, {"FB_ID": drmfb.id, "CRTC_ID": self.crtc.id,
-            #                      "SRC_W": width << 16, "SRC_H": height << 16,
-            #                      "CRTC_X": x, "CRTC_Y": y, "CRTC_W": w, "CRTC_H": h})
-            # ctx.commit()
+            ctx.add_plane(self.plane, drmfb, self.crtc, (0, 0, width, height), (x, y, w, h))
 
         overlay_new_fb = self.overlay_new_fb
         if overlay_new_fb != self.overlay_fb:
             overlay_old_fb = self.overlay_fb  # Must hang on to this momentarily to avoid a "wink"
             self.overlay_fb = overlay_new_fb
-        if self.overlay_fb is not None:
-            width, height = self.overlay_fb.width, self.overlay_fb.height
-            self.crtc.set_plane(self.overlay_plane, self.overlay_fb, x, y, w, h, 0, 0, width, height)
+            if self.overlay_fb is not None:
+                width, height = self.overlay_fb.width, self.overlay_fb.height
+                ctx.add_plane(self.overlay_plane, self.overlay_fb, self.crtc, (0, 0, width, height), (x, y, w, h))
+        ctx.commit_sync()
+        ctx = None
         overlay_old_fb = None  # noqa  The new one has been sent so it's safe to let this go now
         old_drmfbs = None  # noqa  Can chuck these away now too
 

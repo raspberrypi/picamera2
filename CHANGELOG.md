@@ -6,6 +6,21 @@
 
 ### Changed
 
+## 0.3.17 Beta Release 16
+
+### Added
+
+* Pi 5 users can now request 48-bit RGB outputs (where each R, G and B sample is 16-bit).
+* Support for h.264 codec profiles.
+* DNG files can be written to ioBytes objects.
+* Persistent allocators added.
+* Timeout support waiting for asynchronous requests to complete.
+
+### Changed
+
+* FFmpeg thread queue size increased, to suppress warnings and improve behaviour.
+* Quality argument is respected properly by start_encoder().
+
 ## 0.3.16 Beta Release 15
 
 ### Added
