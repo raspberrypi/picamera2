@@ -47,6 +47,7 @@ class PersistentAllocator(DmaAllocator):
             buffer_key = self.buffer_key
 
         tmp = super().__new__(DmaAllocator)
+        tmp.dmaHeap = None
 
         (tmp.open_fds, tmp.libcamera_fds, tmp.frame_buffers,
          tmp.mapped_buffers, tmp.mapped_buffers_used) = self.buffer_dict[buffer_key]
