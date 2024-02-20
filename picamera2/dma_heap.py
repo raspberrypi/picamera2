@@ -107,3 +107,6 @@ class DmaHeap:
             return UniqueFD()
 
         return allocFd
+
+    def close(self):
+        os.close(self.__dmaHeapHandle.get())

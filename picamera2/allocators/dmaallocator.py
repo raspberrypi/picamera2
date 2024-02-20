@@ -95,6 +95,8 @@ class DmaAllocator(Allocator):
             os.close(fd)
         self.frame_buffers = {}
         self.open_fds = []
+        if self.dmaHeap is not None:
+            self.dmaHeap.close()
 
     def __del__(self):
         self.close()
