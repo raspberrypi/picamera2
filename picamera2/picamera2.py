@@ -499,7 +499,7 @@ class Picamera2:
                 self.configure(temp_config)
                 frameDurationMin = self.camera_controls["FrameDurationLimits"][0]
                 cam_mode["fps"] = round(1e6 / frameDurationMin, 2)
-                cam_mode["crop_limits"] = self.camera_properties["ScalerCropMaximum"]
+                cam_mode["crop_limits"] = utils.convert_from_libcamera_type(self.camera_ctrl_info['ScalerCrop'][1].max)
                 cam_mode["exposure_limits"] = tuple([i for i in self.camera_controls["ExposureTime"] if i != 0])
                 self.sensor_modes_.append(cam_mode)
         return self.sensor_modes_

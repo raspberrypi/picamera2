@@ -2,7 +2,7 @@ import time
 
 from libcamera import controls
 
-from picamera2 import Picamera2
+from picamera2 import Picamera2, utils
 
 picam2 = Picamera2()
 if 'AfMode' not in picam2.camera_controls:
@@ -94,6 +94,6 @@ picam2.set_controls({'AfMetering': controls.AfMeteringEnum.Windows})
 time.sleep(0.1)
 
 print("Test AfWindows")
-max_window = picam2.camera_properties['ScalerCropMaximum']
+max_window = utils.convert_from_libcamera_type(picam2.camera_ctrl_info['ScalerCrop'][1].max)
 picam2.set_controls({'AfWindows': [max_window]})
 time.sleep(0.1)
