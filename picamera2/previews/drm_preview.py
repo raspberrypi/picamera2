@@ -63,7 +63,7 @@ class DrmPreview(NullPreview):
     def __init__(self, x=0, y=0, width=640, height=480, transform=None):
         self.init_drm(x, y, width, height, transform)
         self.stop_count = 0
-        self.fb = pykms.DumbFramebuffer(self.card, width, height, "AB24")
+        self.fb = pykms.DumbFramebuffer(self.card, width, height, "XR24")
         self.mem = mmap.mmap(self.fb.fd(0), width * height * 3, mmap.MAP_SHARED, mmap.PROT_WRITE)
         self.fd = self.fb.fd(0)
         super().__init__(width=width, height=height)
@@ -110,7 +110,7 @@ class DrmPreview(NullPreview):
         else:
             h, w, channels = overlay.shape
             # Should I be recycling these instead of making new ones all the time?
-            new_fb = pykms.DumbFramebuffer(self.card, w, h, "AB24")
+            new_fb = pykms.DumbFramebuffer(self.card, w, h, "XR24")
             with mmap.mmap(new_fb.fd(0), w * h * 4, mmap.MAP_SHARED, mmap.PROT_WRITE) as mm:
                 mm.write(np.ascontiguousarray(overlay).data)
             self.overlay_new_fb = new_fb
@@ -150,23 +150,24 @@ class DrmPreview(NullPreview):
 
             self.plane = self.resman.reserve_overlay_plane(self.crtc, format=fmt)
             if self.plane is None:
-                raise RuntimeError("Failed to reserve DRM plane")
+                self.plane = self.resman.reserve_plane(self.crtc, type=pykms.PlaneType.Primary, format=fmt)
+                if self.plane is None:
+                    raise RuntimeError("Failed to reserve DRM plane")
             drm_rotation = 1
             if self.transform.hflip:
                 drm_rotation |= 16
             if self.transform.vflip:
                 drm_rotation |= 32
-            self.plane.set_prop("rotation", drm_rotation)
+            #self.plane.set_prop("rotation", drm_rotation)
             # The second plane we ask for will go on top of the first.
             self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, format=pykms.PixelFormat.ABGR8888)
-            if self.overlay_plane is None:
-                raise RuntimeError("Failed to reserve DRM overlay plane")
-            # Want "coverage" mode, not pre-multiplied alpha. fkms doesn't seem to have this
-            # property so we suppress the error, but it seems to have the right behaviour anyway.
-            try:
-                self.overlay_plane.set_prop("pixel blend mode", 1)
-            except RuntimeError:
-                pass
+            if self.overlay_plane is not None:
+                # Want "coverage" mode, not pre-multiplied alpha. fkms doesn't seem to have this
+                # property so we suppress the error, but it seems to have the right behaviour anyway.
+                try:
+                    self.overlay_plane.set_prop("pixel blend mode", 1)
+                except RuntimeError:
+                    pass
 
         # Use an atomic commit for rendering
         ctx = pykms.AtomicReq(self.card)
