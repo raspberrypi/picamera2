@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import picamera2.sony_ivs as IVS
 from picamera2 import Picamera2, MappedArray
 from libcamera import Rectangle, Size
 
@@ -14,18 +15,13 @@ class Detection:
         """Create a Detection object, recording the bounding box, category and confidence. """
         self.category = category
         self.conf = conf
-        # Scale the box to the output stream dimensions. Copied from imx500_post_processing_stage.cpp.
-        y0, x0, y1, x1 = coords
-        obj = Rectangle(*np.maximum(np.array([x0, y0, x1 - x0, y1 - y0]) * 1000, 0).astype(np.int32))
+        # Scale the box to the output stream dimensions.
         isp_output_size = Size(*request.picam2.camera_configuration()[stream]['size'])
         sensor_output_size = Size(*request.picam2.camera_configuration()['raw']['size'])
         full_sensor_resolution = Rectangle(*request.picam2.camera_properties['ScalerCropMaximum'])
         scaler_crop = Rectangle(*request.get_metadata()['ScalerCrop'])
-        sensor_crop = scaler_crop.scaled_by(sensor_output_size, full_sensor_resolution.size)
-        obj_sensor = obj.scaled_by(sensor_output_size, Size(1000, 1000))
-        obj_bound = obj_sensor.bounded_to(sensor_crop)
-        obj_translated = obj_bound.translated_by(-sensor_crop.topLeft)
-        obj_scaled = obj_translated.scaled_by(isp_output_size, sensor_output_size)
+        obj_scaled = IVS.convert_inference_coords(coords, full_sensor_resolution, scaler_crop, isp_output_size,
+                                                  sensor_output_size)
         self.box = (obj_scaled.x, obj_scaled.y, obj_scaled.width, obj_scaled.height)
 
 def parse_and_draw_detections(request):
@@ -54,12 +50,6 @@ def draw_detections(request, stream='main'):
             cv2.putText(m.array, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
             cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0))
 
-def input_tensor_image(input_tensor, input_tensor_size):
-    """Convert input tensor in planar format to interleaved RGB."""
-    r1 = np.array(input_tensor, dtype=np.uint8).view(np.int8).reshape((3, ) + input_tensor_size)
-    r2 = r1[(2, 1, 0), :, :]
-    return (np.transpose(r2, (1, 2, 0)) + 128).clip(0, 255).astype(np.uint8)
-
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={'FrameRate': 30})
 picam2.start(config, show_preview=True)
@@ -68,5 +58,5 @@ picam2.pre_callback = parse_and_draw_detections
 cv2.startWindowThread()
 while True:
     input_tensor = picam2.capture_metadata()['Imx500InputTensor']
-    cv2.imshow("Input Tensor", input_tensor_image(input_tensor, INPUT_TENSOR_SIZE))
+    cv2.imshow("Input Tensor", IVS.input_tensor_image(input_tensor, INPUT_TENSOR_SIZE, (384, 384, 384), (0, 0, 0)))
     cv2.resizeWindow("Input Tensor", *INPUT_TENSOR_SIZE)
