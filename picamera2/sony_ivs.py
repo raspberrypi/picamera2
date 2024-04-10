@@ -1,6 +1,8 @@
 from libcamera import Rectangle, Size
+import os
 import numpy as np
 
+network_firmware_symlink = "/lib/firmware/imx500_network.fpk"
 
 def input_tensor_image(input_tensor, input_tensor_size, norm_val, norm_shift,
                        div_val=1, div_shift=(0, 0, 0, 0)):
@@ -27,3 +29,28 @@ def convert_inference_coords(coords: list, full_sensor_resolution: Rectangle, sc
     obj_scaled = obj_translated.scaled_by(isp_output_size, sensor_output_size)
 
     return obj_scaled
+
+
+def set_network_firmware(firmware_filename):
+    """
+    Provides a firmware fpk file to upload to the IMX500. This must be called before Picamera2 is instantiation.
+    network_firmware_symlink points to another symlink (e.g. /home/pi/imx500_network_firmware/imx500_network.fpk)
+    accessable by the user. This accessable symlink needs to point to the network fpk file that will eventually
+    be pushed into the IMX500 by the kernel driver.
+    """
+
+    if not os.path.isfile(firmware_filename):
+        raise RuntimeError("Firmware file " + firmware_filename + " does not exist.")
+
+    # Check if network_firmware_symlink points to another symlink.
+    if not os.path.islink(network_firmware_symlink) or \
+       not os.path.islink(os.readlink(network_firmware_symlink)):
+        print(f"{network_firmware_symlink} is not a symlink, or its target is not a symlink, "
+               "ignoring custom network firmware file.")
+        return
+
+    # Update the user accessable symlink to the user requested firmware if needed.
+    local_symlink = os.readlink(network_firmware_symlink)
+    if not os.path.samefile(os.readlink(local_symlink), firmware_filename):
+        os.remove(local_symlink)
+        os.symlink(firmware_filename, local_symlink)

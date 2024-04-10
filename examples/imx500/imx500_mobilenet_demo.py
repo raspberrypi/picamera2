@@ -50,6 +50,10 @@ def draw_detections(request, stream='main'):
             cv2.putText(m.array, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
             cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0))
 
+
+# This must be called before instantiation of Picamera2
+IVS.set_network_firmware("/home/pi/imx500_network_firmware/imx500_network_mobilenet_ssd.fpk")
+
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={'FrameRate': 30})
 picam2.start(config, show_preview=True)
