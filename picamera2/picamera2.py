@@ -238,6 +238,9 @@ class Picamera2:
             os.environ.pop("LIBCAMERA_RPI_TUNING_FILE", None)  # Use default tuning
         self.notifyme_r, self.notifyme_w = os.pipe2(os.O_NONBLOCK)
         self.notifymeread = os.fdopen(self.notifyme_r, 'rb')
+        # Set these before trying to open the camera in case that fails (shutting stuff down may check them).
+        self._preview = None
+        self.is_open = False
         # Get the real libcamera internal number.
         camera_num = self.global_camera_info()[camera_num]['Num']
         self._cm.add(camera_num, self)
@@ -279,9 +282,7 @@ class Picamera2:
 
     def _reset_flags(self) -> None:
         self.camera = None
-        self.is_open = False
         self.camera_ctrl_info = {}
-        self._preview = None
         self.camera_config = None
         self.libcamera_config = None
         self.streams = None
