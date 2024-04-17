@@ -12,6 +12,7 @@ class Output:
         """
         self.recording = False
         self.ptsoutput = pts
+        self.needs_pacing = False
 
     def start(self):
         """Start recording"""
