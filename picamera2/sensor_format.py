@@ -11,7 +11,7 @@ class SensorFormat():
         else:
             pixels = fmt_string
             self.packing = None
-        self.bit_depth = int(re.search("\\d+$", pixels).group())
+        self.bit_depth = 16 if self.packing in ['PISP_COMP1', 'PISP_COMP2'] else int(re.search("\\d+$", pixels).group())
         self.bayer_order = re.search("[RGB]+", pixels).group()
 
     @property
