@@ -1,5 +1,6 @@
 """This is a base class for a multi-threaded software encoder."""
 
+import time
 from fractions import Fraction
 from math import sqrt
 
@@ -24,6 +25,9 @@ class LibavH264Encoder(Encoder):
         self.qp = qp
         self.profile = profile
         self.preset = None
+        self.drop_final_frames = False
+        self.threads = 0  # means "you choose"
+        self._lasttimestamp = None
 
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
@@ -46,7 +50,7 @@ class LibavH264Encoder(Encoder):
         self._container = av.open("/dev/null", "w", format="null")
         self._stream = self._container.add_stream(self._codec, rate=self.framerate)
 
-        self._stream.codec_context.thread_count = 8
+        self._stream.codec_context.thread_count = self.threads
         self._stream.codec_context.thread_type = av.codec.context.ThreadType.FRAME  # noqa
 
         self._stream.width = self.width
@@ -85,6 +89,7 @@ class LibavH264Encoder(Encoder):
             self._stream.codec_context.qmax = self.qp
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)
+        self._stream.codec_context.options["tune"] = "zerolatency"
 
         FORMAT_TABLE = {"YUV420": "yuv420p",
                         "BGR888": "rgb24",
@@ -94,8 +99,18 @@ class LibavH264Encoder(Encoder):
         self._av_input_format = FORMAT_TABLE[self._format]
 
     def _stop(self):
-        for packet in self._stream.encode():
-            self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+        if not self.drop_final_frames:
+            # Annoyingly, libav still has lots of encoded frames internally which we must flush
+            # out. If the output(s) doesn't understand timestamps, we may need to "pace" these
+            # frames with correct time intervals. Unpleasant.
+            for packet in self._stream.encode():
+                if any(out.needs_pacing for out in self._output) and self._lasttimestamp is not None:
+                    time_system, time_packet = self._lasttimestamp
+                    delay_us = packet.pts - time_packet - (time.monotonic_ns() - time_system) / 1000
+                    if delay_us > 0:
+                        time.sleep(delay_us / 1000000)
+                self._lasttimestamp = (time.monotonic_ns(), packet.pts)
+                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
         self._container.close()
 
     def _encode(self, stream, request):
@@ -104,4 +119,5 @@ class LibavH264Encoder(Encoder):
             frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
+                self._lasttimestamp = (time.monotonic_ns(), packet.pts)
                 self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
