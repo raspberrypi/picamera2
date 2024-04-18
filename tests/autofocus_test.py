@@ -94,6 +94,6 @@ picam2.set_controls({'AfMetering': controls.AfMeteringEnum.Windows})
 time.sleep(0.1)
 
 print("Test AfWindows")
-max_window = picam2.camera_properties['ScalerCropMaximum']
+_, max_window, _ = picam2.camera_controls['ScalerCrop']
 picam2.set_controls({'AfWindows': [max_window]})
 time.sleep(0.1)
