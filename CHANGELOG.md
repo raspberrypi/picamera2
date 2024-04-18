@@ -6,6 +6,20 @@
 
 ### Changed
 
+## 0.3.18 Beta Release 17
+
+### Added
+
+* Yolov5s TensorFlow example.
+* MJPEG server example with 90/270 degree rotation.
+
+### Changed
+
+* File descriptor leak fixed when closing DmaAllocator.
+* EGL memory leak fied.
+* Missing R16 mono raw format added for Pi 5.
+* Minor LibavH264Encoder improvements.
+
 ## 0.3.17 Beta Release 16
 
 ### Added

@@ -131,6 +131,13 @@ class QGlPicamera2(QWidget):
         if self.preview_window is not None:  # will be none when a proper Qt app
             self.preview_window.qpicamera2 = None
 
+        # Some extra EGL cleanup seems to be required.
+        for (_, buffer) in self.buffers.items():
+            glDeleteTextures(1, [buffer.texture])
+        self.buffers = {}
+        eglDestroyContext(self.egl.display, self.egl.context)
+        self.egl.context = None
+
     def closeEvent(self, event):
         self.cleanup()
 

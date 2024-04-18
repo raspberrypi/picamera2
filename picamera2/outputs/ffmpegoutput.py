@@ -48,6 +48,8 @@ class FfmpegOutput(Output):
         self.timeout = 1 if audio else None
         # A user can set this to get notifications of FFmpeg failures.
         self.error_callback = None
+        # We don't understand timestamps, so an encoder may have to pace output to us.
+        self.needs_pacing = True
 
     def start(self):
         general_options = ['-loglevel', 'warning',

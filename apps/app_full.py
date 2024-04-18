@@ -92,7 +92,7 @@ def update_controls():
     global scaler_crop
 
     # Fix aspect ratio of the pan/zoom
-    full_img = picam2.camera_properties["ScalerCropMaximum"]
+    _, full_img, _ = picam2.camera_controls['ScalerCrop']
     ar = full_img[2] / full_img[3]
     new_scaler_crop = list(scaler_crop)
     new_scaler_crop[3] = int(new_scaler_crop[2] / ar)
@@ -516,7 +516,8 @@ class panZoomDisplay(QWidget):
     def __init__(self):
         super().__init__()
         self.setMinimumSize(201, 151)
-        self.scale = 200 / picam2.camera_properties["ScalerCropMaximum"][2]
+        _, full_img, _ = picam2.camera_controls['ScalerCrop']
+        self.scale = 200 / full_img[2]
         self.zoom_level_ = 1.0
         self.max_zoom = 7.0
         self.zoom_step = 0.1
@@ -537,7 +538,7 @@ class panZoomDisplay(QWidget):
     def paintEvent(self, event):
         painter = QPainter()
         painter.begin(self)
-        full_img = picam2.camera_properties["ScalerCropMaximum"]
+        _, full_img, _ = picam2.camera_controls['ScalerCrop']
         self.scale = 200 / full_img[2]
         # Whole frame
         scaled_full_img = [int(i * self.scale) for i in full_img]
@@ -555,11 +556,11 @@ class panZoomDisplay(QWidget):
     def draw_centered(self, pos):
         global scaler_crop
         center = [int(i / self.scale) for i in pos]
-        full_img = picam2.camera_properties["ScalerCropMaximum"]
+        _, full_img, _ = picam2.camera_controls['ScalerCrop']
         w = scaler_crop[2]
         h = scaler_crop[3]
-        x = center[0] - w // 2 + picam2.camera_properties["ScalerCropMaximum"][0]
-        y = center[1] - h // 2 + picam2.camera_properties["ScalerCropMaximum"][1]
+        x = center[0] - w // 2 + full_img[0]
+        y = center[1] - h // 2 + full_img[1]
         new_scaler_crop = [x, y, w, h]
 
         # Check still within bounds
@@ -583,7 +584,7 @@ class panZoomDisplay(QWidget):
         if self.zoom_level > self.max_zoom:
             self.zoom_level = self.max_zoom
         factor = 1.0 / self.zoom_level
-        full_img = picam2.camera_properties["ScalerCropMaximum"]
+        _, full_img, _ = picam2.camera_controls['ScalerCrop']
         current_center = (scaler_crop[0] + scaler_crop[2] // 2, scaler_crop[1] + scaler_crop[3] // 2)
         w = int(factor * full_img[2])
         h = int(factor * full_img[3])
@@ -1128,9 +1129,10 @@ class picTab(QWidget):
         # Finally set the modes and check sensor crop
         if self.preview_check.isChecked():
             switch_config("still")
-            current_crop = picam2.camera_properties["ScalerCropMaximum"]
+            _, current_crop, _ = picam2.camera_controls['ScalerCrop']
             switch_config("preview")
-            if current_crop != picam2.camera_properties["ScalerCropMaximum"]:
+            _, preview_crop, _ = picam2.camera_controls['ScalerCrop']
+            if current_crop != preview_crop:
                 print("Preview and Still configs have different aspect ratios")
                 self.preview_warning.show()
             else:
@@ -1208,7 +1210,7 @@ mode_tabs.currentChanged.connect(on_mode_change)
 # Final setup
 window.setWindowTitle("Qt Picamera2 App")
 recording = False
-scaler_crop = picam2.camera_properties["ScalerCropMaximum"]
+_, scaler_crop, _ = picam2.camera_controls['ScalerCrop']
 hdr_imgs = {"exposures": None}
 pic_tab.apply_settings()
 
