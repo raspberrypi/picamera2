@@ -20,13 +20,19 @@ def convert_inference_coords(coords: list, full_sensor_resolution: Rectangle, sc
                              isp_output_size: Size, sensor_output_size: Size):
     """Convert relative inference coordinates into the output image coordinates space."""
     sensor_crop = scaler_crop.scaled_by(sensor_output_size, full_sensor_resolution.size)
-
     y0, x0, y1, x1 = coords
-    obj = Rectangle(*np.maximum(np.array([x0, y0, x1 - x0, y1 - y0]) * 1000, 0).astype(np.int32))
-    obj_sensor = obj.scaled_by(sensor_output_size, Size(1000, 1000))
+    width = full_sensor_resolution.size.width
+    height = full_sensor_resolution.size.height
+    obj = Rectangle(
+        *np.maximum(
+            np.array([x0 * width, y0 * height, (x1 - x0) * width, (y1 - y0) * height]),
+            0,
+        ).astype(np.int32)
+    )
+    obj_sensor = obj.scaled_by(sensor_output_size, Size(width, height))
     obj_bound = obj_sensor.bounded_to(sensor_crop)
     obj_translated = obj_bound.translated_by(-sensor_crop.topLeft)
-    obj_scaled = obj_translated.scaled_by(isp_output_size, sensor_output_size)
+    obj_scaled = obj_translated.scaled_by(isp_output_size, sensor_crop.size)
 
     return obj_scaled
 
