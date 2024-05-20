@@ -12,7 +12,7 @@ with open("labels.txt", "r") as f:
     LABELS = f.read().split("\n")
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--model", type=str, help="Path of the model")
+parser.add_argument("--model", type=str, required=True, help="Path of the model")
 
 args = parser.parse_args()
 

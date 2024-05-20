@@ -10,7 +10,7 @@ import picamera2.sony_ivs as IVS
 from picamera2 import MappedArray, Picamera2
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--model", type=str, help="Path of the model")
+parser.add_argument("--model", type=str, required=True, help="Path of the model")
 parser.add_argument("--bbox-normalization", action="store_true", help="Normalize bbox")
 parser.add_argument("--swap-tensors", action="store_true", help="Swap tensor 1 and 2")
 parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
@@ -121,7 +121,6 @@ for _ in range(10):
         break
     except KeyError:
         pass
-
 
 for _ in range(10):
     try:
