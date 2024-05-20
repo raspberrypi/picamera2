@@ -14,6 +14,7 @@ parser.add_argument("--model", type=str, required=True, help="Path of the model"
 parser.add_argument("--bbox-normalization", action="store_true", help="Normalize bbox")
 parser.add_argument("--swap-tensors", action="store_true", help="Swap tensor 1 and 2")
 parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
+parser.add_argument("--ignore-dash-labels", action="store_true", help="remove '-' labels ")
 
 args = parser.parse_args()
 
@@ -25,7 +26,10 @@ CONF_THRESHOLD = args.threshold
 last_detections = []
 
 with open("class80.txt", "r") as f:
-    LABELS = f.read().split()
+    LABELS = f.read().split("\n")
+
+if args.ignore_dash_labels:
+    LABELS = [l for l in LABELS if l and l != "-"]
 
 
 class Detection:
