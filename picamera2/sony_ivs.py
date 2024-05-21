@@ -60,3 +60,7 @@ def set_network_firmware(firmware_filename):
     if not os.path.samefile(os.readlink(local_symlink), firmware_filename):
         os.remove(local_symlink)
         os.symlink(firmware_filename, local_symlink)
+
+    print("\n------------------------------------------------------------------------------------------------------------------\n"
+          "NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application."
+          "\n------------------------------------------------------------------------------------------------------------------\n")
