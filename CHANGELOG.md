@@ -3,6 +3,7 @@
 ## Unreleased (on "next" branch)
 
 ### Added
+* FfmpegOutput support custom audio filter
 
 ### Changed
 
