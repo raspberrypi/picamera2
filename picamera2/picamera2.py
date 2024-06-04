@@ -2,6 +2,7 @@
 """picamera2 main class"""
 
 import atexit
+import contextlib
 import json
 import logging
 import os
@@ -1475,6 +1476,15 @@ class Picamera2:
         functions = [partial(self.switch_mode_, camera_config),
                      partial(capture_request_and_stop_, self)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
+
+    @contextlib.contextmanager
+    def captured_request(self):
+        """Capture a completed request using the context manager which guarantees its release."""
+        request = self.capture_request()
+        try:
+            yield request
+        finally:
+            request.release()
 
     def capture_metadata_(self):
         if not self.completed_requests:

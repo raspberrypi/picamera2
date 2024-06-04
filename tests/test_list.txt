@@ -33,6 +33,7 @@ examples/pick_mode.py
 examples/preview.py
 examples/preview_x_forwarding.py
 examples/raw.py
+examples/request_context_manager.py
 examples/rotation.py
 examples/still_capture_with_config.py
 examples/still_during_video.py
