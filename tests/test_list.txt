@@ -29,6 +29,7 @@ examples/opencv_mertens_merge.py
 examples/overlay_gl.py
 examples/overlay_null.py
 examples/overlay_qt.py
+examples/picamera2_multiprocessing.py
 examples/pick_mode.py
 examples/preview.py
 examples/preview_x_forwarding.py
