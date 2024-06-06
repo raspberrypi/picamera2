@@ -933,13 +933,13 @@ class Picamera2:
     @staticmethod
     def align_stream(stream_config: dict, optimal=True) -> None:
         if optimal:
-            # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
+            # Adjust the image size so that all planes are a mutliple of 32/64 bytes wide.
             # This matches the hardware behaviour and means we can be more efficient.
-            align = 32
+            align = 32 if Picamera2.platform == Platform.Platform.VC4 else 64
             if stream_config["format"] in ("YUV420", "YVU420"):
-                align = 64  # because the UV planes will have half this alignment
-            elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
-                align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+                align *= 2  # because the UV planes will have half this alignment
+            elif stream_config["format"] in ("XBGR8888", "XRGB8888", "RGB161616", "BGR161616"):
+                align //= 2  # we have an automatic extra factor of 2 here
         else:
             align = 2
         size = stream_config["size"]
