@@ -31,6 +31,8 @@ with open("class80.txt", "r") as f:
 if args.ignore_dash_labels:
     LABELS = [l for l in LABELS if l and l != "-"]
 
+# This must be called before instantiation of Picamera2
+imx500 = IVS.ivs.from_network_file(os.path.abspath(MODEL))
 
 class Detection:
     def __init__(self, coords, category, conf, request, stream="main"):
@@ -38,13 +40,11 @@ class Detection:
         self.category = category
         self.conf = conf
         # Scale the box to the output stream dimensions.
-        isp_output_size = Size(*request.picam2.camera_configuration()[stream]["size"])
-        sensor_output_size = Size(*request.picam2.camera_configuration()["raw"]["size"])
-        full_sensor_resolution = Rectangle(
-            *request.picam2.camera_properties["ScalerCropMaximum"]
-        )
-        scaler_crop = Rectangle(*request.get_metadata()["ScalerCrop"])
-        obj_scaled = IVS.convert_inference_coords(
+        isp_output_size = request.picam2.camera_configuration()[stream]["size"]
+        sensor_output_size = request.picam2.camera_configuration()["raw"]["size"]
+        full_sensor_resolution = request.picam2.sensor_resolution
+        scaler_crop = request.get_metadata()["ScalerCrop"]
+        obj_scaled = imx500.convert_inference_coords(
             coords,
             full_sensor_resolution,
             scaler_crop,
@@ -105,9 +105,6 @@ def draw_detections(request, stream="main"):
             cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0))
 
 
-# This must be called before instantiation of Picamera2
-IVS.set_network_firmware(os.path.abspath(MODEL))
-
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={"FrameRate": 30})
 picam2.start(config, show_preview=True)
@@ -139,6 +136,10 @@ for _ in range(10):
 
 INPUT_TENSOR_SIZE = (height, width)
 
+# Will not be needed once the input tensor is embedded in the network fpk
+imx500.config['input_tensor_size'] = INPUT_TENSOR_SIZE
+imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'], picam2.sensor_resolution)
+
 picam2.pre_callback = parse_and_draw_detections
 
 cv2.startWindowThread()
@@ -149,9 +150,7 @@ while True:
         if INPUT_TENSOR_SIZE != (0, 0):
             cv2.imshow(
                 "Input Tensor",
-                IVS.input_tensor_image(
-                    input_tensor, INPUT_TENSOR_SIZE, (384, 384, 384), (0, 0, 0)
-                ),
+                imx500.input_tensor_image(input_tensor)
             )
             cv2.resizeWindow("Input Tensor", *INPUT_TENSOR_SIZE)
     except KeyError:
