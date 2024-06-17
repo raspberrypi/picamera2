@@ -6,6 +6,19 @@
 
 ### Changed
 
+## 0.3.19 Beta Release 18
+
+### Added
+
+* Add an example showing how to forward images to other processes using zero-copy.
+* Add a context manager method for capturing requests, e.g. `with picam2.captured_request() as r:`
+* Encoders can skip frames, e.g. run at half the rate of the camera.
+
+### Changed
+
+* Configuration alignment fixed on Pi 5.
+* Improve support for displays without alpha blending.
+
 ## 0.3.18 Beta Release 17
 
 ### Added
