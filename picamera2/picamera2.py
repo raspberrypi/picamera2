@@ -1478,9 +1478,9 @@ class Picamera2:
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
     @contextlib.contextmanager
-    def captured_request(self):
+    def captured_request(self, flush=None):
         """Capture a completed request using the context manager which guarantees its release."""
-        request = self.capture_request()
+        request = self.capture_request(flush=flush)
         try:
             yield request
         finally:
