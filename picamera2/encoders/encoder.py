@@ -38,6 +38,8 @@ class Encoder:
         self._name = None
         self._lock = threading.Lock()
         self.firsttimestamp = None
+        self.frame_skip_count = 1
+        self._skip_count = 0
 
     @property
     def running(self):
@@ -206,8 +208,10 @@ class Encoder:
         :param request: Request
         :type request: request
         """
-        with self._lock:
-            self._encode(stream, request)
+        if self._skip_count == 0:
+            with self._lock:
+                self._encode(stream, request)
+        self._skip_count = (self._skip_count + 1) % self.frame_skip_count
 
     def _encode(self, stream, request):
         if isinstance(stream, str):

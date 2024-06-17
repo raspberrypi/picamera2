@@ -1,3 +1,4 @@
+import gc
 import signal
 import subprocess
 
@@ -93,6 +94,8 @@ class FfmpegOutput(Output):
                 except Exception:
                     pass
             self.ffmpeg = None
+            # This seems to be necessary to get the subprocess to clean up fully.
+            gc.collect()
 
     def outputframe(self, frame, keyframe=True, timestamp=None):
         if self.recording and self.ffmpeg:

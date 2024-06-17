@@ -29,10 +29,12 @@ examples/opencv_mertens_merge.py
 examples/overlay_gl.py
 examples/overlay_null.py
 examples/overlay_qt.py
+examples/picamera2_multiprocessing.py
 examples/pick_mode.py
 examples/preview.py
 examples/preview_x_forwarding.py
 examples/raw.py
+examples/request_context_manager.py
 examples/rotation.py
 examples/still_capture_with_config.py
 examples/still_during_video.py
@@ -45,6 +47,7 @@ examples/tuning_file.py
 examples/video_with_config.py
 examples/window_offset.py
 examples/zoom.py
+tests/alignment.py
 tests/app_dual.py
 tests/app_full_test.py
 tests/app_test.py
