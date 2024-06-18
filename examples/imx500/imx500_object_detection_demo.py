@@ -59,7 +59,6 @@ def parse_and_draw_detections(request):
     parse_detections(request)
     draw_detections(request)
 
-
 def parse_detections(request, stream="main"):
     """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
     output_tensor = request.get_metadata().get("Imx500OutputTensor")
@@ -114,22 +113,17 @@ height = 0
 
 for _ in range(10):
     try:
-        input_tensor_info = picam2.capture_metadata()["Imx500InputTensorInfo"]
-        network_name, width, height, num_channels = struct.unpack(
-            "64sIII", bytes(input_tensor_info)
-        )
-        network_name = network_name.decode("utf-8").rstrip("\x00")
+        t = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
         break
     except KeyError:
         pass
 
 for _ in range(10):
     try:
-        output_tensor_info = picam2.capture_metadata()["Imx500OutputTensorInfo"]
-        network_name, *tensor_data_num, num_tensors = struct.unpack(
-            "64s16II", bytes(output_tensor_info)
-        )
-        tensor_data_num = tensor_data_num[:num_tensors]
+        t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        network_name, output_tensor_info = imx500.get_output_tensor_info(t)
+        tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info]
         break
     except KeyError:
         pass
@@ -137,7 +131,7 @@ for _ in range(10):
 INPUT_TENSOR_SIZE = (height, width)
 
 # Will not be needed once the input tensor is embedded in the network fpk
-imx500.config['input_tensor_size'] = INPUT_TENSOR_SIZE
+imx500.config['input_tensor_size'] = (width, height)
 imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'], picam2.sensor_resolution)
 
 picam2.pre_callback = parse_and_draw_detections

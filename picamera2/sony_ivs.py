@@ -3,14 +3,10 @@ import fcntl
 import json
 import numpy as np
 import os
+import struct
 
 from libcamera import Rectangle, Size
 from v4l2 import *
-
-
-network_firmware_symlink = "/lib/firmware/imx500_network.fpk"
-inference_ctrl_id = 0x00981b00
-
 
 class ivs:
     def __init__(self, config_file: str = '', network_file: str = ''):
@@ -114,6 +110,8 @@ class ivs:
         image. The co-ordinates are based on the full sensor resolution.
         """
 
+        inference_ctrl_id = 0x00981b00
+
         if self.device_fd == 0:
             return
 
@@ -146,6 +144,56 @@ class ivs:
         r = r.centered_to(Rectangle(s).center).enclosed_in(Rectangle(s))
         self.set_inference_roi_abs((r.x, r.y, r.width, r.height))
 
+    def get_output_tensor_info(self, tensor_info) -> tuple[str, list[dict]]:
+        """
+        Return the network string along with a list of output tensor parameters.
+        """
+
+        network_name_len = 64
+        max_num_tensors = 8
+        dim_fmt = 'IHBB'
+
+        if type(tensor_info) not in [bytes, bytearray]:
+            tensor_info = bytes(tensor_info)
+
+        tensor_fmt = f'{network_name_len}sI{max_num_tensors * dim_fmt}'
+        unpacked = struct.unpack(tensor_fmt, tensor_info)
+
+        network_name = unpacked[0].decode('utf-8').rstrip('\0')
+        num_tensors = unpacked[1]
+
+        index = 2
+        output_tensor_info = []
+        for _ in range(num_tensors):
+            tensor_data = unpacked[index:index + 4]
+            tensor_info = {
+                'tensor_data_num': tensor_data[0],
+                'size': tensor_data[1],
+                'ordinal': tensor_data[2],
+                'serialization_index': tensor_data[3]
+            }
+            output_tensor_info.append(tensor_info)
+            index += 4
+
+        return (network_name, output_tensor_info)
+
+    def get_input_tensor_info(self, tensor_info) -> tuple[str, int, int, int]:
+        """
+        Return the input tensor parameters in the form (network_name, width, height, num_channels)
+        """
+
+        network_name_len = 64
+        tensor_fmt = f'{network_name_len}sIII'
+
+        if type(tensor_info) not in [bytes, bytearray]:
+            tensor_info = bytes(tensor_info)
+
+        network_name, width, height, num_channels = struct.unpack(tensor_fmt, tensor_info)
+        network_name = network_name.decode('utf-8').rstrip('\0')
+
+        return (network_name, width, height, num_channels)
+
+
     def __set_network_firmware(self, network_filename: str):
         """
         Provides a firmware fpk file to upload to the IMX500. This must be called before Picamera2 is instantiation.
@@ -153,6 +201,8 @@ class ivs:
         accessable by the user. This accessable symlink needs to point to the network fpk file that will eventually
         be pushed into the IMX500 by the kernel driver.
         """
+
+        network_firmware_symlink = "/lib/firmware/imx500_network.fpk"
 
         if not os.path.isfile(network_filename):
             raise RuntimeError("Firmware file " + network_filename + " does not exist.")
