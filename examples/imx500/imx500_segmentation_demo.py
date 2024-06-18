@@ -12,6 +12,8 @@ COLOURS = "colours.txt"
 
 last_masks = {}
 
+# This must be called before instantiation of Picamera2
+imx500 = IVS.ivs.from_network_file(os.path.abspath("networks/imx500_network_deeplabv3plus.fpk"))
 
 def create_and_draw_masks(request):
     """Create masks from the output tensor and draw them on the main output image."""
@@ -71,37 +73,31 @@ def input_tensor_image(input_tensor, input_tensor_size):
     return (np.transpose(r2, (1, 2, 0)) + 128).clip(0, 255).astype(np.uint8)
 
 
-# This must be called before instantiation of Picamera2
-IVS.set_network_firmware(os.path.abspath("networks/imx500_network_deeplabv3plus.fpk"))
-
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={"FrameRate": 30})
 picam2.start(config, show_preview=True)
 
 for _ in range(10):
     try:
-        input_tensor_info = picam2.capture_metadata()["Imx500InputTensorInfo"]
-        network_name, width, height, num_channels = struct.unpack(
-            "64sIII", bytes(input_tensor_info)
-        )
-        network_name = network_name.decode("utf-8").rstrip("\x00")
+        t = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
         break
     except KeyError:
         pass
 
 for _ in range(10):
     try:
-        output_tensor_info = picam2.capture_metadata()["Imx500OutputTensorInfo"]
-        network_name, *tensor_data_num, num_tensors = struct.unpack(
-            "64s16II", bytes(output_tensor_info)
-        )
-        network_name = network_name.decode("utf-8").rstrip("\x00")
-        tensor_data_num = tensor_data_num[:num_tensors]
+        t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        network_name, output_tensor_info = imx500.get_output_tensor_info(t)
+        tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info]
         break
     except KeyError:
         pass
 
 INPUT_TENSOR_SIZE = (height, width)
+
+# Will not be needed once the input tensor is embedded in the network fpk
+imx500.config['input_tensor_size'] = (width, height)
 
 picam2.pre_callback = create_and_draw_masks
 
@@ -112,9 +108,7 @@ while True:
         if INPUT_TENSOR_SIZE != (0, 0):
             cv2.imshow(
                 "Input Tensor",
-                IVS.input_tensor_image(
-                    input_tensor, INPUT_TENSOR_SIZE, (384, 384, 384), (0, 0, 0)
-                ),
+                imx500.input_tensor_image(input_tensor)
             )
             cv2.resizeWindow("Input Tensor", *INPUT_TENSOR_SIZE)
     except KeyError:

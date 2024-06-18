@@ -45,6 +45,8 @@ class ivs:
         if 'network_file' in self.config:
             self.__set_network_firmware(os.path.abspath(self.config['network_file']))
 
+        self.set_inference_roi_abs((0, 0, 4056, 3040))
+
     @classmethod
     def from_network_file(ivs, network_file: str):
         return ivs(network_file=network_file)
