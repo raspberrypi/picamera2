@@ -59,6 +59,7 @@ def parse_and_draw_detections(request):
     parse_detections(request)
     draw_detections(request)
 
+
 def parse_detections(request, stream="main"):
     """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
     output_tensor = request.get_metadata().get("Imx500OutputTensor")

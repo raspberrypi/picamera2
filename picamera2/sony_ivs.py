@@ -190,9 +190,18 @@ class ivs:
 
         network_name, width, height, num_channels = struct.unpack(tensor_fmt, tensor_info)
         network_name = network_name.decode('utf-8').rstrip('\0')
-
         return (network_name, width, height, num_channels)
 
+    def get_kpi_info(self, kpi_info) -> tuple[float, float]:
+        """
+        Return the KPI parameters in the form (dnn_runtime, dsp_runtime)
+        """
+
+        if type(kpi_info) not in [bytes, bytearray]:
+            kpi_info = bytes(kpi_info)
+
+        dnn_runtime, dsp_runtime = struct.unpack('II', kpi_info)
+        return (dnn_runtime / 1000, dsp_runtime / 1000)
 
     def __set_network_firmware(self, network_filename: str):
         """
