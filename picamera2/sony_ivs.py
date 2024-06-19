@@ -122,8 +122,6 @@ class ivs:
         if self.device_fd == 0:
             return
 
-        self.__cfg['roi'] = roi
-
         r = (ctypes.c_uint32 * 4)()
         r[0] = roi[0]
         r[1] = roi[1]
@@ -138,7 +136,12 @@ class ivs:
         ctrl = v4l2_ext_controls()
         ctrl.count = 1
         ctrl.controls = c
-        fcntl.ioctl(self.device_fd, VIDIOC_S_EXT_CTRLS, ctrl)
+
+        try:
+            fcntl.ioctl(self.device_fd, VIDIOC_S_EXT_CTRLS, ctrl)
+            self.__cfg['roi'] = roi
+        except OSError as err:
+            print('IVS: Unable to set ROI control in the device driver')
 
     def set_inference_aspect_ratio(self, aspect_ratio: tuple, full_sensor_resolution: tuple):
         """
