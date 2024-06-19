@@ -9,17 +9,22 @@ from libcamera import Rectangle, Size
 from v4l2 import *
 
 class ivs:
-    def __init__(self, config_file: str = '', network_file: str = ''):
+    def __init__(self, config_file: str = '', network_file: str = '', camera_id: str = ''):
 
         self.device_fd = 0
         self.__cfg = {}
 
         for i in range(5):
-            test_dir = f'/sys/class/video4linux/v4l-subdev{i}/device/driver/module'
-            if os.path.exists(test_dir) and os.path.islink(test_dir):
-                if 'imx500' in os.readlink(test_dir):
+            test_dir = f'/sys/class/video4linux/v4l-subdev{i}/device'
+            module_dir = f'{test_dir}/driver/module'
+            id_dir = f'{test_dir}/of_node'
+            if os.path.exists(module_dir) and os.path.islink(module_dir) and 'imx500' in os.readlink(module_dir):
+                if camera_id == '' or (os.path.islink(id_dir) and camera_id in os.readlink(id_dir)):
                     self.device_fd = open(f'/dev/v4l-subdev{i}', 'rb+', buffering=0)
                     break
+
+        if self.device_fd == 0:
+            print("IVS: Requested camera dev-node not found, functionality will be limited")
 
         if config_file:
             with open(config_file) as f:
@@ -48,8 +53,8 @@ class ivs:
         self.set_inference_roi_abs((0, 0, 4056, 3040))
 
     @classmethod
-    def from_network_file(ivs, network_file: str):
-        return ivs(network_file=network_file)
+    def from_network_file(ivs, network_file: str, camera_id: str = ''):
+        return ivs(network_file=network_file, camera_id=camera_id)
 
     def __del__(self):
 
