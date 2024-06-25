@@ -33,5 +33,5 @@ setup(
     packages=['picamera2', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews', 'picamera2.allocators'],
     python_requires='>=3.9',
     licence='BSD 2-Clause License',
-    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3', 'python-prctl', 'av'],
+    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3', 'python-prctl', 'av', 'python-libarchive'],
     extras_require={"gui": ['pyopengl', 'PyQt5']})

@@ -1,10 +1,12 @@
 import ctypes
 import fcntl
+import io
 import json
 import numpy as np
 import os
 import struct
 
+from libarchive import _libarchive, BLOCK_SIZE
 from libcamera import Rectangle, Size
 from v4l2 import *
 
@@ -72,6 +74,7 @@ class ivs:
 
         if 'network_file' in self.config:
             self.__set_network_firmware(os.path.abspath(self.config['network_file']))
+            self.__ni_from_network(os.path.abspath(self.config['network_file']))
 
         self.set_inference_roi_abs((0, 0, 4056, 3040))
 
@@ -263,3 +266,85 @@ class ivs:
         print('\n------------------------------------------------------------------------------------------------------------------\n'
               'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
               '\n------------------------------------------------------------------------------------------------------------------\n')
+
+    def __ni_from_network(self, network_filename: str):
+        """
+        Extracts 'network_info.txt' from CPIO-archive appended to the network fpk.
+        """
+        with open(network_filename, 'rb') as fp:
+            fw = memoryview(fp.read())
+
+        # Iterate through network firmware discarding blocks
+        cpio_offset = 0
+        while True:
+            # Parse header (+ current block size)
+            (magic, size) = struct.unpack('>4sI', fw[:8])
+            if not magic == b'9464':
+                break
+            fw = fw[size + 60:]
+            # Ensure footer is as expected
+            (magic,) = struct.unpack('4s', fw[:4])
+            if not magic == b'3695':
+                raise RuntimeError("No matching footer found in firmware file " + network_filename)
+            fw = fw[36:]
+            cpio_offset += size + 96
+
+        cpio_fd = os.open(network_filename, os.O_RDONLY)
+        os.lseek(cpio_fd, cpio_offset, os.SEEK_SET)
+
+        a = _libarchive.archive_read_new()
+        _libarchive.archive_read_support_filter_all(a)
+        _libarchive.archive_read_support_format_all(a)
+        _libarchive.archive_read_open_fd(a, cpio_fd, BLOCK_SIZE)
+
+        while True:
+            e = _libarchive.archive_entry_new()
+            try:
+                r = _libarchive.archive_read_next_header2(a, e)
+                if r != _libarchive.ARCHIVE_OK:
+                    break
+                if 'network_info.txt' != _libarchive.archive_entry_pathname(e):
+                    continue
+                l = _libarchive.archive_entry_size(e)
+                self.__cfg['network_info_raw'] = _libarchive.archive_read_data_into_str(a, l)
+            finally:
+                _libarchive.archive_entry_free(e)
+
+        _libarchive.archive_read_close(a)
+        _libarchive.archive_read_free(a)
+
+        os.close(cpio_fd)
+
+        if 'network_info_raw' not in self.__cfg:
+            return
+
+        res = {}
+        buf = io.StringIO(self.__cfg['network_info_raw'].decode("ascii"))
+        for line in buf:
+            key, value = line.strip().split('=')
+            if key == 'networkID':
+                nid: int = 0
+                for idx, x in enumerate(value):
+                    nid |= (ord(x) - ord('0')) << (20 - idx * 4)
+                res[key] = nid
+            if key == 'apParamSize':
+                res[key] = int(value)
+                #res['dnnHeaderSize'] = 12 + (((res[key] + 15) // 16) * 16)
+            if key == 'networkNum':
+                res[key] = int(value)
+
+        res['network'] = {}
+        networks = self.__cfg['network_info_raw'].decode("ascii").split('networkOrdinal=')[1:]
+        for nw in networks:
+            buf = io.StringIO(nw)
+            nw_idx = int(buf.readline())
+            nw_properties = {}
+            for line in buf:
+                key, value = line.strip().split('=')
+                nw_properties[key] = value
+            res['network'][nw_idx] = nw_properties
+
+        if len(res['network']) != res['networkNum']:
+            raise RuntimeError("Insufficient networkNum settings in network_info.txt")
+
+        self.__cfg['network_info'] = res
