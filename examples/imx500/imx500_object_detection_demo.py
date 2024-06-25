@@ -4,7 +4,6 @@ import struct
 
 import cv2
 import numpy as np
-from libcamera import Rectangle, Size
 
 import picamera2.sony_ivs as IVS
 from picamera2 import MappedArray, Picamera2
@@ -55,6 +54,7 @@ class Detection:
 
 
 def parse_and_draw_detections(request):
+    global frame
     """Analyse the detected objects in the output tensor and draw them on the main output image."""
     parse_detections(request)
     draw_detections(request)
@@ -123,8 +123,8 @@ for _ in range(10):
 for _ in range(10):
     try:
         t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
-        network_name, output_tensor_info = imx500.get_output_tensor_info(t)
-        tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info]
+        output_tensor_info = imx500.get_output_tensor_info(t)
+        tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info['info']]
         break
     except KeyError:
         pass

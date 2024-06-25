@@ -89,7 +89,7 @@ for _ in range(10):
     try:
         t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
         network_name, output_tensor_info = imx500.get_output_tensor_info(t)
-        tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info]
+        tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info['info']]
         break
     except KeyError:
         pass

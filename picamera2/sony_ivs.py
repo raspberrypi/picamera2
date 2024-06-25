@@ -8,6 +8,29 @@ import struct
 from libcamera import Rectangle, Size
 from v4l2 import *
 
+network_name_len = 64
+max_num_tensors = 8
+max_num_dimensions = 8
+
+
+# struct OutputTensorInfo from libcamera
+class OutputTensorInfo(ctypes.LittleEndianStructure):
+    _fields_ = [
+        ('tensor_data_num', ctypes.c_uint32),
+        ('num_dimensions', ctypes.c_uint32),
+        ('size', ctypes.c_uint16 * max_num_dimensions),
+    ]
+
+
+# struct IMX500OutputTensorInfoExported from libcamera
+class IMX500OutputTensorInfoExported(ctypes.LittleEndianStructure):
+    _fields_ = [
+        ('network_name', ctypes.c_char * network_name_len),
+        ('num_tensors', ctypes.c_uint32),
+        ('info', OutputTensorInfo * max_num_tensors)
+    ]
+
+
 class ivs:
     def __init__(self, config_file: str = '', network_file: str = '', camera_id: str = ''):
 
@@ -24,7 +47,7 @@ class ivs:
                     break
 
         if self.device_fd == 0:
-            print("IVS: Requested camera dev-node not found, functionality will be limited")
+            print('IVS: Requested camera dev-node not found, functionality will be limited')
 
         if config_file:
             with open(config_file) as f:
@@ -154,38 +177,37 @@ class ivs:
         r = r.centered_to(Rectangle(s).center).enclosed_in(Rectangle(s))
         self.set_inference_roi_abs((r.x, r.y, r.width, r.height))
 
-    def get_output_tensor_info(self, tensor_info) -> tuple[str, list[dict]]:
+    def get_output_tensor_info(self, tensor_info) -> dict:
         """
         Return the network string along with a list of output tensor parameters.
         """
 
-        network_name_len = 64
-        max_num_tensors = 8
-        dim_fmt = 'IHBB'
-
         if type(tensor_info) not in [bytes, bytearray]:
             tensor_info = bytes(tensor_info)
 
-        tensor_fmt = f'{network_name_len}sI{max_num_tensors * dim_fmt}'
-        unpacked = struct.unpack(tensor_fmt, tensor_info)
+        size = ctypes.sizeof(IMX500OutputTensorInfoExported)
+        if len(tensor_info) != size:
+            raise ValueError(f'tensor info length {len(tensor_info)} does not match expected size {size}')
 
-        network_name = unpacked[0].decode('utf-8').rstrip('\0')
-        num_tensors = unpacked[1]
+        # Create an instance of the struct and copy data into it
+        parsed = IMX500OutputTensorInfoExported()
+        ctypes.memmove(ctypes.addressof(parsed), tensor_info, size)
 
-        index = 2
-        output_tensor_info = []
-        for _ in range(num_tensors):
-            tensor_data = unpacked[index:index + 4]
-            tensor_info = {
-                'tensor_data_num': tensor_data[0],
-                'size': tensor_data[1],
-                'ordinal': tensor_data[2],
-                'serialization_index': tensor_data[3]
+        result = {
+            'network_name': parsed.network_name.decode('utf-8').strip('\x00'),
+            'num_tensors': parsed.num_tensors,
+            'info': []
+        }
+
+        for t in parsed.info[0:parsed.num_tensors]:
+            info = {
+                'tensor_data_num': t.tensor_data_num,
+                'num_dimensions': t.num_dimensions,
+                'size': list(t.size)[0:t.num_dimensions],
             }
-            output_tensor_info.append(tensor_info)
-            index += 4
+            result["info"].append(info)
 
-        return (network_name, output_tensor_info)
+        return result
 
     def get_input_tensor_info(self, tensor_info) -> tuple[str, int, int, int]:
         """
@@ -224,12 +246,12 @@ class ivs:
         network_firmware_symlink = "/lib/firmware/imx500_network.fpk"
 
         if not os.path.isfile(network_filename):
-            raise RuntimeError("Firmware file " + network_filename + " does not exist.")
+            raise RuntimeError('Firmware file ' + network_filename + ' does not exist.')
 
         # Check if network_firmware_symlink points to another symlink.
         if not os.path.islink(network_firmware_symlink) or not os.path.islink(os.readlink(network_firmware_symlink)):
-            print(f"{network_firmware_symlink} is not a symlink, or its target is not a symlink, "
-                  "ignoring custom network firmware file.")
+            print(f'{network_firmware_symlink} is not a symlink, or its target is not a symlink, '
+                  'ignoring custom network firmware file.')
             return
 
         # Update the user accessable symlink to the user requested firmware if needed.
@@ -238,6 +260,6 @@ class ivs:
             os.remove(local_symlink)
             os.symlink(network_filename, local_symlink)
 
-        print("\n------------------------------------------------------------------------------------------------------------------\n"
-              "NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application."
-              "\n------------------------------------------------------------------------------------------------------------------\n")
+        print('\n------------------------------------------------------------------------------------------------------------------\n'
+              'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
+              '\n------------------------------------------------------------------------------------------------------------------\n')
