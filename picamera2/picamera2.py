@@ -56,12 +56,18 @@ class CameraManager:
         self.running = False
         self.cameras = {}
         self._lock = threading.Lock()
+        self._cms = None
 
     def setup(self):
-        self.cms = libcamera.CameraManager.singleton()
         self.thread = threading.Thread(target=self.listen, daemon=True)
         self.running = True
         self.thread.start()
+
+    @property
+    def cms(self):
+        if self._cms is None:
+            self._cms = libcamera.CameraManager.singleton()
+        return self._cms
 
     def add(self, index, camera):
         with self._lock:
@@ -78,7 +84,7 @@ class CameraManager:
                 flag = True
         if flag:
             self.thread.join()
-            self.cms = None
+            self._cms = None
 
     def listen(self):
         sel = selectors.DefaultSelector()
@@ -91,7 +97,7 @@ class CameraManager:
                 callback()
 
         sel.unregister(self.cms.event_fd)
-        self.cms = None
+        self._cms = None
 
     def handle_request(self, flushid=None):
         """Handle requests
@@ -209,7 +215,7 @@ class Picamera2:
             info["Id"] = cam.id
             info["Num"] = num
             return info
-        cameras = [describe_camera(cam, i) for i, cam in enumerate(libcamera.CameraManager.singleton().cameras)]
+        cameras = [describe_camera(cam, i) for i, cam in enumerate(Picamera2._cm.cms.cameras)]
         # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
         return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
 
