@@ -56,12 +56,18 @@ class CameraManager:
         self.running = False
         self.cameras = {}
         self._lock = threading.Lock()
+        self._cms = None
 
     def setup(self):
-        self.cms = libcamera.CameraManager.singleton()
         self.thread = threading.Thread(target=self.listen, daemon=True)
         self.running = True
         self.thread.start()
+
+    @property
+    def cms(self):
+        if self._cms is None:
+            self._cms = libcamera.CameraManager.singleton()
+        return self._cms
 
     def add(self, index, camera):
         with self._lock:
@@ -78,7 +84,7 @@ class CameraManager:
                 flag = True
         if flag:
             self.thread.join()
-            self.cms = None
+            self._cms = None
 
     def listen(self):
         sel = selectors.DefaultSelector()
@@ -91,7 +97,7 @@ class CameraManager:
                 callback()
 
         sel.unregister(self.cms.event_fd)
-        self.cms = None
+        self._cms = None
 
     def handle_request(self, flushid=None):
         """Handle requests
@@ -209,7 +215,7 @@ class Picamera2:
             info["Id"] = cam.id
             info["Num"] = num
             return info
-        cameras = [describe_camera(cam, i) for i, cam in enumerate(libcamera.CameraManager.singleton().cameras)]
+        cameras = [describe_camera(cam, i) for i, cam in enumerate(Picamera2._cm.cms.cameras)]
         # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
         return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
 
@@ -1165,6 +1171,20 @@ class Picamera2:
             self.start_preview(show_preview)
         self.start_()
 
+    def cancel_all_and_flush(self) -> None:
+        """
+        Clear the camera system queue of pending jobs and cancel them.
+
+        Depending on what was happening at the time, this may leave the camera system in
+        an indeterminate state. This function is really only intended for tidying up
+        after an operation has unexpectedly timed out (for example, the camera cable has
+        become dislodged) so that the camera can be closed.
+        """
+        with self.lock:
+            for job in self._job_list:
+                job.cancel()
+            self._job_list = []
+
     def stop_(self, request=None) -> None:
         """Stop the camera.
 
@@ -1303,9 +1323,18 @@ class Picamera2:
         When there are multiple items each will be processed on a separate
         trip round the event loop, meaning that a single operation could stop and restart the
         camera and the next operation would receive a request from after the restart.
+
+        The wait parameter should be one of:
+            True - wait as long as necessary for the operation to compelte
+            False - return immediately, giving the caller a "job" they can wait for
+            None - default, if a signal_function was given do not wait, otherwise wait as long as necessary
+            a number - wait for this number of seconds before raising a "timed out" error.
         """
         if wait is None:
             wait = signal_function is None
+        timeout = wait
+        if timeout is True:
+            timeout = None
         with self.lock:
             only_job = not self._job_list
             job = Job(functions, signal_function)
@@ -1317,7 +1346,7 @@ class Picamera2:
             # stop commands, for which no requests are needed).
             if only_job and (self.completed_requests or immediate):
                 self._run_process_requests()
-        return job.get_result() if wait else job
+        return job.get_result(timeout=timeout) if wait else job
 
     def set_frame_drops_(self, num_frames):
         """Only for use within the camera event loop before calling drop_frames_."""  # noqa
@@ -1478,9 +1507,9 @@ class Picamera2:
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
     @contextlib.contextmanager
-    def captured_request(self, flush=None):
+    def captured_request(self, wait=None, flush=None):
         """Capture a completed request using the context manager which guarantees its release."""
-        request = self.capture_request(flush=flush)
+        request = self.capture_request(wait=wait, flush=flush)
         try:
             yield request
         finally:
