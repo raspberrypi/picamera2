@@ -41,11 +41,9 @@ class Detection:
         # Scale the box to the output stream dimensions.
         isp_output_size = request.picam2.camera_configuration()[stream]["size"]
         sensor_output_size = request.picam2.camera_configuration()["raw"]["size"]
-        full_sensor_resolution = request.picam2.sensor_resolution
         scaler_crop = request.get_metadata()["ScalerCrop"]
         obj_scaled = imx500.convert_inference_coords(
             coords,
-            full_sensor_resolution,
             scaler_crop,
             isp_output_size,
             sensor_output_size,

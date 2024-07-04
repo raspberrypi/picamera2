@@ -91,8 +91,8 @@ class IMX500:
     def config(self) -> dict:
         return self.__cfg
 
-    def convert_inference_coords(self, coords: tuple, full_sensor_resolution: tuple, scaler_crop: tuple,
-                                 isp_output_size: tuple, sensor_output_size: tuple):
+    def convert_inference_coords(self, coords: tuple, scaler_crop: tuple, isp_output_size: tuple,
+                                 sensor_output_size: tuple, full_sensor_resolution: tuple = (4056, 3040)):
         """Convert relative inference coordinates into the output image coordinates space."""
 
         full_sensor_resolution = Rectangle(Size(*full_sensor_resolution))
@@ -112,8 +112,8 @@ class IMX500:
         )
 
         # Make sure the object is bound to the user requested ROI.
-        if 'roi' in self.config and self.config['roi'] != (0, 0, 0, 0):
-            obj = obj.bounded_to(Rectangle(*self.config['roi']))
+        if 'roi' in self.config and self.config['roi'] != Rectangle(0, 0, 0, 0):
+            obj = obj.bounded_to(self.config['roi'])
 
         obj_sensor = obj.scaled_by(sensor_output_size, Size(width, height))
         obj_bound = obj_sensor.bounded_to(sensor_crop)
@@ -137,7 +137,7 @@ class IMX500:
 
         return np.transpose(r1, (1, 2, 0)).astype(np.uint8)
 
-    def set_inference_roi_abs(self, roi: tuple):
+    def set_inference_roi_abs(self, roi: tuple, full_sensor_resolution: tuple = (4056, 3040)):
         """
         Specify an absolute region of interest in the form a (left, top, width, height) crop for the input inference
         image. The co-ordinates are based on the full sensor resolution.
@@ -148,11 +148,15 @@ class IMX500:
         if self.device_fd == 0:
             return
 
+        roi = Rectangle(*roi)
+        s = Size(full_sensor_resolution[0], full_sensor_resolution[1])
+        roi = roi.bounded_to(Rectangle(s))
+
         r = (ctypes.c_uint32 * 4)()
-        r[0] = roi[0]
-        r[1] = roi[1]
-        r[2] = roi[2]
-        r[3] = roi[3]
+        r[0] = roi.x
+        r[1] = roi.y
+        r[2] = roi.width
+        r[3] = roi.height
 
         c = (v4l2_ext_control * 1)()
         c[0].p_u32 = r
