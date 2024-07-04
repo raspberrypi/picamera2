@@ -33,7 +33,7 @@ class CnnOutputTensorInfoExported(ctypes.LittleEndianStructure):
     ]
 
 
-class ivs:
+class IMX500:
     def __init__(self, config_file: str = '', network_file: str = '', camera_id: str = ''):
 
         self.device_fd = 0

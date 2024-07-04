@@ -5,7 +5,7 @@ import struct
 import cv2
 import numpy as np
 
-import picamera2.sony_ivs as IVS
+from picamera2.imx500 import IMX500
 from picamera2 import MappedArray, Picamera2
 
 parser = argparse.ArgumentParser()
@@ -31,7 +31,7 @@ if args.ignore_dash_labels:
     LABELS = [l for l in LABELS if l and l != "-"]
 
 # This must be called before instantiation of Picamera2
-imx500 = IVS.ivs.from_network_file(os.path.abspath(MODEL))
+imx500 = IMX500.from_network_file(os.path.abspath(MODEL))
 
 class Detection:
     def __init__(self, coords, category, conf, request, stream="main"):

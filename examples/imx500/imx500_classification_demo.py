@@ -5,7 +5,7 @@ import struct
 import cv2
 import numpy as np
 
-import picamera2.sony_ivs as IVS
+from picamera2.imx500 import IMX500
 from picamera2 import MappedArray, Picamera2
 
 with open("labels.txt", "r") as f:
@@ -69,7 +69,7 @@ def draw_classification_results(request, stream="main"):
 
 
 # This must be called before instantiation of Picamera2
-imx500 = IVS.ivs.from_network_file(os.path.abspath(MODEL))
+imx500 = IMX500.from_network_file(os.path.abspath(MODEL))
 
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={"FrameRate": 30, "CnnEnableInputTensor": True})

@@ -4,7 +4,7 @@ import struct
 import cv2
 import numpy as np
 
-import picamera2.sony_ivs as IVS
+from picamera2.imx500 import IMX500
 from picamera2 import Picamera2
 
 normalSize = (640, 480)
@@ -13,7 +13,7 @@ COLOURS = "colours.txt"
 last_masks = {}
 
 # This must be called before instantiation of Picamera2
-imx500 = IVS.ivs.from_network_file(os.path.abspath("networks/imx500_network_deeplabv3plus.fpk"))
+imx500 = IMX500.from_network_file(os.path.abspath("networks/imx500_network_deeplabv3plus.fpk"))
 
 def create_and_draw_masks(request):
     """Create masks from the output tensor and draw them on the main output image."""

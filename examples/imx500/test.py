@@ -5,7 +5,7 @@ import struct
 import cv2
 import numpy as np
 
-import picamera2.sony_ivs as IVS
+from picamera2.imx500 import IMX500
 from picamera2 import MappedArray, Picamera2
 
 with open("labels.txt", "r") as f:
