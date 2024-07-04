@@ -120,7 +120,7 @@ height = 0
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        t = picam2.capture_metadata()["CnnInputTensorInfo"]
         network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
         break
     except KeyError:
@@ -128,13 +128,14 @@ for _ in range(10):
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        t = picam2.capture_metadata()["CnnOutputTensorInfo"]
         output_tensor_info = imx500.get_output_tensor_info(t)
         tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info['info']]
         break
     except KeyError:
         pass
 
+print("intput tensor size ", (width, height))
 INPUT_TENSOR_SIZE = (height, width)
 
 # Will not be needed once the input tensor is embedded in the network fpk
@@ -152,7 +153,7 @@ thread.start()
 while True:
     # The request gets released by handle_results
     request = picam2.capture_request()
-    output_tensor = request.get_metadata().get("Imx500OutputTensor")
+    output_tensor = request.get_metadata().get("CnnOutputTensor")
     scaler_crop = request.get_metadata().get("ScalerCrop")
     if output_tensor and scaler_crop:
         async_result = pool.apply_async(parse_detections, (output_tensor, scaler_crop))

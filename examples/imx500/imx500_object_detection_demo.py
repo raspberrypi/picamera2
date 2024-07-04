@@ -62,7 +62,7 @@ def parse_and_draw_detections(request):
 
 def parse_detections(request, stream="main"):
     """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
-    output_tensor = request.get_metadata().get("Imx500OutputTensor")
+    output_tensor = request.get_metadata().get("CnnOutputTensor")
     if output_tensor:
         output_tensor_split = np.array_split(
             output_tensor, np.cumsum(tensor_data_num[:-1])
@@ -114,7 +114,7 @@ height = 0
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        t = picam2.capture_metadata()["CnnInputTensorInfo"]
         network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
         break
     except KeyError:
@@ -122,7 +122,7 @@ for _ in range(10):
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        t = picam2.capture_metadata()["CnnOutputTensorInfo"]
         output_tensor_info = imx500.get_output_tensor_info(t)
         tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info['info']]
         break
@@ -141,7 +141,7 @@ cv2.startWindowThread()
 
 while True:
     try:
-        input_tensor = picam2.capture_metadata()["Imx500InputTensor"]
+        input_tensor = picam2.capture_metadata()["CnnInputTensor"]
         if INPUT_TENSOR_SIZE != (0, 0):
             cv2.imshow(
                 "Input Tensor",

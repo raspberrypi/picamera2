@@ -36,7 +36,7 @@ def parse_and_draw_classification_results(request):
 
 def parse_classification_results(request, stream="main"):
     """Parse the output tensor into a top 3 classification results."""
-    output_tensor = request.get_metadata().get("Imx500OutputTensor")
+    output_tensor = request.get_metadata().get("CnnOutputTensor")
     if output_tensor:
         results = np.array(output_tensor)
         top_indices = np.argpartition(-results, 3)[:3]
@@ -72,12 +72,12 @@ def draw_classification_results(request, stream="main"):
 imx500 = IVS.ivs.from_network_file(os.path.abspath(MODEL))
 
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(controls={"FrameRate": 30})
+config = picam2.create_preview_configuration(controls={"FrameRate": 30, "CnnEnableInputTensor": True})
 picam2.start(config, show_preview=True)
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        t = picam2.capture_metadata()["CnnInputTensorInfo"]
         network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
         break
     except KeyError:
@@ -85,7 +85,7 @@ for _ in range(10):
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        t = picam2.capture_metadata()["CnnOutputTensorInfo"]
         output_tensor_info = imx500.get_output_tensor_info(t)
         tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info['info']]
         break
@@ -104,7 +104,9 @@ picam2.pre_callback = parse_and_draw_classification_results
 cv2.startWindowThread()
 while True:
     try:
-        input_tensor = picam2.capture_metadata()["Imx500InputTensor"]
+        input_tensor = picam2.capture_metadata()["CnnInputTensor"]
+        if input_tensor is None:
+            print("Input tensor missing")
         if INPUT_TENSOR_SIZE != (0, 0):
             cv2.imshow(
                 "Input Tensor",

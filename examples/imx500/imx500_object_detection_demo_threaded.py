@@ -55,7 +55,7 @@ class Detection:
 
 def parse_detections(metadata):
     """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
-    output_tensor = metadata.get("Imx500OutputTensor")
+    output_tensor = metadata.get("CnnOutputTensor")
     if output_tensor:
         output_tensor_split = np.array_split(
             output_tensor, np.cumsum(tensor_data_num[:-1])
@@ -108,7 +108,7 @@ height = 0
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        t = picam2.capture_metadata()["CnnInputTensorInfo"]
         network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
         break
     except KeyError:
@@ -116,7 +116,7 @@ for _ in range(10):
 
 for _ in range(10):
     try:
-        t = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        t = picam2.capture_metadata()["CnnOutputTensorInfo"]
         output_tensor_info = imx500.get_output_tensor_info(t)
         tensor_data_num = [i['tensor_data_num'] for i in output_tensor_info['info']]
         break
@@ -149,9 +149,9 @@ thread.start()
 while True:
     try:
         metadata = picam2.capture_metadata()
-        if queue.empty() and metadata.get("Imx500OutputTensor"):
+        if queue.empty() and metadata.get("CnnOutputTensor"):
             queue.put(metadata)
-        input_tensor = metadata["Imx500InputTensor"]
+        input_tensor = metadata["CnnInputTensor"]
         if INPUT_TENSOR_SIZE != (0, 0):
             cv2.imshow(
                 "Input Tensor",

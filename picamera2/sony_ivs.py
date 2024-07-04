@@ -24,8 +24,8 @@ class OutputTensorInfo(ctypes.LittleEndianStructure):
     ]
 
 
-# struct IMX500OutputTensorInfoExported from libcamera
-class IMX500OutputTensorInfoExported(ctypes.LittleEndianStructure):
+# struct CnnOutputTensorInfoExported from libcamera
+class CnnOutputTensorInfoExported(ctypes.LittleEndianStructure):
     _fields_ = [
         ('network_name', ctypes.c_char * network_name_len),
         ('num_tensors', ctypes.c_uint32),
@@ -188,12 +188,12 @@ class ivs:
         if type(tensor_info) not in [bytes, bytearray]:
             tensor_info = bytes(tensor_info)
 
-        size = ctypes.sizeof(IMX500OutputTensorInfoExported)
+        size = ctypes.sizeof(CnnOutputTensorInfoExported)
         if len(tensor_info) != size:
             raise ValueError(f'tensor info length {len(tensor_info)} does not match expected size {size}')
 
         # Create an instance of the struct and copy data into it
-        parsed = IMX500OutputTensorInfoExported()
+        parsed = CnnOutputTensorInfoExported()
         ctypes.memmove(ctypes.addressof(parsed), tensor_info, size)
 
         result = {

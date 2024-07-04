@@ -34,7 +34,7 @@ def parse_and_draw_classification_results(request):
 
 def parse_classification_results(request, stream="main"):
     """Parse the output tensor into a top 3 classification results."""
-    output_tensor = request.get_metadata().get("Imx500OutputTensor")
+    output_tensor = request.get_metadata().get("CnnOutputTensor")
     if output_tensor:
         results = np.array(output_tensor)
         top_indices = np.argpartition(-results, 3)[:3]
@@ -82,7 +82,7 @@ picam2.start(show_preview=True)
 
 for _ in range(10):
     try:
-        input_tensor_info = picam2.capture_metadata()["Imx500InputTensorInfo"]
+        input_tensor_info = picam2.capture_metadata()["CnnInputTensorInfo"]
         network_name, width, height, num_channels = struct.unpack(
             "64sIII", bytes(input_tensor_info)
         )
@@ -93,7 +93,7 @@ for _ in range(10):
 
 for _ in range(10):
     try:
-        output_tensor_info = picam2.capture_metadata()["Imx500OutputTensorInfo"]
+        output_tensor_info = picam2.capture_metadata()["CnnOutputTensorInfo"]
         network_name, *tensor_data_num, num_tensors = struct.unpack(
             "64s16II", bytes(output_tensor_info)
         )
@@ -110,7 +110,7 @@ picam2.pre_callback = parse_and_draw_classification_results
 cv2.startWindowThread()
 while True:
     try:
-        input_tensor = picam2.capture_metadata()["Imx500InputTensor"]
+        input_tensor = picam2.capture_metadata()["CnnInputTensor"]
         if imx500.config['input_tensor_size'] != (0, 0):
             cv2.imshow("Input Tensor", imx500.input_tensor_image(input_tensor))
             cv2.resizeWindow("Input Tensor", *imx500.config['input_tensor_size'])
