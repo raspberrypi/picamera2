@@ -63,10 +63,6 @@ class IMX500:
         if 'div_shift' not in self.__cfg:
             self.__cfg['input_tensor']['div_shift'] = [0, 0, 0, 0]
 
-        if 'network_file' in self.config:
-            self.__set_network_firmware(os.path.abspath(self.config['network_file']))
-            self.__ni_from_network(os.path.abspath(self.config['network_file']))
-
         self.set_inference_roi_abs((0, 0, 4056, 3040))
 
 
