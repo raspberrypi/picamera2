@@ -13,7 +13,7 @@ COLOURS = "colours.txt"
 last_masks = {}
 
 # This must be called before instantiation of Picamera2
-imx500 = IMX500.from_network_file(os.path.abspath("networks/imx500_network_deeplabv3plus.fpk"))
+imx500 = IMX500.from_network_file(os.path.abspath("networks/imx500_network_deeplabv3plus.rpk"))
 
 def create_and_draw_masks(request):
     """Create masks from the output tensor and draw them on the main output image."""
@@ -96,7 +96,7 @@ for _ in range(10):
 
 INPUT_TENSOR_SIZE = (height, width)
 
-# Will not be needed once the input tensor is embedded in the network fpk
+# Will not be needed once the input tensor is embedded in the network rpk
 imx500.config['input_tensor_size'] = (width, height)
 
 picam2.pre_callback = create_and_draw_masks

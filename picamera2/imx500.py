@@ -244,13 +244,13 @@ class IMX500:
 
     def __set_network_firmware(self, network_filename: str):
         """
-        Provides a firmware fpk file to upload to the IMX500. This must be called before Picamera2 is instantiation.
-        network_firmware_symlink points to another symlink (e.g. /home/pi/imx500_network_firmware/imx500_network.fpk)
-        accessable by the user. This accessable symlink needs to point to the network fpk file that will eventually
+        Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is instantiation.
+        network_firmware_symlink points to another symlink (e.g. /home/pi/imx500_network_firmware/imx500_network.rpk)
+        accessable by the user. This accessable symlink needs to point to the network rpk file that will eventually
         be pushed into the IMX500 by the kernel driver.
         """
 
-        network_firmware_symlink = "/lib/firmware/imx500_network.fpk"
+        network_firmware_symlink = "/lib/firmware/imx500_network.rpk"
 
         if not os.path.isfile(network_filename):
             raise RuntimeError('Firmware file ' + network_filename + ' does not exist.')
@@ -273,7 +273,7 @@ class IMX500:
 
     def __ni_from_network(self, network_filename: str):
         """
-        Extracts 'network_info.txt' from CPIO-archive appended to the network fpk.
+        Extracts 'network_info.txt' from CPIO-archive appended to the network rpk.
         """
         with open(network_filename, 'rb') as fp:
             fw = memoryview(fp.read())

@@ -123,7 +123,7 @@ for _ in range(10):
 
 INPUT_TENSOR_SIZE = (height, width)
 
-# Will not be needed once the input tensor is embedded in the network fpk
+# Will not be needed once the input tensor is embedded in the network rpk
 imx500.config['input_tensor_size'] = (width, height)
 imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'], picam2.sensor_resolution)
 
