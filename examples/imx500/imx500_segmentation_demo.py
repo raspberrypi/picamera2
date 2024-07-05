@@ -13,7 +13,10 @@ COLOURS = "colours.txt"
 last_masks = {}
 
 # This must be called before instantiation of Picamera2
-imx500 = IMX500.from_network_file(os.path.abspath("networks/imx500_network_deeplabv3plus.rpk"))
+imx500 = IMX500(os.path.abspath("networks/imx500_network_deeplabv3plus.rpk"))
+imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'])
+
+input_tensor_size = (imx500.config['input_tensor']['height'], imx500.config['input_tensor']['width'])
 
 def create_and_draw_masks(request):
     """Create masks from the output tensor and draw them on the main output image."""
@@ -29,7 +32,7 @@ def create_masks(request):
     output_tensor = request.get_metadata().get("CnnOutputTensor")
     if output_tensor:
         mask = np.swapaxes(
-            np.array(output_tensor).astype(np.uint8).reshape(INPUT_TENSOR_SIZE),
+            np.array(output_tensor).astype(np.uint8).reshape(input_tensor_size),
             0,
             1,
         )
@@ -38,7 +41,7 @@ def create_masks(request):
         for i in found_indices:
             if i == 0:
                 continue
-            output_shape = [*INPUT_TENSOR_SIZE, 4]
+            output_shape = [*input_tensor_size, 4]
             colour = [(0, 0, 0, 0), colours[i]]
             overlay = (mask == i).astype(np.uint8)
             overlay = np.array(colour)[overlay].reshape(output_shape).astype(np.uint8)
@@ -62,28 +65,9 @@ def draw_masks(request):
         picam2.set_overlay(overlay)
 
 
-def input_tensor_image(input_tensor, input_tensor_size):
-    """Convert input tensor in planar format to interleaved RGB."""
-    r1 = (
-        np.array(input_tensor, dtype=np.uint8)
-        .view(np.int8)
-        .reshape((3,) + input_tensor_size)
-    )
-    r2 = r1[(2, 1, 0), :, :]
-    return (np.transpose(r2, (1, 2, 0)) + 128).clip(0, 255).astype(np.uint8)
-
-
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={"FrameRate": 30, "CnnEnableInputTensor": True})
 picam2.start(config, show_preview=True)
-
-for _ in range(10):
-    try:
-        t = picam2.capture_metadata()["CnnInputTensorInfo"]
-        network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
-        break
-    except KeyError:
-        pass
 
 for _ in range(10):
     try:
@@ -94,22 +78,17 @@ for _ in range(10):
     except KeyError:
         pass
 
-INPUT_TENSOR_SIZE = (height, width)
-
-# Will not be needed once the input tensor is embedded in the network rpk
-imx500.config['input_tensor_size'] = (width, height)
-
 picam2.pre_callback = create_and_draw_masks
-
+print(imx500.config)
 cv2.startWindowThread()
 while True:
     try:
         input_tensor = picam2.capture_metadata()["CnnInputTensor"]
-        if INPUT_TENSOR_SIZE != (0, 0):
+        if input_tensor_size != (0, 0):
             cv2.imshow(
                 "Input Tensor",
                 imx500.input_tensor_image(input_tensor)
             )
-            cv2.resizeWindow("Input Tensor", *INPUT_TENSOR_SIZE)
+            cv2.resizeWindow("Input Tensor", input_tensor_size)
     except KeyError:
         pass

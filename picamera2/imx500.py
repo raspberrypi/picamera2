@@ -1,7 +1,6 @@
 import ctypes
 import fcntl
 import io
-import json
 import numpy as np
 import os
 import struct
@@ -34,10 +33,10 @@ class CnnOutputTensorInfoExported(ctypes.LittleEndianStructure):
 
 
 class IMX500:
-    def __init__(self, config_file: str = '', network_file: str = '', camera_id: str = ''):
+    def __init__(self, network_file: str, camera_id: str = ''):
 
         self.device_fd = 0
-        self.__cfg = {}
+        self.__cfg = {'network_file': network_file, 'input_tensor': {}}
 
         for i in range(5):
             test_dir = f'/sys/class/video4linux/v4l-subdev{i}/device'
@@ -51,17 +50,9 @@ class IMX500:
         if self.device_fd == 0:
             print('IVS: Requested camera dev-node not found, functionality will be limited')
 
-        if config_file:
-            with open(config_file) as f:
-                self.__cfg = json.load(f)
-        elif network_file and 'network_file' not in self.config:
-            self.__cfg['network_file'] = network_file
-
-        if 'input_tensor' in self.__cfg:
-            self.__cfg['input_tensor_size'] = (self.config['input_tensor']['width'],
-                                               self.config['input_tensor']['height'])
-        else:
-            self.__cfg['input_tensor'] = {}
+        if self.config['network_file'] != '':
+            self.__set_network_firmware(os.path.abspath(self.config['network_file']))
+            self.__ni_from_network(os.path.abspath(self.config['network_file']))
 
         if 'norm_val' not in self.__cfg['input_tensor']:
             self.__cfg['input_tensor']['norm_val'] = [384, 384, 384]
@@ -78,9 +69,6 @@ class IMX500:
 
         self.set_inference_roi_abs((0, 0, 4056, 3040))
 
-    @classmethod
-    def from_network_file(ivs, network_file: str, camera_id: str = ''):
-        return ivs(network_file=network_file, camera_id=camera_id)
 
     def __del__(self):
 
@@ -173,7 +161,7 @@ class IMX500:
         except OSError as err:
             print('IVS: Unable to set ROI control in the device driver')
 
-    def set_inference_aspect_ratio(self, aspect_ratio: tuple, full_sensor_resolution: tuple):
+    def set_inference_aspect_ratio(self, aspect_ratio: tuple, full_sensor_resolution: tuple = (4056, 3040)):
         """
         Specify a pixel aspect ratio needed for the input inference image relative to the full sensor resolution.
         This simply calculates an ROI based on a centre crop and calls set_inference_roi_abs().
@@ -290,8 +278,8 @@ class IMX500:
             (magic,) = struct.unpack('4s', fw[:4])
             if not magic == b'3695':
                 raise RuntimeError("No matching footer found in firmware file " + network_filename)
-            fw = fw[36:]
-            cpio_offset += size + 96
+            fw = fw[4:]
+            cpio_offset += size + 64
 
         cpio_fd = os.open(network_filename, os.O_RDONLY)
         os.lseek(cpio_fd, cpio_offset, os.SEEK_SET)
@@ -333,7 +321,6 @@ class IMX500:
                 res[key] = nid
             if key == 'apParamSize':
                 res[key] = int(value)
-                #res['dnnHeaderSize'] = 12 + (((res[key] + 15) // 16) * 16)
             if key == 'networkNum':
                 res[key] = int(value)
 
@@ -352,3 +339,9 @@ class IMX500:
             raise RuntimeError("Insufficient networkNum settings in network_info.txt")
 
         self.__cfg['network_info'] = res
+
+        # Extract some input tensor config params
+        self.__cfg['input_tensor']['width'] = int(res['network'][0]['inputTensorWidth'])
+        self.__cfg['input_tensor']['height'] = int(res['network'][0]['inputTensorHeight'])
+        self.__cfg['input_tensor_size'] = (self.config['input_tensor']['width'],
+                                           self.config['input_tensor']['height'])

@@ -69,7 +69,8 @@ def draw_classification_results(request, stream="main"):
 
 
 # This must be called before instantiation of Picamera2
-imx500 = IMX500.from_network_file(os.path.abspath(MODEL))
+imx500 = IMX500(os.path.abspath(MODEL))
+imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'])
 
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={"FrameRate": 30, "CnnEnableInputTensor": True})
@@ -92,12 +93,7 @@ for _ in range(10):
     except KeyError:
         pass
 
-INPUT_TENSOR_SIZE = (height, width)
 OUTPUT_TENSOR_SIZE = tensor_data_num[0]
-
-# Will not be needed once the input tensor is embedded in the network rpk
-imx500.config['input_tensor_size'] = (width, height)
-imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'], picam2.sensor_resolution)
 
 picam2.pre_callback = parse_and_draw_classification_results
 
@@ -107,11 +103,12 @@ while True:
         input_tensor = picam2.capture_metadata()["CnnInputTensor"]
         if input_tensor is None:
             print("Input tensor missing")
-        if INPUT_TENSOR_SIZE != (0, 0):
+        if imx500.config['input_tensor_size'] != (0, 0):
             cv2.imshow(
                 "Input Tensor",
                 imx500.input_tensor_image(input_tensor)
             )
-            cv2.resizeWindow("Input Tensor", *INPUT_TENSOR_SIZE)
+            cv2.resizeWindow("Input Tensor", (imx500.config['input_tensor']['height'],
+                                              imx500.config['input_tensor']['width']))
     except KeyError:
         pass

@@ -56,7 +56,7 @@ def parse_detections(output_tensor, scaler_crop):
     )
     if BBOX_NORMALIZATION:
         coords_list = [
-            coords / INPUT_TENSOR_SIZE[0]
+            coords / imx500.config['input_tensor']['height']
             for coords in np.array_split(output_tensor_split[0], 4)
         ]
     else:
@@ -106,23 +106,13 @@ if args.ignore_dash_labels:
     LABELS = [l for l in LABELS if l and l != "-"]
 
 # This must be called before instantiation of Picamera2
-imx500 = IMX500.from_network_file(os.path.abspath(MODEL))
+imx500 = IMX500(os.path.abspath(MODEL))
+imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'])
 
 picam2 = Picamera2()
 main = {'format': 'RGB888'}
 config = picam2.create_preview_configuration(main, controls={"FrameRate": 30})
 picam2.start(config, show_preview=False)
-
-width = 0
-height = 0
-
-for _ in range(10):
-    try:
-        t = picam2.capture_metadata()["CnnInputTensorInfo"]
-        network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
-        break
-    except KeyError:
-        pass
 
 for _ in range(10):
     try:
@@ -132,13 +122,6 @@ for _ in range(10):
         break
     except KeyError:
         pass
-
-print("intput tensor size ", (width, height))
-INPUT_TENSOR_SIZE = (height, width)
-
-# Will not be needed once the input tensor is embedded in the network rpk
-imx500.config['input_tensor_size'] = (width, height)
-imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'], picam2.sensor_resolution)
 
 cv2.startWindowThread()
 

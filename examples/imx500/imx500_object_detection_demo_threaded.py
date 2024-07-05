@@ -32,7 +32,8 @@ if args.ignore_dash_labels:
     LABELS = [l for l in LABELS if l and l != "-"]
 
 # This must be called before instantiation of Picamera2
-imx500 = IMX500.from_network_file(os.path.abspath(MODEL))
+imx500 = IMX500(os.path.abspath(MODEL))
+imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'])
 
 class Detection:
     def __init__(self, coords, category, conf, scaler_crop):
@@ -60,7 +61,7 @@ def parse_detections(metadata):
         )
         if BBOX_NORMALIZATION:
             coords_list = [
-                coords / INPUT_TENSOR_SIZE[0]
+                coords / imx500.config['input_tensor']['height']
                 for coords in np.array_split(output_tensor_split[0], 4)
             ]
         else:
@@ -101,17 +102,6 @@ picam2 = Picamera2()
 config = picam2.create_preview_configuration(controls={"FrameRate": 30})
 picam2.start(config, show_preview=True)
 
-width = 0
-height = 0
-
-for _ in range(10):
-    try:
-        t = picam2.capture_metadata()["CnnInputTensorInfo"]
-        network_name, width, height, num_channels = imx500.get_input_tensor_info(t)
-        break
-    except KeyError:
-        pass
-
 for _ in range(10):
     try:
         t = picam2.capture_metadata()["CnnOutputTensorInfo"]
@@ -120,12 +110,6 @@ for _ in range(10):
         break
     except KeyError:
         pass
-
-INPUT_TENSOR_SIZE = (height, width)
-
-# Will not be needed once the input tensor is embedded in the network rpk
-imx500.config['input_tensor_size'] = (width, height)
-imx500.set_inference_aspect_ratio(imx500.config['input_tensor_size'], picam2.sensor_resolution)
 
 picam2.pre_callback = draw_detections
 
@@ -150,11 +134,12 @@ while True:
         if queue.empty() and metadata.get("CnnOutputTensor"):
             queue.put(metadata)
         input_tensor = metadata["CnnInputTensor"]
-        if INPUT_TENSOR_SIZE != (0, 0):
+        if imx500.config['input_tensor_size'] != (0, 0):
             cv2.imshow(
                 "Input Tensor",
                 imx500.input_tensor_image(input_tensor)
             )
-            cv2.resizeWindow("Input Tensor", *INPUT_TENSOR_SIZE)
+            cv2.resizeWindow("Input Tensor", (imx500.config['input_tensor']['height'],
+                                              imx500.config['input_tensor']['width']))
     except KeyError:
         pass
