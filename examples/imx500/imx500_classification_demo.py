@@ -1,6 +1,6 @@
 import argparse
 import os
-import struct
+import time
 
 import cv2
 import numpy as np
@@ -97,18 +97,5 @@ OUTPUT_TENSOR_SIZE = tensor_data_num[0]
 
 picam2.pre_callback = parse_and_draw_classification_results
 
-cv2.startWindowThread()
 while True:
-    try:
-        input_tensor = picam2.capture_metadata()["CnnInputTensor"]
-        if input_tensor is None:
-            print("Input tensor missing")
-        if imx500.config['input_tensor_size'] != (0, 0):
-            cv2.imshow(
-                "Input Tensor",
-                imx500.input_tensor_image(input_tensor)
-            )
-            cv2.resizeWindow("Input Tensor", (imx500.config['input_tensor']['height'],
-                                              imx500.config['input_tensor']['width']))
-    except KeyError:
-        pass
+    time.sleep(0.5)

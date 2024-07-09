@@ -48,9 +48,15 @@ class Detection:
         return self.__str__()
 
 
-def parse_detections(output_tensor, scaler_crop):
+def parse_detections(metadata):
     """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
     # Wait for result from child processes in the order submitted.
+    output_tensor = metadata.get("CnnOutputTensor")
+    scaler_crop = metadata.get("ScalerCrop")
+
+    if output_tensor is None:
+        return []
+
     output_tensor_split = np.array_split(
         output_tensor, np.cumsum(tensor_data_num[:-1])
     )
@@ -134,10 +140,9 @@ thread.start()
 while True:
     # The request gets released by handle_results
     request = picam2.capture_request()
-    output_tensor = request.get_metadata().get("CnnOutputTensor")
-    scaler_crop = request.get_metadata().get("ScalerCrop")
-    if output_tensor and scaler_crop:
-        async_result = pool.apply_async(parse_detections, (output_tensor, scaler_crop))
+    metadata = request.get_metadata()
+    if metadata:
+        async_result = pool.apply_async(parse_detections, (metadata,))
         jobs.put((request, async_result))
     else:
         request.release()

@@ -133,13 +133,5 @@ while True:
         metadata = picam2.capture_metadata()
         if queue.empty() and metadata.get("CnnOutputTensor"):
             queue.put(metadata)
-        input_tensor = metadata["CnnInputTensor"]
-        if imx500.config['input_tensor_size'] != (0, 0):
-            cv2.imshow(
-                "Input Tensor",
-                imx500.input_tensor_image(input_tensor)
-            )
-            cv2.resizeWindow("Input Tensor", (imx500.config['input_tensor']['height'],
-                                              imx500.config['input_tensor']['width']))
     except KeyError:
         pass

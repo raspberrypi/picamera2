@@ -1,6 +1,6 @@
 import argparse
 import os
-import struct
+import time
 
 import cv2
 import numpy as np
@@ -53,7 +53,6 @@ class Detection:
 
 
 def parse_and_draw_detections(request):
-    global frame
     """Analyse the detected objects in the output tensor and draw them on the main output image."""
     parse_detections(request)
     draw_detections(request)
@@ -105,7 +104,7 @@ def draw_detections(request, stream="main"):
 
 
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(controls={"FrameRate": 30, "CnnEnableInputTensor": True})
+config = picam2.create_preview_configuration(controls={"FrameRate": 30})
 picam2.start(config, show_preview=True)
 
 for _ in range(10):
@@ -119,17 +118,5 @@ for _ in range(10):
 
 picam2.pre_callback = parse_and_draw_detections
 
-cv2.startWindowThread()
-
 while True:
-    try:
-        input_tensor = picam2.capture_metadata()["CnnInputTensor"]
-        if imx500.config['input_tensor_size'] != (0, 0):
-            cv2.imshow(
-                "Input Tensor",
-                imx500.input_tensor_image(input_tensor)
-            )
-            cv2.resizeWindow("Input Tensor", (imx500.config['input_tensor']['height'],
-                                              imx500.config['input_tensor']['width']))
-    except KeyError:
-        pass
+    time.sleep(0.5)

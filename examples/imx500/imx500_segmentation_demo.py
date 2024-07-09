@@ -1,5 +1,5 @@
 import os
-import struct
+import time
 
 import cv2
 import numpy as np
@@ -66,7 +66,7 @@ def draw_masks(request):
 
 
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(controls={"FrameRate": 30, "CnnEnableInputTensor": True})
+config = picam2.create_preview_configuration(controls={"FrameRate": 30})
 picam2.start(config, show_preview=True)
 
 for _ in range(10):
@@ -79,16 +79,6 @@ for _ in range(10):
         pass
 
 picam2.pre_callback = create_and_draw_masks
-print(imx500.config)
-cv2.startWindowThread()
+
 while True:
-    try:
-        input_tensor = picam2.capture_metadata()["CnnInputTensor"]
-        if input_tensor_size != (0, 0):
-            cv2.imshow(
-                "Input Tensor",
-                imx500.input_tensor_image(input_tensor)
-            )
-            cv2.resizeWindow("Input Tensor", input_tensor_size)
-    except KeyError:
-        pass
+    time.sleep(0.5)
