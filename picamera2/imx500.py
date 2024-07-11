@@ -35,7 +35,7 @@ class CnnOutputTensorInfoExported(ctypes.LittleEndianStructure):
 class IMX500:
     def __init__(self, network_file: str, camera_id: str = ''):
 
-        self.device_fd = 0
+        self.device_fd = None
         self.__cfg = {'network_file': network_file, 'input_tensor': {}}
 
         for i in range(5):
@@ -47,8 +47,8 @@ class IMX500:
                     self.device_fd = open(f'/dev/v4l-subdev{i}', 'rb+', buffering=0)
                     break
 
-        if self.device_fd == 0:
-            print('IMX500: Requested camera dev-node not found, functionality will be limited')
+        if self.device_fd is None:
+            raise RuntimeError('IMX500: Requested IMX500 sensor dev-node not found')
 
         if self.config['network_file'] != '':
             self.__set_network_firmware(os.path.abspath(self.config['network_file']))
@@ -64,7 +64,6 @@ class IMX500:
             self.__cfg['input_tensor']['div_shift'] = [0, 0, 0, 0]
 
         self.set_inference_roi_abs((0, 0, 4056, 3040))
-
 
     def __del__(self):
 
@@ -155,7 +154,7 @@ class IMX500:
             fcntl.ioctl(self.device_fd, VIDIOC_S_EXT_CTRLS, ctrl)
             self.__cfg['roi'] = roi
         except OSError as err:
-            print('IMX500: Unable to set ROI control in the device driver')
+            print(f'IMX500: Unable to set ROI control in the device driver: {err}')
 
     def set_inference_aspect_ratio(self, aspect_ratio: tuple, full_sensor_resolution: tuple = (4056, 3040)):
         """
@@ -270,7 +269,7 @@ class IMX500:
             # Ensure footer is as expected
             (magic,) = struct.unpack('4s', fw[:4])
             if not magic == b'3695':
-                raise RuntimeError("No matching footer found in firmware file " + network_filename)
+                raise RuntimeError('No matching footer found in firmware file ' + network_filename)
             fw = fw[4:]
             cpio_offset += size + 64
 
@@ -304,7 +303,7 @@ class IMX500:
             return
 
         res = {}
-        buf = io.StringIO(self.__cfg['network_info_raw'].decode("ascii"))
+        buf = io.StringIO(self.__cfg['network_info_raw'].decode('ascii'))
         for line in buf:
             key, value = line.strip().split('=')
             if key == 'networkID':
@@ -318,7 +317,7 @@ class IMX500:
                 res[key] = int(value)
 
         res['network'] = {}
-        networks = self.__cfg['network_info_raw'].decode("ascii").split('networkOrdinal=')[1:]
+        networks = self.__cfg['network_info_raw'].decode('ascii').split('networkOrdinal=')[1:]
         for nw in networks:
             buf = io.StringIO(nw)
             nw_idx = int(buf.readline())
@@ -329,7 +328,7 @@ class IMX500:
             res['network'][nw_idx] = nw_properties
 
         if len(res['network']) != res['networkNum']:
-            raise RuntimeError("Insufficient networkNum settings in network_info.txt")
+            raise RuntimeError('Insufficient networkNum settings in network_info.txt')
 
         self.__cfg['network_info'] = res
 
