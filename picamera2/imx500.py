@@ -48,7 +48,7 @@ class IMX500:
                     break
 
         if self.device_fd == 0:
-            print('IVS: Requested camera dev-node not found, functionality will be limited')
+            print('IMX500: Requested camera dev-node not found, functionality will be limited')
 
         if self.config['network_file'] != '':
             self.__set_network_firmware(os.path.abspath(self.config['network_file']))
@@ -155,7 +155,7 @@ class IMX500:
             fcntl.ioctl(self.device_fd, VIDIOC_S_EXT_CTRLS, ctrl)
             self.__cfg['roi'] = roi
         except OSError as err:
-            print('IVS: Unable to set ROI control in the device driver')
+            print('IMX500: Unable to set ROI control in the device driver')
 
     def set_inference_aspect_ratio(self, aspect_ratio: tuple, full_sensor_resolution: tuple = (4056, 3040)):
         """
@@ -228,32 +228,29 @@ class IMX500:
 
     def __set_network_firmware(self, network_filename: str):
         """
-        Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is instantiation.
-        network_firmware_symlink points to another symlink (e.g. /home/pi/imx500_network_firmware/imx500_network.rpk)
-        accessable by the user. This accessable symlink needs to point to the network rpk file that will eventually
-        be pushed into the IMX500 by the kernel driver.
+        Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is configured.
         """
 
-        network_firmware_symlink = "/lib/firmware/imx500_network.rpk"
+        network_firmware_fd_ctrl_id = 0x00981b01
 
         if not os.path.isfile(network_filename):
             raise RuntimeError('Firmware file ' + network_filename + ' does not exist.')
 
-        # Check if network_firmware_symlink points to another symlink.
-        if not os.path.islink(network_firmware_symlink) or not os.path.islink(os.readlink(network_firmware_symlink)):
-            print(f'{network_firmware_symlink} is not a symlink, or its target is not a symlink, '
-                  'ignoring custom network firmware file.')
-            return
+        fd = os.open(network_filename, os.O_RDONLY)
+        if fd:
+            ctrl = v4l2_control()
+            ctrl.id = network_firmware_fd_ctrl_id
+            ctrl.value = fd
 
-        # Update the user accessable symlink to the user requested firmware if needed.
-        local_symlink = os.readlink(network_firmware_symlink)
-        if not os.path.samefile(os.readlink(local_symlink), network_filename):
-            os.remove(local_symlink)
-            os.symlink(network_filename, local_symlink)
-
-        print('\n------------------------------------------------------------------------------------------------------------------\n'
-              'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
-              '\n------------------------------------------------------------------------------------------------------------------\n')
+            try:
+                fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
+                print('\n------------------------------------------------------------------------------------------------------------------\n'
+                      'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
+                      '\n------------------------------------------------------------------------------------------------------------------\n')
+            except OSError as err:
+                raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
+            finally:
+                os.close(fd)
 
     def __ni_from_network(self, network_filename: str):
         """
