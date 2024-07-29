@@ -4,7 +4,8 @@ Priority: optional
 Maintainer: Serge Schneider <serge@raspberrypi.com>
 Build-Depends: debhelper-compat (= 13), dh-python, python3-setuptools, python3-all,
  python3-pyqt5, python3-simplejpeg, python3-libcamera, python3-av, python3-pil,
- python3-v4l2, python3-prctl, python3-piexif, python3-pidng, python3-kms++
+ python3-v4l2, python3-prctl, python3-piexif, python3-pidng, python3-kms++,
+ python3-libarchive-c
 Standards-Version: 4.5.1
 Homepage: https://github.com/raspberrypi/picamera2
 Vcs-Git: https://github.com/raspberrypi/picamera2.git
