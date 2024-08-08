@@ -650,7 +650,7 @@ class Picamera2:
         """
         if updates is None:
             return None
-        valid = ("format", "size", "stride")
+        valid = ("format", "size", "stride", "preserve_ar")
         for key, value in updates.items():
             if isinstance(value, SensorFormat):
                 value = str(value)
@@ -687,9 +687,9 @@ class Picamera2:
         if not self._is_rpi_camera():
             raw = None
             sensor = None
-        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
+        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480), "preserve_ar": True}, main)
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"], "preserve_ar": False}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
@@ -721,9 +721,9 @@ class Picamera2:
         if not self._is_rpi_camera():
             raw = None
             sensor = None
-        main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
+        main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution, "preserve_ar": True}, main)
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"], "preserve_ar": False}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
@@ -755,9 +755,9 @@ class Picamera2:
         if not self._is_rpi_camera():
             raw = None
             sensor = None
-        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
+        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720), "preserve_ar": True}, main)
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"], "preserve_ar": False}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
@@ -1115,6 +1115,15 @@ class Picamera2:
         # Set the controls directly so as to overwrite whatever is there.
         self.controls = Controls(self, controls=self.camera_config['controls'])
         self.configure_count += 1
+
+        if "ScalerCrops" in self.camera_controls:
+            par_crop = self.camera_controls["ScalerCrops"]
+            full_fov = self.camera_controls["ScalerCrop"][1]
+            scaler_crops = [par_crop[0] if camera_config["main"]["preserve_ar"] else full_fov]
+            if self.lores_index >= 0:
+                scaler_crops.append(par_crop[1] if camera_config["lores"]["preserve_ar"] else scaler_crops[0])
+            self.set_controls({"ScalerCrops": scaler_crops})
+
 
     def configure(self, camera_config="preview") -> None:
         """Configure the camera system with the given configuration."""
