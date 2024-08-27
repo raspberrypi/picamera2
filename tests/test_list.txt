@@ -68,6 +68,7 @@ tests/easy_video2.py
 tests/egl_leak.py
 tests/encoder_start_stop.py
 tests/ffmpeg_abort.py
+tests/imx708_device.py
 tests/large_datagram.py
 tests/mjpeg_server.py
 tests/no_raw.py
