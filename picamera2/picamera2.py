@@ -69,6 +69,11 @@ class CameraManager:
             self._cms = libcamera.CameraManager.singleton()
         return self._cms
 
+    def reset(self):
+        with self._lock:
+            self._cms = None
+            self._cms = libcamera.CameraManager.singleton()
+
     def add(self, index, camera):
         with self._lock:
             self.cameras[index] = camera
