@@ -62,6 +62,7 @@ tests/colour_spaces.py
 tests/config_with_sensor.py
 tests/configurations.py
 tests/context_test.py
+tests/crop_test.py
 tests/display_transform_null.py
 tests/display_transform_qt.py
 tests/easy_video2.py
