@@ -1,10 +1,12 @@
 import os
+from concurrent.futures import TimeoutError
 
 import libcamera
 
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
 from .converters import YUV420_to_RGB
+from .job import CancelledError
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .platform import Platform, get_platform
