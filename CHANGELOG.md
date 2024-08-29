@@ -6,6 +6,20 @@
 
 ### Changed
 
+## 0.3.20 Beta Release 19
+
+### Added
+
+* Initial support for Hailo AI devices, including some examples.
+* IMX708 helper class so that the sensor HDR mode can be set with Python.
+
+### Changed
+
+* Improved handling of timeouts when cameras stop responding, including a mechanism for a complete
+  reset if requests stop being returned.
+* Platform checking more robust.
+* Add missing flush parameter to captured_request() (for use with context manager).
+
 ## 0.3.19 Beta Release 18
 
 ### Added
