@@ -6,6 +6,13 @@
 
 ### Changed
 
+## 0.3.21 Beta Release 20
+
+### Changed
+
+* Fixed setup.py for the devices helpers
+* Fixed handling of the ScalerCrops control in app_full.py
+
 ## 0.3.20 Beta Release 19
 
 ### Added
