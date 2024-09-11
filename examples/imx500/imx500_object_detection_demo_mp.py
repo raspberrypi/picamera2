@@ -6,14 +6,13 @@ from functools import lru_cache
 
 import cv2
 import numpy as np
+
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (postprocess_efficientdet_lite0_detection,
                                       postprocess_nanodet_detection,
                                       postprocess_yolov5_detection,
                                       postprocess_yolov8_detection)
-
-last_detections = []
 
 
 class Detection:
@@ -27,7 +26,6 @@ class Detection:
 
 def parse_detections(metadata: dict):
     """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
-    global last_detections
     bbox_normalization = args.bbox_normalization
     threshold = args.threshold
     iou = args.iou
@@ -36,7 +34,7 @@ def parse_detections(metadata: dict):
     np_outputs = imx500.get_outputs(metadata, add_batch=True)
     input_w, input_h = imx500.get_input_size()
     if np_outputs is None:
-        return last_detections
+        return None
     if args.postprocess == "efficientdet_lite0":
         boxes, scores, classes = \
             postprocess_efficientdet_lite0_detection(outputs=np_outputs, conf_thres=threshold,
@@ -70,12 +68,12 @@ def parse_detections(metadata: dict):
         boxes = np.array_split(boxes, 4, axis=1)
         boxes = zip(*boxes)
 
-    last_detections = [
+    detections = [
         Detection(box, category, score, metadata)
         for box, score, category in zip(boxes, scores, classes)
         if score > threshold
     ]
-    return last_detections
+    return detections
 
 
 @lru_cache
@@ -92,15 +90,19 @@ def draw_detections(jobs):
     """Draw the detections for this request onto the ISP output."""
     labels = get_labels()
     # Wait for result from child processes in the order submitted.
+    last_detections = []
     while (job := jobs.get()) is not None:
         request, async_result = job
         detections = async_result.get()
+        if detections is None:
+            detections = last_detections
+        last_detections = detections
         with MappedArray(request, 'main') as m:
             for detection in detections:
                 x, y, w, h = detection.box
                 label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
-                cv2.putText(m.array, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 0, 255, 0))
+                cv2.putText(m.array, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0))
             if args.preserve_aspect_ratio:
                 b = imx500.get_roi_scaled(request)
                 cv2.putText(m.array, "ROI", (b.x + 5, b.y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
@@ -134,7 +136,7 @@ if __name__ == "__main__":
     # This must be called before instantiation of Picamera2
     imx500 = IMX500(args.model)
 
-    picam2 = Picamera2(ixm500.camera_num)
+    picam2 = Picamera2(imx500.camera_num)
     main = {'format': 'RGB888'}
     config = picam2.create_preview_configuration(main, controls={"FrameRate": args.fps}, buffer_count=12)
 

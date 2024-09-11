@@ -1,9 +1,9 @@
 import argparse
-import time
 from functools import lru_cache
 
 import cv2
 import numpy as np
+
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
 from picamera2.devices.imx500 import (postprocess_efficientdet_lite0_detection,
@@ -21,12 +21,6 @@ class Detection:
         self.conf = conf
         obj_scaled = imx500.convert_inference_coords(coords, metadata, picam2)
         self.box = (obj_scaled.x, obj_scaled.y, obj_scaled.width, obj_scaled.height)
-
-
-def parse_and_draw_detections(request):
-    """Analyse the detected objects in the output tensor and draw them on the main output image."""
-    detections = parse_detections(request.get_metadata())
-    draw_detections(request, detections)
 
 
 def parse_detections(metadata: dict):
@@ -92,15 +86,18 @@ def get_labels():
     return labels
 
 
-def draw_detections(request, detections, stream="main"):
+def draw_detections(request, stream="main"):
     """Draw the detections for this request onto the ISP output."""
+    detections = last_results
+    if detections is None:
+        return
     labels = get_labels()
     with MappedArray(request, stream) as m:
         for detection in detections:
             x, y, w, h = detection.box
             label = f"{labels[int(detection.category)]} ({detection.conf:.2f})"
-            cv2.putText(m.array, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-            cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 0, 255, 0))
+            cv2.putText(m.array, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0))
         if args.preserve_aspect_ratio:
             b = imx500.get_roi_scaled(request)
             cv2.putText(m.array, "ROI", (b.x + 5, b.y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
@@ -109,7 +106,8 @@ def draw_detections(request, detections, stream="main"):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, required=True, help="Path of the model")
+    parser.add_argument("--model", type=str, default="/usr/share/imx500-models/imx500_network_yolov8n_pp.rpk",
+                        help="Path of the model")
     parser.add_argument("--fps", type=int, default=30, help="Frames per second")
     parser.add_argument("--bbox-normalization", action="store_true", help="Normalize bbox")
     parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
@@ -139,6 +137,8 @@ if __name__ == "__main__":
 
     if args.preserve_aspect_ratio:
         imx500.set_auto_aspect_ratio()
-    picam2.pre_callback = parse_and_draw_detections
+
+    last_results = None
+    picam2.pre_callback = draw_detections
     while True:
-        time.sleep(0.5)
+        last_results = parse_detections(picam2.capture_metadata())

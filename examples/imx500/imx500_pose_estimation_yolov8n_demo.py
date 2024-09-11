@@ -1,8 +1,8 @@
 import argparse
-import time
 
 import cv2
 import numpy as np
+
 from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices import IMX500
 from picamera2.devices.imx500.postprocess import (COCODrawer, scale_boxes,
@@ -30,8 +30,12 @@ def ai_output_tensor_parse(metadata: dict):
     return last_boxes, last_scores, last_keypoints
 
 
-def ai_output_tensor_draw(request: CompletedRequest, boxes, scores, keypoints, stream='main'):
+def ai_output_tensor_draw(request: CompletedRequest, results, stream='main'):
     """Draw the detections for this request onto the ISP output."""
+    if not results:
+        return
+
+    boxes, scores, keypoints = results
     with MappedArray(request, stream) as m:
         if boxes is not None and len(boxes) > 0:
             drawer.annotate_image(m.array, boxes, scores,
@@ -45,13 +49,13 @@ def ai_output_tensor_draw(request: CompletedRequest, boxes, scores, keypoints, s
 
 def picamera2_pre_callback(request: CompletedRequest):
     """Analyse the detected objects in the output tensor and draw them on the main output image."""
-    boxes, scores, keypoints = ai_output_tensor_parse(request.get_metadata())
-    ai_output_tensor_draw(request, boxes, scores, keypoints)
+    ai_output_tensor_draw(request, last_results)
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, required=True, help="Path of the model")
+    parser.add_argument("--model", type=str, default="/usr/share/imx500-models/imx500_network_posenet.rpk",
+                        help="Path of the model")
     parser.add_argument("--fps", type=int, default=30, help="Frames per second")
     parser.add_argument("--box-min-confidence", type=float,
                         default=0.3, help="Confidence threshold for bounding box predictions")
@@ -79,6 +83,8 @@ if __name__ == "__main__":
     # This must be called before instantiation of Picamera2
     imx500 = IMX500(args.model)
 
+    last_results = None
+
     drawer = get_drawer()
 
     picam2 = Picamera2(imx500.camera_num)
@@ -89,4 +95,4 @@ if __name__ == "__main__":
     picam2.pre_callback = picamera2_pre_callback
 
     while True:
-        time.sleep(0.5)
+        last_results = ai_output_tensor_parse(picam2.capture_metadata())
