@@ -19,8 +19,7 @@ class Detection:
         """Create a Detection object, recording the bounding box, category and confidence."""
         self.category = category
         self.conf = conf
-        obj_scaled = imx500.convert_inference_coords(coords, metadata, picam2)
-        self.box = (obj_scaled.x, obj_scaled.y, obj_scaled.width, obj_scaled.height)
+        self.box = imx500.convert_inference_coords(coords, metadata, picam2)
 
 
 def parse_detections(metadata: dict):
@@ -106,8 +105,8 @@ def draw_detections(request, stream="main"):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="/usr/share/imx500-models/imx500_network_yolov8n_pp.rpk",
-                        help="Path of the model")
+    parser.add_argument("--model", type=str, help="Path of the model",
+                        default="/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk")
     parser.add_argument("--fps", type=int, default=30, help="Frames per second")
     parser.add_argument("--bbox-normalization", action="store_true", help="Normalize bbox")
     parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")

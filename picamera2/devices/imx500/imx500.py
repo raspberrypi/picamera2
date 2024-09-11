@@ -112,7 +112,7 @@ class IMX500:
     def config(self) -> dict:
         return self.__cfg
 
-    def convert_inference_coords(self, coords: tuple, metadata: dict, picam2: Picamera2, stream='main'):
+    def convert_inference_coords(self, coords: tuple, metadata: dict, picam2: Picamera2, stream='main') -> tuple:
         """Convert relative inference coordinates into the output image coordinates space."""
         isp_output_size = Size(*picam2.camera_configuration()[stream]['size'])
         sensor_output_size = Size(*picam2.camera_configuration()['raw']['size'])
@@ -127,7 +127,8 @@ class IMX500:
                 0,
             ).astype(np.int32)
         )
-        return self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
+        out = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
+        return (out.x, out.y, out.width, out.height)
 
     def get_fw_upload_progress(self, stage_req) -> tuple:
         """Returns the current progress of the fw upload in the form of (current, total)"""
@@ -172,19 +173,20 @@ class IMX500:
                         break
                 time.sleep(0.5)
 
-    def get_roi_scaled(self, request: CompletedRequest, stream="main") -> Rectangle:
+    def get_roi_scaled(self, request: CompletedRequest, stream="main") -> tuple:
         """Get the region of interest (ROI) in output image coordinates space."""
         isp_output_size = self.get_isp_output_size(request, stream)
         sensor_output_size = self.get_isp_output_size(request, 'raw')
         scaler_crop = Rectangle(*request.get_metadata()['ScalerCrop'])
         obj = self.__get_full_sensor_resolution()
-        return self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
+        roi = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
+        return (roi.x, roi.y, roi.width, roi.height)
 
     @staticmethod
-    def get_isp_output_size(request, stream="main"):
+    def get_isp_output_size(request, stream="main") -> tuple:
         return Size(*request.picam2.camera_configuration()[stream]['size'])
 
-    def __get_obj_scaled(self, obj, isp_output_size, scaler_crop, sensor_output_size):
+    def __get_obj_scaled(self, obj, isp_output_size, scaler_crop, sensor_output_size) -> Rectangle:
         """Scale the object coordinates based on the camera configuration and sensor properties."""
         full_sensor = self.__get_full_sensor_resolution()
         width, height = full_sensor.size.width, full_sensor.size.height

@@ -76,7 +76,8 @@ def draw_classification_results(request: CompletedRequest, results: List[Classif
 def get_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, required=True, help="Path of the model")
+    parser.add_argument("--model", type=str, help="Path of the model",
+                        default="/usr/share/imx500-models/imx500_network_mobilenet_v2.rpk")
     parser.add_argument("--fps", type=int, default=30, help="Frames per second")
     parser.add_argument("-s", "--softmax", action="store_true", help="Add post-process softmax")
     parser.add_argument("-r", "--preserve-aspect-ratio", action="store_true",
