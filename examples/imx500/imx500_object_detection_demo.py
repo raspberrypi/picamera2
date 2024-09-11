@@ -128,13 +128,10 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
 
-    camera_info = Picamera2.global_camera_info()
-    camera_num = next((c['Num'] for c in camera_info if c['Model'] == 'imx500'), None)
-
     # This must be called before instantiation of Picamera2
     imx500 = IMX500(args.model)
 
-    picam2 = Picamera2(camera_num)
+    picam2 = Picamera2(imx500.camera_num)
     config = picam2.create_preview_configuration(controls={"FrameRate": args.fps}, buffer_count=12)
 
     imx500.show_network_fw_progress_bar()

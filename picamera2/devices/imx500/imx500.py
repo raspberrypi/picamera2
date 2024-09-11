@@ -59,11 +59,15 @@ class IMX500:
             test_dir = f'/sys/class/video4linux/v4l-subdev{i}/device'
             module_dir = f'{test_dir}/driver/module'
             id_dir = f'{test_dir}/of_node'
-            if os.path.exists(module_dir) and os.path.islink(module_dir) and 'imx500' in os.readlink(module_dir):
-                if camera_id == '' or (os.path.islink(id_dir) and camera_id in os.readlink(id_dir)):
+            if os.path.exists(module_dir) and os.path.islink(module_dir) and os.path.islink(id_dir) \
+                    and 'imx500' in os.readlink(module_dir):
+                if camera_id == '' or (camera_id in os.readlink(id_dir)):
                     self.device_fd = open(f'/dev/v4l-subdev{i}', 'rb+', buffering=0)
                     imx500_device_id = os.readlink(test_dir).split('/')[-1]
                     spi_device_id = imx500_device_id.replace('001a', '0040')
+                    camera_info = Picamera2.global_camera_info()
+                    self.__camera_num = next((c['Num'] for c in camera_info if c['Model'] == 'imx500'
+                                              and c['Id'] in os.readlink(id_dir)))
                     break
 
         if self.device_fd is None:
@@ -99,6 +103,10 @@ class IMX500:
     def __del__(self):
         if self.device_fd:
             self.device_fd.close()
+
+    @property
+    def camera_num(self):
+        return self.__camera_num
 
     @property
     def config(self) -> dict:
