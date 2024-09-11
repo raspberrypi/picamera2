@@ -3,16 +3,15 @@ import multiprocessing
 import queue
 import threading
 from functools import lru_cache
+
 import cv2
 import numpy as np
-
-from picamera2.devices import IMX500
 from picamera2 import MappedArray, Picamera2
-
-from picamera2.devices.imx500 import postprocess_nanodet_detection
-from picamera2.devices.imx500 import postprocess_yolov5_detection
-from picamera2.devices.imx500 import postprocess_yolov8_detection
-from picamera2.devices.imx500 import postprocess_efficientdet_lite0_detection
+from picamera2.devices import IMX500
+from picamera2.devices.imx500 import (postprocess_efficientdet_lite0_detection,
+                                      postprocess_nanodet_detection,
+                                      postprocess_yolov5_detection,
+                                      postprocess_yolov8_detection)
 
 last_detections = []
 
@@ -85,7 +84,7 @@ def get_labels():
         labels = f.read().split("\n")
 
     if args.ignore_dash_labels:
-        labels = [l for l in labels if l and l != "-"]
+        labels = [label for label in labels if label and label != "-"]
     return labels
 
 

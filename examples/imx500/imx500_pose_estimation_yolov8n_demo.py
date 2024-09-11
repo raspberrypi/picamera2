@@ -3,10 +3,12 @@ import time
 
 import cv2
 import numpy as np
+from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2 import Picamera2, MappedArray, CompletedRequest
-from picamera2.devices.imx500.postprocess_yolov8 import postprocess_yolov8_keypoints
-from picamera2.devices.imx500.postprocess import scale_boxes, scale_coords, COCODrawer
+from picamera2.devices.imx500.postprocess import (COCODrawer, scale_boxes,
+                                                  scale_coords)
+from picamera2.devices.imx500.postprocess_yolov8 import \
+    postprocess_yolov8_keypoints
 
 last_boxes = None
 last_scores = None
@@ -30,7 +32,6 @@ def ai_output_tensor_parse(metadata: dict):
 
 def ai_output_tensor_draw(request: CompletedRequest, boxes, scores, keypoints, stream='main'):
     """Draw the detections for this request onto the ISP output."""
-
     with MappedArray(request, stream) as m:
         if boxes is not None and len(boxes) > 0:
             drawer.annotate_image(m.array, boxes, scores,

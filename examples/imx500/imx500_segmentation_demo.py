@@ -1,11 +1,11 @@
 import argparse
 import time
 from typing import Dict
+
 import cv2
 import numpy as np
+from picamera2 import CompletedRequest, Picamera2
 from picamera2.devices import IMX500
-from picamera2 import Picamera2, CompletedRequest
-
 
 COLOURS = np.loadtxt("assets/colours.txt")
 WINDOW_SIZE = (640, 480)

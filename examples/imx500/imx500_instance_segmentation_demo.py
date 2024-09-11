@@ -2,13 +2,13 @@ import argparse
 import time
 from functools import lru_cache
 
-import numpy as np
 import cv2
-
+import numpy as np
+from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2 import Picamera2, CompletedRequest, MappedArray
 from picamera2.devices.imx500.postprocess import COCODrawer, scale_boxes
-from picamera2.devices.imx500.postprocess_yolov8 import postprocess_yolov8_inst_seg, process_masks
+from picamera2.devices.imx500.postprocess_yolov8 import (
+    postprocess_yolov8_inst_seg, process_masks)
 
 COLOURS = np.loadtxt("assets/colours.txt")
 
@@ -61,7 +61,7 @@ def ai_output_tensor_draw(request: CompletedRequest, boxes, scores, classes, mas
 
 @lru_cache
 def get_labels():
-    """ get list of labels """
+    """Get list of labels"""
     with open(args.labels, "r") as f:
         labels = f.read().split("\n")
     labels = [c for c in labels if c and c != "-"]
@@ -69,7 +69,7 @@ def get_labels():
 
 
 def get_drawer():
-    """ get drawer object """
+    """Get drawer object"""
     return COCODrawer(get_labels(), imx500)
 
 

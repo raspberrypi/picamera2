@@ -2,16 +2,11 @@ import argparse
 import time
 
 import numpy as np
+from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2 import Picamera2, MappedArray, CompletedRequest
-
-try:
-    from munkres import Munkres
-except ImportError:
-    raise ImportError("Please install munkres first. `pip3 install --break-system-packages munkres`")
-
-from picamera2.devices.imx500.postprocess_highernet import postprocess_higherhrnet
 from picamera2.devices.imx500.postprocess import COCODrawer
+from picamera2.devices.imx500.postprocess_highernet import \
+    postprocess_higherhrnet
 
 last_boxes = None
 last_scores = None
@@ -43,7 +38,7 @@ def ai_output_tensor_draw(request: CompletedRequest, boxes, scores, keypoints, s
     with MappedArray(request, stream) as m:
         if boxes is not None and len(boxes) > 0:
             drawer.annotate_image(m.array, boxes, scores,
-                                  np.zeros(scores.shape), keypoints, args.detection_threshold ,
+                                  np.zeros(scores.shape), keypoints, args.detection_threshold,
                                   args.detection_threshold, request.get_metadata(), picam2, stream)
 
 

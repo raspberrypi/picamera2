@@ -1,10 +1,11 @@
+import argparse
 import time
 from typing import List
-import argparse
+
 import cv2
 import numpy as np
+from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2 import MappedArray, Picamera2, CompletedRequest
 from picamera2.devices.imx500.postprocess import softmax
 
 last_detections = []
