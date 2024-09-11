@@ -88,11 +88,11 @@ class IMX500:
         if 'div_shift' not in self.__cfg:
             self.__cfg['input_tensor']['div_shift'] = 6
 
-        full_sensor = self.get_full_sensor_resolution()
+        full_sensor = self.__get_full_sensor_resolution()
         self.set_inference_roi_abs((0, 0, full_sensor.size.width, full_sensor.size.height))
 
     @staticmethod
-    def get_full_sensor_resolution():
+    def __get_full_sensor_resolution():
         """full_sensor_resolution as a Rectangle object"""
         return Rectangle(0, 0, 4056, 3040)
 
@@ -111,7 +111,7 @@ class IMX500:
         scaler_crop = Rectangle(*metadata['ScalerCrop'])
 
         y0, x0, y1, x1 = coords
-        full_sensor = self.get_full_sensor_resolution()
+        full_sensor = self.__get_full_sensor_resolution()
         width, height = full_sensor.size.width, full_sensor.size.height
         obj = Rectangle(
             *np.maximum(
@@ -169,7 +169,7 @@ class IMX500:
         isp_output_size = self.get_isp_output_size(request, stream)
         sensor_output_size = self.get_isp_output_size(request, 'raw')
         scaler_crop = Rectangle(*request.get_metadata()['ScalerCrop'])
-        obj = self.get_full_sensor_resolution()
+        obj = self.__get_full_sensor_resolution()
         return self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
 
     @staticmethod
@@ -178,7 +178,7 @@ class IMX500:
 
     def __get_obj_scaled(self, obj, isp_output_size, scaler_crop, sensor_output_size):
         """Scale the object coordinates based on the camera configuration and sensor properties."""
-        full_sensor = self.get_full_sensor_resolution()
+        full_sensor = self.__get_full_sensor_resolution()
         width, height = full_sensor.size.width, full_sensor.size.height
         sensor_crop = scaler_crop.scaled_by(sensor_output_size, full_sensor.size)
 
@@ -246,7 +246,7 @@ class IMX500:
         image. The co-ordinates are based on the full sensor resolution.
         """
         roi = Rectangle(*roi)
-        roi = roi.bounded_to(self.get_full_sensor_resolution())
+        roi = roi.bounded_to(self.__get_full_sensor_resolution())
 
         r = (ctypes.c_uint32 * 4)()
         r[0] = roi.x
@@ -276,7 +276,7 @@ class IMX500:
         Specify a pixel aspect ratio needed for the input inference image relative to the full sensor resolution.
         This simply calculates an ROI based on a centre crop and calls set_inference_roi_abs().
         """
-        f = self.get_full_sensor_resolution()
+        f = self.__get_full_sensor_resolution()
         r = f.size.bounded_to_aspect_ratio(Size(aspect_ratio[0], aspect_ratio[1]))
         r = r.centered_to(f.center).enclosed_in(f)
         self.set_inference_roi_abs((r.x, r.y, r.width, r.height))

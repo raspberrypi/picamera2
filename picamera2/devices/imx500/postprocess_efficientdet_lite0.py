@@ -1,4 +1,6 @@
 """
+Efficientdet postprocessing
+
 This code is based on:
 https://github.com/google/automl/tree/master/efficientdet
 """
@@ -7,15 +9,19 @@ from typing import Tuple
 
 import numpy as np
 
-from picamera2.devices.imx500.postprocess import convert_to_ymin_xmin_ymax_xmax_format, BoxFormat, nms
+from picamera2.devices.imx500.postprocess import (
+    BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms)
 from picamera2.devices.imx500.postprocess_yolov5 import coco80_to_coco91
+
+default_box_variance = [1.0, 1.0, 1.0, 1.0]
+default_aspect_ratios = [1.0, 2.0, 0.5]
 
 
 def postprocess_efficientdet_lite0_detection(outputs: Tuple[np.ndarray, np.ndarray, np.ndarray],
                                              anchor_scale=3,
                                              min_level=3,
                                              max_level=7,
-                                             box_variance=[1.0, 1.0, 1.0, 1.0],
+                                             box_variance=default_box_variance,
                                              model_input_shape=(320, 320),
                                              min_wh=2,
                                              max_wh=7680,
@@ -43,7 +49,7 @@ def postprocess_efficientdet_lite0_detection(outputs: Tuple[np.ndarray, np.ndarr
     ############################################################
     # Note: outputs_decoded shape is [Batch,num_anchors*Detections,(4+1+num_categories)]
     post_processed_outputs = []
-    for i, x in enumerate(outputs_decoded):
+    for _, x in enumerate(outputs_decoded):
         # ----------------------------------------
         # Filter by score and width-height
         # ----------------------------------------
@@ -98,7 +104,7 @@ def box_decoding_edetlite(output_annotations,
                           anchor_scale=3,
                           min_level=3,
                           max_level=7,
-                          box_variance=[1.0, 1.0, 1.0, 1.0]):
+                          box_variance=default_box_variance):
     # -----------------------------------------------
     # EfficientDetLite detection post processing
     # -----------------------------------------------
@@ -156,7 +162,7 @@ def generate_anchors_EDETLITE(batch_size,
                               anchor_scale=3,
                               min_level=3,
                               max_level=7,
-                              aspect_ratios=[1.0, 2.0, 0.5]):
+                              aspect_ratios=default_aspect_ratios):
     """Generate configurations of anchor boxes."""
     anchor_scales = [anchor_scale] * (max_level - min_level + 1)
     num_scales = len(aspect_ratios)

@@ -1,10 +1,14 @@
 """
+Nanodet postprocessing
+
 This code is based on:
 https://github.com/RangiLyu/nanodet
 """
 
-import numpy as np
 from typing import Tuple
+
+import numpy as np
+
 from picamera2.devices.imx500.postprocess import combined_nms, softmax
 
 

@@ -1,5 +1,6 @@
 """
 This code is based on multiple sources:
+
 https://github.com/rbgirshick/fast-rcnn
 https://github.com/ultralytics/ultralytics
 https://github.com/see--/keras-centernet
@@ -8,8 +9,10 @@ https://github.com/stefanopini/simple-HigherHRNet
 
 from enum import Enum
 from typing import List
-import numpy as np
+
 import cv2
+import numpy as np
+
 from picamera2 import Picamera2
 
 
@@ -95,7 +98,7 @@ def combined_nms_seg(batch_boxes, batch_scores, batch_masks, iou_thres: float = 
         # Filter out detections below the confidence threshold
         valid_detections = max_scores > conf
 
-        if np.all(valid_detections == False):
+        if np.all(valid_detections is False):
             nms_results.append((np.ndarray(0), np.ndarray(0), np.ndarray(0), np.ndarray(0)))
         else:
 
@@ -143,8 +146,9 @@ class BoxFormat(Enum):
 
 def convert_to_ymin_xmin_ymax_xmax_format(boxes, orig_format: BoxFormat):
     """
-    changes the box from one format to another (XMIN_YMIN_W_H --> YMIM_XMIN_YMAX_XMAX )
-    also support in same format mode (returns the same format)
+    Changes the box from one format to another (XMIN_YMIN_W_H --> YMIM_XMIN_YMAX_XMAX )
+
+    Also support in same format mode (returns the same format)
 
     :param boxes:
     :param orig_format:
@@ -328,13 +332,13 @@ class COCODrawer:
             x0 = max(0, x0)
         return int(y0), int(x0), int(y1), int(x1)
 
-    def draw_bounding_box(self, img, annotation, class_id, score, metadata: dict, picam2: Picamera2,  stream):
+    def draw_bounding_box(self, img, annotation, class_id, score, metadata: dict, picam2: Picamera2, stream):
         y0, x0, y1, x1 = self.get_coords(annotation, metadata, picam2, stream)
         text = f"{self.categories[int(class_id)]}:{score:.3f}"
         cv2.rectangle(img, (x0, y0), (x1, y1), (0, 0, 255), 2)
         cv2.putText(img, text, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-    def draw_keypoints(self, img, keypoints, min_confidence,  metadata: dict, picam2: Picamera2, stream):
+    def draw_keypoints(self, img, keypoints, min_confidence, metadata: dict, picam2: Picamera2, stream):
         def get_point(index):
             y0, x0 = keypoints[index][1], keypoints[index][0]
             y0, x0, _, _ = self.get_coords((y0, x0, y0 + 1, x0 + 1), metadata, picam2, stream)
@@ -367,12 +371,12 @@ class COCODrawer:
             label = f"{PARTS.get(i)}.{confidence:.3f}"
             cv2.putText(img, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 255, 0), 1)
 
-    def annotate_image(self, img, b, s, c, k, box_min_conf, kps_min_conf,  metadata: dict, picam2: Picamera2,  stream):
+    def annotate_image(self, img, b, s, c, k, box_min_conf, kps_min_conf, metadata: dict, picam2: Picamera2, stream):
         for index, row in enumerate(b):
             if s[index] >= box_min_conf:
-                self.draw_bounding_box(img, row, c[index], s[index],  metadata, picam2, stream)
+                self.draw_bounding_box(img, row, c[index], s[index], metadata, picam2, stream)
                 if k is not None:
-                    self.draw_keypoints(img, k[index], kps_min_conf,  metadata, picam2, stream)
+                    self.draw_keypoints(img, k[index], kps_min_conf, metadata, picam2, stream)
 
     def overlay_masks(self, picam2, masks, scores, colors, score_threshold=0.55, mask_threshold=0.5):
         overlay = np.zeros((masks.shape[1], masks.shape[2], 4), dtype=np.uint8)

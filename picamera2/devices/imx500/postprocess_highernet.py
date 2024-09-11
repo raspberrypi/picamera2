@@ -1,4 +1,6 @@
 """
+Highernet postprocessing
+
 This code is based on multiple sources:
 https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation
 https://github.com/princeton-vl/pose-ae-train
@@ -6,13 +8,16 @@ https://github.com/yinguobing/facial-landmark-detection-hrnet
 """
 
 from typing import Tuple
-import numpy as np
+
 import cv2
+import numpy as np
 
 try:
     from munkres import Munkres
 except ImportError:
     raise ImportError("Please install munkres first. `pip3 install --break-system-packages munkres`")
+
+default_joint_order = [0, 1, 2, 3, 4, 5, 6, 11, 12, 7, 8, 9, 10, 13, 14, 15, 16]
 
 
 def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
@@ -22,7 +27,7 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
                             network_postprocess,
                             num_joints=17,
                             tag_per_joint=True,
-                            joint_order=[0, 1, 2, 3, 4, 5, 6, 11, 12, 7, 8, 9, 10, 13, 14, 15, 16],
+                            joint_order=default_joint_order,
                             detection_threshold=0.3,
                             max_num_people=30,
                             nms_kernel=5,
@@ -158,7 +163,7 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
 
         out_keypoints.append(list(key_points[k]))
         out_scores.append(img_kpts[k]['score'])
-        out_bbox.append(list([left_top[1], left_top[0], right_bottom[1], right_bottom[0]]))
+        out_bbox.append([left_top[1], left_top[0], right_bottom[1], right_bottom[0]])
     return out_keypoints, out_scores, out_bbox
 
 
@@ -172,7 +177,7 @@ def parse(network_outputs,
           nms_kernel=5,
           nms_padding=2,
           num_joints=17,
-          joint_order=[0, 1, 2, 3, 4, 5, 6, 11, 12, 7, 8, 9, 10, 13, 14, 15, 16],
+          joint_order=default_joint_order,
           detection_threshold=0.1,
           ignore_too_much=False,
           use_detection_val=True,
@@ -220,16 +225,10 @@ def parse(network_outputs,
     if refine:
         ans = ans[0]
         # for every detected person
-        for i in range(len(ans)):
+        for _ in range(len(ans)):
             # NotImplemented
             if not tag_per_joint:
-                raise NotImplemented
-                tag_numpy = np.tile(
-                    tag_numpy, (num_joints, 1, 1, 1)
-                )
-            ans[i] = refine_func(det=det,
-                                 tag=tags,
-                                 keypoints=ans[i])  # TODO: support batch size > 1
+                raise NotImplementedError
 
         # ans [[num_joints_detected, num_joints, 4]]
         ans = [ans]
@@ -269,7 +268,7 @@ def top_k(det,
 
     # NotImplemented
     if not tag_per_joint:
-        raise NotImplemented
+        raise NotImplementedError
         tag = tag.expand(-1, num_joints, -1, -1)
 
     # tag_k [num_images, max_num_people, num_joints]
@@ -351,26 +350,27 @@ def match(tag_k,
           loc_k,
           val_k,
           num_joints=17,
-          joint_order=[0, 1, 2, 3, 4, 5, 6, 11, 12, 7, 8, 9, 10, 13, 14, 15, 16],
+          joint_order=default_joint_order,
           detection_threshold=0.1,
           max_num_people=30,
           ignore_too_much=False,
           use_detection_val=True,
           tag_threshold=1.0):
-    match = lambda x: match_by_tag(inp=x,
-                                   num_joints=num_joints,
-                                   joint_order=joint_order,
-                                   detection_threshold=detection_threshold,
-                                   max_num_people=max_num_people,
-                                   ignore_too_much=ignore_too_much,
-                                   use_detection_val=use_detection_val,
-                                   tag_threshold=tag_threshold)
-    return list(map(match, zip(tag_k, loc_k, val_k)))
+    def m(x):
+        return match_by_tag(inp=x,
+                            num_joints=num_joints,
+                            joint_order=joint_order,
+                            detection_threshold=detection_threshold,
+                            max_num_people=max_num_people,
+                            ignore_too_much=ignore_too_much,
+                            use_detection_val=use_detection_val,
+                            tag_threshold=tag_threshold)
+    return list(map(m, zip(tag_k, loc_k, val_k)))
 
 
 def match_by_tag(inp,
                  num_joints=17,
-                 joint_order=[0, 1, 2, 3, 4, 5, 6, 11, 12, 7, 8, 9, 10, 13, 14, 15, 16],
+                 joint_order=default_joint_order,
                  detection_threshold=0.1,
                  max_num_people=30,
                  ignore_too_much=False,
@@ -551,7 +551,6 @@ def processKeypoints(keypoints):
     # keypoints [17, 4]
     tmp = keypoints.copy()
     if keypoints[:, 2].max() > 0:
-        p = keypoints[keypoints[:, 2] > 0][:, :2].mean(axis=0)
         num_keypoints = keypoints.shape[0]
         for i in range(num_keypoints):
             tmp[i][0:3] = [

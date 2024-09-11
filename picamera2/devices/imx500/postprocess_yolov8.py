@@ -1,13 +1,17 @@
 """
+Yolov5 postprocessing
+
 This code is based on:
 https://github.com/ultralytics/ultralytics
 """
 from typing import Tuple
-import numpy as np
-import cv2
 
-from picamera2.devices.imx500.postprocess import combined_nms, convert_to_ymin_xmin_ymax_xmax_format, BoxFormat, nms, \
-    combined_nms_seg, crop_mask
+import cv2
+import numpy as np
+
+from picamera2.devices.imx500.postprocess import (
+    BoxFormat, combined_nms, combined_nms_seg,
+    convert_to_ymin_xmin_ymax_xmax_format, crop_mask, nms)
 
 
 def postprocess_yolov8_detection(outputs: Tuple[np.ndarray, np.ndarray],
@@ -18,19 +22,15 @@ def postprocess_yolov8_detection(outputs: Tuple[np.ndarray, np.ndarray],
     Postprocess the outputs of a YOLOv8 model for object detection
 
     Args:
-        outputs (Tuple[np.ndarray, np.ndarray]): Tuple containing the model outputs for bounding boxes and
-            class predictions.
+        outputs (Tuple[np.ndarray, np.ndarray]): Tuple containing the model outputs for bounding boxes and class predictions.
         conf (float, optional): Confidence threshold for bounding box predictions. Default is 0.3
-        iou_thres (float, optional): IoU (Intersection over Union) threshold for Non-Maximum Suppression (NMS).
-            Default is 0.7.
+        iou_thres (float, optional): IoU (Intersection over Union) threshold for Non-Maximum Suppression (NMS). Default is 0.7.
         max_out_dets (int, optional): Maximum number of output detections to keep after NMS. Default is 50.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray]: Tuple containing the post-processed bounding boxes,
             their corresponding scores, and categories.
-
     """
-
     feat_sizes = np.array([80, 40, 20])
     stride_sizes = np.array([8, 16, 32])
     a, s = (x.transpose() for x in make_anchors_yolo_v8(feat_sizes, stride_sizes, 0.5))
@@ -53,15 +53,14 @@ def postprocess_yolov8_keypoints(outputs: Tuple[np.ndarray, np.ndarray, np.ndarr
 
     Args:
         outputs (Tuple[np.ndarray, np.ndarray, np.ndarray]): Tuple containing the model outputs for bounding boxes,
-            class predictions, and keypoint predictions.
+        class predictions, and keypoint predictions.
         conf (float, optional): Confidence threshold for bounding box predictions. Default is 0.3
-        iou_thres (float, optional): IoU (Intersection over Union) threshold for Non-Maximum Suppression (NMS).
-            Default is 0.7.
+        iou_thres (float, optional): IoU (Intersection over Union) threshold for Non-Maximum Suppression (NMS). Default is 0.7.
         max_out_dets (int, optional): Maximum number of output detections to keep after NMS. Default is 300.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: Tuple containing the post-processed bounding boxes,
-            their corresponding scores, and keypoints.
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: Tuple containing the post-processed bounding boxes, their
+        corresponding scores, and keypoints.
 
     """
     kpt_shape = (17, 3)

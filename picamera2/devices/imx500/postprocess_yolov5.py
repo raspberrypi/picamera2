@@ -1,4 +1,6 @@
 """
+Yolov5 postprocessing
+
 This code is based on:
 https://github.com/ultralytics/ultralytics
 """
@@ -7,7 +9,13 @@ from typing import List
 import cv2
 import numpy as np
 
-from picamera2.devices.imx500.postprocess import convert_to_ymin_xmin_ymax_xmax_format, BoxFormat, nms
+from picamera2.devices.imx500.postprocess import (
+    BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms)
+
+default_anchors = [[10, 13, 16, 30, 33, 23],
+                   [30, 61, 62, 45, 59, 119],
+                   [116, 90, 156, 198, 373, 326]]
+default_strides = [8, 16, 32]
 
 
 def postprocess_yolov5_detection(outputs: List[np.ndarray],
@@ -30,7 +38,7 @@ def postprocess_yolov5_detection(outputs: List[np.ndarray],
     ############################################################
     # Note: outputs_decoded shape is [Batch,num_anchors*Detections,(4+1+num_categories)]
     post_processed_outputs = []
-    for i, x in enumerate(outputs_decoded):
+    for _, x in enumerate(outputs_decoded):
         # ----------------------------------------
         # Filter by score and width-height
         # ----------------------------------------
@@ -82,10 +90,8 @@ def box_decoding_yolov5n(tensors,
                          num_categories=80,
                          H=640,
                          W=640,
-                         anchors=[[10, 13, 16, 30, 33, 23],
-                                  [30, 61, 62, 45, 59, 119],
-                                  [116, 90, 156, 198, 373, 326]],
-                         strides=[8, 16, 32]):
+                         anchors=default_anchors,
+                         strides=default_strides):
     # Tensors box format: [x_c, y_c, w, h]
     no = num_categories + 5  # number of outputs per anchor
     nl = len(anchors)  # number of detection layers
@@ -111,7 +117,8 @@ def box_decoding_yolov5n(tensors,
 
 
 # same as in preprocess but differs in h/w location
-def scale_boxes(boxes: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int, preserve_aspect_ratio: bool) -> np.ndarray:
+def scale_boxes(boxes: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int,
+                preserve_aspect_ratio: bool) -> np.ndarray:
     """
     Scale and offset bounding boxes based on model output size and original image size.
 
@@ -170,7 +177,7 @@ def clip_boxes(boxes: np.ndarray, h: int, w: int) -> np.ndarray:
 
 def _normalize_coordinates(boxes, orig_width, orig_height, boxes_format):
     """
-    gets boxes in the original images values and normalize them to be between 0 to 1
+    Gets boxes in the original images values and normalize them to be between 0 to 1
 
     :param boxes:
     :param orig_width: original image width
