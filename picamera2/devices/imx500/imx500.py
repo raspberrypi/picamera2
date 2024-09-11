@@ -55,7 +55,7 @@ class IMX500:
 
         imx500_device_id = None
         spi_device_id = None
-        for i in range(5):
+        for i in range(32):
             test_dir = f'/sys/class/video4linux/v4l-subdev{i}/device'
             module_dir = f'{test_dir}/driver/module'
             id_dir = f'{test_dir}/of_node'
@@ -351,12 +351,9 @@ class IMX500:
 
             try:
                 fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
-                print("""
-                      \n------------------------------------------------------------------------------------------------------------------\n
-                      NOTE: Loading network firmware onto the IMX500 can take several minutes,
-                      please do not close down the application.
-                      \n------------------------------------------------------------------------------------------------------------------\n
-                      """)
+                print('\n------------------------------------------------------------------------------------------------------------------\n'
+                      'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
+                      '\n------------------------------------------------------------------------------------------------------------------\n')
             except OSError as err:
                 raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
             finally:
