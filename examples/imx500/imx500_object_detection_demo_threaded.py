@@ -34,7 +34,7 @@ def parse_detections(metadata: dict):
     max_detections = args.max_detections
 
     np_outputs = imx500.get_outputs(metadata, add_batch=True)
-    input_w, input_h = imx500.get_input_w_h()
+    input_w, input_h = imx500.get_input_size()
     if np_outputs is None:
         return last_detections
     if args.postprocess == "efficientdet_lite0":

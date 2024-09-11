@@ -31,7 +31,7 @@ def create_masks(request: CompletedRequest):
     if len(scores) == 0:
         return None, None, None, None
 
-    input_w, input_h = imx500.get_input_w_h()
+    input_w, input_h = imx500.get_input_size()
     h_mask, w_mask = masks.shape[1], masks.shape[2]
     boxes_scale_down = scale_boxes(boxes.copy(), h_mask, w_mask, input_h, input_w, False, False)
     roi = imx500.get_roi_scaled(request)

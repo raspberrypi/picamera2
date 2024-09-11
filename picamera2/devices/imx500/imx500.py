@@ -2,18 +2,19 @@ import ctypes
 import fcntl
 import io
 import multiprocessing
-import numpy as np
 import os
 import struct
 import time
+from typing import Optional
 
+import numpy as np
 from libarchive.read import fd_reader
 from libcamera import Rectangle, Size
 from tqdm import tqdm
-from typing import Optional, List, Tuple
-from v4l2 import *
+from v4l2 import (VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS, v4l2_control,
+                  v4l2_ext_control, v4l2_ext_controls)
 
-from picamera2 import Picamera2, CompletedRequest
+from picamera2 import CompletedRequest, Picamera2
 
 NETWORK_NAME_LEN = 64
 MAX_NUM_TENSORS = 8
@@ -92,7 +93,7 @@ class IMX500:
 
     @staticmethod
     def get_full_sensor_resolution():
-        """full_sensor_resolution in Rectangle object  """
+        """full_sensor_resolution as a Rectangle object"""
         return Rectangle(0, 0, 4056, 3040)
 
     def __del__(self):
@@ -144,10 +145,10 @@ class IMX500:
             return (0, 0)
 
     def show_network_fw_progress_bar(self):
-            p = multiprocessing.Process(target=self.__do_progress_bar,
-                                        args=(FW_NETWORK_STAGE, 'Network Firmware Upload'))
-            p.start()
-            p.join(0)
+        p = multiprocessing.Process(target=self.__do_progress_bar,
+                                    args=(FW_NETWORK_STAGE, 'Network Firmware Upload'))
+        p.start()
+        p.join(0)
 
     def __do_progress_bar(self, stage_req, title):
         with tqdm(unit='bytes', unit_scale=True, unit_divisor=1024, desc=title, leave=True) as t:
@@ -191,8 +192,8 @@ class IMX500:
         obj_scaled = obj_translated.scaled_by(isp_output_size, sensor_crop.size)
         return obj_scaled
 
-    def get_input_w_h(self) -> tuple[int, int]:
-        """get the model input size w, h"""
+    def get_input_size(self) -> tuple:
+        """Get the model input tensor size as (width, height)"""
         return self.config['input_tensor_size']
 
     def input_tensor_image(self, input_tensor):
@@ -210,8 +211,8 @@ class IMX500:
 
         return np.transpose(r1, (1, 2, 0)).astype(np.uint8)
 
-    def get_outputs(self, metadata: dict, add_batch=False) -> Optional[List[np.ndarray]]:
-        """Get the model outputs"""
+    def get_outputs(self, metadata: dict, add_batch=False) -> Optional[list[np.ndarray]]:
+        """Get the model outputs."""
         output_tensor = metadata.get('CnnOutputTensor')
         if not output_tensor:
             return None
@@ -229,7 +230,7 @@ class IMX500:
             offset += size
         return outputs
 
-    def get_output_shapes(self, metadata: dict) -> List[Tuple[int]]:
+    def get_output_shapes(self, metadata: dict) -> list[tuple[int]]:
         """Get the model output shapes if no output return empty list"""
         output_tensor_info = metadata.get('CnnOutputTensorInfo')
         if not output_tensor_info:
@@ -239,6 +240,8 @@ class IMX500:
 
     def set_inference_roi_abs(self, roi: tuple):
         """
+        Set the absolute inference image crop.
+
         Specify an absolute region of interest in the form a (left, top, width, height) crop for the input inference
         image. The co-ordinates are based on the full sensor resolution.
         """
@@ -268,6 +271,8 @@ class IMX500:
 
     def set_inference_aspect_ratio(self, aspect_ratio: tuple):
         """
+        Set the aspect ratio of the inference image.
+
         Specify a pixel aspect ratio needed for the input inference image relative to the full sensor resolution.
         This simply calculates an ROI based on a centre crop and calls set_inference_roi_abs().
         """
@@ -277,13 +282,11 @@ class IMX500:
         self.set_inference_roi_abs((r.x, r.y, r.width, r.height))
 
     def set_auto_aspect_ratio(self):
-        """set sensor to 1:1 ratio"""
+        """Set the inference image crop to presereve the input tensor aspect ratio."""
         self.set_inference_aspect_ratio(self.config['input_tensor_size'])
 
     def __get_output_tensor_info(self, tensor_info) -> dict:
-        """
-        Return the network string along with a list of output tensor parameters.
-        """
+        """Return the network string along with a list of output tensor parameters."""
         if type(tensor_info) not in [bytes, bytearray]:
             tensor_info = bytes(tensor_info)
 
@@ -312,9 +315,7 @@ class IMX500:
         return result
 
     def __get_input_tensor_info(self, tensor_info) -> tuple[str, int, int, int]:
-        """
-        Return the input tensor parameters in the form (network_name, width, height, num_channels)
-        """
+        """Return the input tensor parameters in the form (network_name, width, height, num_channels)."""
         NETWORK_NAME_LEN = 64
         tensor_fmt = f'{NETWORK_NAME_LEN}sIII'
 
@@ -327,9 +328,7 @@ class IMX500:
 
     @staticmethod
     def get_kpi_info(metadata: dict) -> Optional[tuple[float, float]]:
-        """
-        Return the KPI parameters in the form (dnn_runtime, dsp_runtime)
-        """
+        """Return the KPI parameters in the form (dnn_runtime, dsp_runtime)."""
         kpi_info = metadata.get('CnnKpiInfo')
         if kpi_info is None:
             return None
@@ -340,9 +339,7 @@ class IMX500:
         return dnn_runtime / 1000, dsp_runtime / 1000
 
     def __set_network_firmware(self, network_filename: str):
-        """
-        Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is configured.
-        """
+        """Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is configured."""
         if not os.path.isfile(network_filename):
             raise RuntimeError(f'Firmware file {network_filename} does not exist.')
 
@@ -354,18 +351,19 @@ class IMX500:
 
             try:
                 fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
-                print('\n------------------------------------------------------------------------------------------------------------------\n'
-                      'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
-                      '\n------------------------------------------------------------------------------------------------------------------\n')
+                print("""
+                      \n------------------------------------------------------------------------------------------------------------------\n
+                      NOTE: Loading network firmware onto the IMX500 can take several minutes,
+                      please do not close down the application.
+                      \n------------------------------------------------------------------------------------------------------------------\n
+                      """)
             except OSError as err:
                 raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
             finally:
                 os.close(fd)
 
     def __ni_from_network(self, network_filename: str):
-        """
-        Extracts 'network_info.txt' from CPIO-archive appended to the network rpk.
-        """
+        """Extracts 'network_info.txt' from CPIO-archive appended to the network rpk."""
         with open(network_filename, 'rb') as fp:
             fw = memoryview(fp.read())
 
@@ -446,19 +444,27 @@ class IMX500:
         self.__cfg['input_tensor']['input_format'] = input_format
 
         if input_format == 'RGB' or input_format == 'BGR':
-            norm_val_0 = inputTensorNorm_K03 if ((inputTensorNorm_K03 >> 12) & 1) == 0 else -((~inputTensorNorm_K03 + 1) & 0x1fff)
-            norm_val_1 = inputTensorNorm_K13 if ((inputTensorNorm_K13 >> 12) & 1) == 0 else -((~inputTensorNorm_K13 + 1) & 0x1fff)
-            norm_val_2 = inputTensorNorm_K23 if ((inputTensorNorm_K23 >> 12) & 1) == 0 else -((~inputTensorNorm_K23 + 1) & 0x1fff)
+            norm_val_0 = \
+                inputTensorNorm_K03 if ((inputTensorNorm_K03 >> 12) & 1) == 0 else -((~inputTensorNorm_K03 + 1) & 0x1fff)
+            norm_val_1 = \
+                inputTensorNorm_K13 if ((inputTensorNorm_K13 >> 12) & 1) == 0 else -((~inputTensorNorm_K13 + 1) & 0x1fff)
+            norm_val_2 = \
+                inputTensorNorm_K23 if ((inputTensorNorm_K23 >> 12) & 1) == 0 else -((~inputTensorNorm_K23 + 1) & 0x1fff)
             norm_val = [norm_val_0, norm_val_1, norm_val_2]
             self.__cfg['input_tensor']['norm_val'] = norm_val
             norm_shift = [4, 4, 4]
             self.__cfg['input_tensor']['norm_shift'] = norm_shift
             if input_format == 'RGB':
-                div_val_0 = inputTensorNorm_K00 if ((inputTensorNorm_K00 >> 11) & 1) == 0 else -((~inputTensorNorm_K00 + 1) & 0x0fff)
-                div_val_2 = inputTensorNorm_K22 if ((inputTensorNorm_K22 >> 11) & 1) == 0 else -((~inputTensorNorm_K22 + 1) & 0x0fff)
+                div_val_0 = \
+                    inputTensorNorm_K00 if ((inputTensorNorm_K00 >> 11) & 1) == 0 else -((~inputTensorNorm_K00 + 1) & 0x0fff)
+                div_val_2 =\
+                    inputTensorNorm_K22 if ((inputTensorNorm_K22 >> 11) & 1) == 0 else -((~inputTensorNorm_K22 + 1) & 0x0fff)
             else:
-                div_val_0 = inputTensorNorm_K02 if ((inputTensorNorm_K02 >> 11) & 1) == 0 else -((~inputTensorNorm_K02 + 1) & 0x0fff)
-                div_val_2 = inputTensorNorm_K20 if ((inputTensorNorm_K20 >> 11) & 1) == 0 else -((~inputTensorNorm_K20 + 1) & 0x0fff)
-            div_val_1 = inputTensorNorm_K11 if ((inputTensorNorm_K11 >> 11) & 1) == 0 else -((~inputTensorNorm_K11 + 1) & 0x0fff)
+                div_val_0 = \
+                    inputTensorNorm_K02 if ((inputTensorNorm_K02 >> 11) & 1) == 0 else -((~inputTensorNorm_K02 + 1) & 0x0fff)
+                div_val_2 = \
+                    inputTensorNorm_K20 if ((inputTensorNorm_K20 >> 11) & 1) == 0 else -((~inputTensorNorm_K20 + 1) & 0x0fff)
+            div_val_1 = \
+                inputTensorNorm_K11 if ((inputTensorNorm_K11 >> 11) & 1) == 0 else -((~inputTensorNorm_K11 + 1) & 0x0fff)
             self.__cfg['input_tensor']['div_val'] = [div_val_0, div_val_1, div_val_2]
             self.__cfg['input_tensor']['div_shift'] = 6

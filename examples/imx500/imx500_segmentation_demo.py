@@ -21,7 +21,7 @@ def create_masks(request: CompletedRequest) -> Dict[int, np.ndarray]:
     """Create masks from the output tensor, scaled to the ISP out."""
     res = {}
     np_outputs = imx500.get_outputs(metadata=request.get_metadata())
-    input_w, input_h = imx500.get_input_w_h()
+    input_w, input_h = imx500.get_input_size()
     if np_outputs is None:
         return res
     mask = np_outputs[0]
