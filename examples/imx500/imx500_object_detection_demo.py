@@ -6,10 +6,8 @@ import numpy as np
 
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2.devices.imx500 import (postprocess_efficientdet_lite0_detection,
-                                      postprocess_nanodet_detection,
-                                      postprocess_yolov5_detection,
-                                      postprocess_yolov8_detection)
+from picamera2.devices.imx500 import postprocess_nanodet_detection
+
 
 last_detections = []
 
@@ -34,26 +32,7 @@ def parse_detections(metadata: dict):
     input_w, input_h = imx500.get_input_size()
     if np_outputs is None:
         return last_detections
-    if args.postprocess == "efficientdet_lite0":
-        boxes, scores, classes = \
-            postprocess_efficientdet_lite0_detection(outputs=np_outputs, conf_thres=threshold,
-                                                     iou_thres=iou, max_out_dets=max_detections)
-        from picamera2.devices.imx500.postprocess_yolov5 import scale_boxes
-        boxes = scale_boxes(boxes, 1, 1, input_h, input_w, False)
-
-    elif args.postprocess == "yolov5n":
-        boxes, scores, classes = \
-            postprocess_yolov5_detection(outputs=np_outputs, conf_thres=threshold, iou_thres=iou,
-                                         max_out_dets=max_detections)
-        from picamera2.devices.imx500.postprocess_yolov5 import scale_boxes
-        boxes = scale_boxes(boxes, 1, 1, input_h, input_w, False)
-
-    elif args.postprocess == "yolov8n":
-        boxes, scores, classes = \
-            postprocess_yolov8_detection(outputs=np_outputs, conf=threshold, iou_thres=iou,
-                                         max_out_dets=max_detections)[0]
-        boxes = boxes / input_h
-    elif args.postprocess == "nanodet":
+    if args.postprocess == "nanodet":
         boxes, scores, classes = \
             postprocess_nanodet_detection(outputs=np_outputs[0], conf=threshold, iou_thres=iou,
                                           max_out_dets=max_detections)[0]
@@ -113,7 +92,7 @@ def get_args():
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")
     parser.add_argument("--ignore-dash-labels", action="store_true", help="Remove '-' labels ")
-    parser.add_argument("--postprocess", choices=["yolov8n", "yolov5n", "nanodet", "efficientdet_lite0"],
+    parser.add_argument("--postprocess", choices=["nanodet"],
                         default=None, help="Run post process of type")
     parser.add_argument("-r", "--preserve-aspect-ratio", action="store_true",
                         help="preprocess the image with  preserve aspect ratio")
