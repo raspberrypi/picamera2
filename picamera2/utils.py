@@ -5,11 +5,11 @@ import picamera2.formats as formats
 
 def convert_from_libcamera_type(value):
     if isinstance(value, Rectangle):
-        value = (value.x, value.y, value.width, value.height)
+        value = value.to_tuple()
     elif isinstance(value, Size):
-        value = (value.width, value.height)
+        value = value.to_tuple()
     elif isinstance(value, (list, tuple)) and all(isinstance(item, Rectangle) for item in value):
-        value = [(v.x, v.y, v.width, v.height) for v in value]
+        value = [v.to_tuple() for v in value]
     return value
 
 

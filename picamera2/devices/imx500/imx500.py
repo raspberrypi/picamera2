@@ -93,7 +93,7 @@ class IMX500:
             self.__cfg['input_tensor']['div_shift'] = 6
 
         full_sensor = self.__get_full_sensor_resolution()
-        self.set_inference_roi_abs((0, 0, full_sensor.size.width, full_sensor.size.height))
+        self.set_inference_roi_abs(full_sensor.to_tuple())
 
     @staticmethod
     def __get_full_sensor_resolution():
@@ -120,7 +120,7 @@ class IMX500:
 
         y0, x0, y1, x1 = coords
         full_sensor = self.__get_full_sensor_resolution()
-        width, height = full_sensor.size.width, full_sensor.size.height
+        width, height = full_sensor.size.to_tuple()
         obj = Rectangle(
             *np.maximum(
                 np.array([x0 * width, y0 * height, (x1 - x0) * width, (y1 - y0) * height]),
@@ -128,7 +128,7 @@ class IMX500:
             ).astype(np.int32)
         )
         out = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
-        return (out.x, out.y, out.width, out.height)
+        return out.to_tuple()
 
     def get_fw_upload_progress(self, stage_req) -> tuple:
         """Returns the current progress of the fw upload in the form of (current, total)."""
@@ -181,7 +181,7 @@ class IMX500:
         scaler_crop = Rectangle(*request.get_metadata()['ScalerCrop'])
         obj = self.__get_full_sensor_resolution()
         roi = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
-        return (roi.x, roi.y, roi.width, roi.height)
+        return roi.to_tuple()
 
     @staticmethod
     def get_isp_output_size(picam2, stream="main") -> tuple:
@@ -190,7 +190,7 @@ class IMX500:
     def __get_obj_scaled(self, obj, isp_output_size, scaler_crop, sensor_output_size) -> Rectangle:
         """Scale the object coordinates based on the camera configuration and sensor properties."""
         full_sensor = self.__get_full_sensor_resolution()
-        width, height = full_sensor.size.width, full_sensor.size.height
+        width, height = full_sensor.size.to_tuple()
         sensor_crop = scaler_crop.scaled_by(sensor_output_size, full_sensor.size)
 
         # Make sure the object is bound to the user requested ROI.
@@ -290,7 +290,7 @@ class IMX500:
         f = self.__get_full_sensor_resolution()
         r = f.size.bounded_to_aspect_ratio(Size(aspect_ratio[0], aspect_ratio[1]))
         r = r.centered_to(f.center).enclosed_in(f)
-        self.set_inference_roi_abs((r.x, r.y, r.width, r.height))
+        self.set_inference_roi_abs(r.to_tuple())
 
     def set_auto_aspect_ratio(self):
         """Set the inference image crop to presereve the input tensor aspect ratio."""
