@@ -57,19 +57,39 @@ def draw_classification_results(request: CompletedRequest, results: List[Classif
     """Draw the classification results for this request onto the ISP output."""
     with MappedArray(request, stream) as m:
         if args.preserve_aspect_ratio:
-            # drawing roi box
-            b = imx500.get_roi_scaled(request)
-            cv2.putText(m.array, "ROI", (b[0] + 5, b[1] + 15), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (255, 0, 0), 1)
-            cv2.rectangle(m.array, (b[0], b[1]), (b[0] + b[2], b[1] + b[3]), (255, 0, 0, 0))
-            text_left, text_top = b[0], b[1] + 20
+            # Drawing ROI box
+            b_x, b_y, b_w, b_h = imx500.get_roi_scaled(request)
+            color = (255, 0, 0)  # red
+            cv2.putText(m.array, "ROI", (b_x + 5, b_y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+            cv2.rectangle(m.array, (b_x, b_y), (b_x + b_w, b_y + b_h), (255, 0, 0, 0))
+            text_left, text_top = b_x, b_y + 20
         else:
             text_left, text_top = 0, 0
-        # drawing labels (in the ROI box if exist)
+        # Drawing labels (in the ROI box if it exists)
         for index, result in enumerate(results):
             label = get_label(request, idx=result.idx)
             text = f"{label}: {result.score:.3f}"
-            cv2.putText(m.array, text, (text_left + 5, text_top + 15 + index * 20),
+
+            # Calculate text size and position
+            (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+            text_x = text_left + 5
+            text_y = text_top + 15 + index * 20
+
+            # Create a copy of the array to draw the background with opacity
+            overlay = m.array.copy()
+
+            # Draw the background rectangle on the overlay
+            cv2.rectangle(overlay,
+                          (text_x, text_y - text_height),
+                          (text_x + text_width, text_y + baseline),
+                          (255, 255, 255),  # Background color (white)
+                          cv2.FILLED)
+
+            alpha = 0.3
+            cv2.addWeighted(overlay, alpha, m.array, 1 - alpha, 0, m.array)
+
+            # Draw text on top of the background
+            cv2.putText(m.array, text, (text_x, text_y),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
 
