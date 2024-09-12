@@ -175,16 +175,17 @@ class IMX500:
 
     def get_roi_scaled(self, request: CompletedRequest, stream="main") -> tuple:
         """Get the region of interest (ROI) in output image coordinates space."""
-        isp_output_size = self.get_isp_output_size(request, stream)
-        sensor_output_size = self.get_isp_output_size(request, 'raw')
+        picam2 = request.picam2
+        isp_output_size = self.get_isp_output_size(picam2, stream)
+        sensor_output_size = self.get_isp_output_size(picam2, 'raw')
         scaler_crop = Rectangle(*request.get_metadata()['ScalerCrop'])
         obj = self.__get_full_sensor_resolution()
         roi = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
         return (roi.x, roi.y, roi.width, roi.height)
 
     @staticmethod
-    def get_isp_output_size(request, stream="main") -> tuple:
-        return Size(*request.picam2.camera_configuration()[stream]['size'])
+    def get_isp_output_size(picam2, stream="main") -> tuple:
+        return Size(*picam2.camera_configuration()[stream]['size'])
 
     def __get_obj_scaled(self, obj, isp_output_size, scaler_crop, sensor_output_size) -> Rectangle:
         """Scale the object coordinates based on the camera configuration and sensor properties."""
@@ -361,9 +362,9 @@ class IMX500:
 
             try:
                 fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
-                print('\n------------------------------------------------------------------------------------------------------------------\n'
-                      'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'
-                      '\n------------------------------------------------------------------------------------------------------------------\n')
+                print('\n------------------------------------------------------------------------------------------------------------------\n'  # noqa
+                      'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'  # noqa
+                      '\n------------------------------------------------------------------------------------------------------------------\n')  # noqa
             except OSError as err:
                 raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
             finally:
