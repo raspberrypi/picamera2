@@ -2,13 +2,12 @@ import argparse
 import time
 from typing import Dict
 
-import cv2
 import numpy as np
+
 from picamera2 import CompletedRequest, Picamera2
 from picamera2.devices import IMX500
 
 COLOURS = np.loadtxt("assets/colours.txt")
-WINDOW_SIZE = (640, 480)
 
 
 def create_and_draw_masks(request: CompletedRequest):
@@ -32,9 +31,10 @@ def create_masks(request: CompletedRequest) -> Dict[int, np.ndarray]:
             continue
         output_shape = [input_h, input_w, 4]
         colour = [(0, 0, 0, 0), COLOURS[int(i)]]
+        colour[1][3] = 150  # update the alpha value here, to save setting it later
         overlay = np.array(mask == i, dtype=np.uint8)
         overlay = np.array(colour)[overlay].reshape(output_shape).astype(np.uint8)
-        overlay = cv2.resize(overlay, WINDOW_SIZE)
+        # No need to resize the overlay, it will be stretched to the output window.
         res[i] = overlay
     return res
 
@@ -43,12 +43,13 @@ def draw_masks(masks: Dict[int, np.ndarray]):
     """Draw the masks for this request onto the ISP output."""
     if not masks:
         return
-    overlay = np.zeros((WINDOW_SIZE[1], WINDOW_SIZE[0], 4), dtype=np.uint8)
+    input_w, input_h = imx500.get_input_size()
+    output_shape = [input_h, input_w, 4]
+    overlay = np.zeros(output_shape, dtype=np.uint8)
     if masks:
         for v in masks.values():
             overlay += v
         # Set Alphas and overlay
-        overlay[:, :, -1][overlay[:, :, -1] == 255] = 150
         picam2.set_overlay(overlay)
 
 
