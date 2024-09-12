@@ -97,7 +97,7 @@ class IMX500:
 
     @staticmethod
     def __get_full_sensor_resolution():
-        """full_sensor_resolution as a Rectangle object"""
+        """Full sensor resolution as a Rectangle object."""
         return Rectangle(0, 0, 4056, 3040)
 
     def __del__(self):
@@ -131,7 +131,7 @@ class IMX500:
         return (out.x, out.y, out.width, out.height)
 
     def get_fw_upload_progress(self, stage_req) -> tuple:
-        """Returns the current progress of the fw upload in the form of (current, total)"""
+        """Returns the current progress of the fw upload in the form of (current, total)."""
         progress_block = 0
         progress_chunk = 0
         size = 0
@@ -203,7 +203,7 @@ class IMX500:
         return obj_scaled
 
     def get_input_size(self) -> tuple:
-        """Get the model input tensor size as (width, height)"""
+        """Get the model input tensor size as (width, height)."""
         return self.config['input_tensor_size']
 
     def input_tensor_image(self, input_tensor):
@@ -241,7 +241,7 @@ class IMX500:
         return outputs
 
     def get_output_shapes(self, metadata: dict) -> list[tuple[int]]:
-        """Get the model output shapes if no output return empty list"""
+        """Get the model output shapes if no output return empty list."""
         output_tensor_info = metadata.get('CnnOutputTensorInfo')
         if not output_tensor_info:
             return []
