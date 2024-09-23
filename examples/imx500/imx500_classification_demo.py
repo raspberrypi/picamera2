@@ -59,10 +59,10 @@ def draw_classification_results(request: CompletedRequest, results: List[Classif
         if args.preserve_aspect_ratio:
             # drawing roi box
             b = imx500.get_roi_scaled(request)
-            cv2.putText(m.array, "ROI", (b.x + 5, b.y + 15), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.putText(m.array, "ROI", (b[0] + 5, b[1] + 15), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (255, 0, 0), 1)
-            cv2.rectangle(m.array, (b.x, b.y), (b.x + b.width, b.y + b.height), (255, 0, 0, 0))
-            text_left, text_top = b.x, b.y + 20
+            cv2.rectangle(m.array, (b[0], b[1]), (b[0] + b[2], b[1] + b[3]), (255, 0, 0, 0))
+            text_left, text_top = b[0], b[1] + 20
         else:
             text_left, text_top = 0, 0
         # drawing labels (in the ROI box if exist)
