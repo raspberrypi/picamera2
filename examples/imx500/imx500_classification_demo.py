@@ -1,4 +1,5 @@
 import argparse
+import sys
 import time
 from typing import List
 
@@ -6,6 +7,7 @@ import cv2
 import numpy as np
 from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices import IMX500
+from picamera2.devices.imx500 import NetworkIntrinsics
 from picamera2.devices.imx500.postprocess import softmax
 
 last_detections = []
@@ -23,8 +25,7 @@ def get_label(request: CompletedRequest, idx: int) -> str:
     """Retrieve the label corresponding to the classification index."""
     global LABELS
     if LABELS is None:
-        with open(args.labels, "r") as f:
-            LABELS = f.read().splitlines()
+        LABELS = intrinsics.labels
         assert len(LABELS) in [1000, 1001], "Labels file should contain 1000 or 1001 labels."
         output_tensor_size = imx500.get_output_shapes(request.get_metadata())[0][0]
         if output_tensor_size == 1000:
@@ -45,7 +46,7 @@ def parse_classification_results(request: CompletedRequest) -> List[Classificati
     if np_outputs is None:
         return last_detections
     np_output = np_outputs[0]
-    if args.softmax:
+    if intrinsics.softmax:
         np_output = softmax(np_output)
     top_indices = np.argpartition(-np_output, 3)[:3]  # Get top 3 indices with the highest scores
     top_indices = top_indices[np.argsort(-np_output[top_indices])]  # Sort the top 3 indices by their scores
@@ -56,7 +57,7 @@ def parse_classification_results(request: CompletedRequest) -> List[Classificati
 def draw_classification_results(request: CompletedRequest, results: List[Classification], stream: str = "main"):
     """Draw the classification results for this request onto the ISP output."""
     with MappedArray(request, stream) as m:
-        if args.preserve_aspect_ratio:
+        if intrinsics.preserve_aspect_ratio:
             # Drawing ROI box
             b_x, b_y, b_w, b_h = imx500.get_roi_scaled(request)
             color = (255, 0, 0)  # red
@@ -98,12 +99,14 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, help="Path of the model",
                         default="/usr/share/imx500-models/imx500_network_mobilenet_v2.rpk")
-    parser.add_argument("--fps", type=int, default=30, help="Frames per second")
-    parser.add_argument("-s", "--softmax", action="store_true", help="Add post-process softmax")
-    parser.add_argument("-r", "--preserve-aspect-ratio", action="store_true",
+    parser.add_argument("--fps", type=int, help="Frames per second")
+    parser.add_argument("-s", "--softmax", action=argparse.BooleanOptionalAction, help="Add post-process softmax")
+    parser.add_argument("-r", "--preserve-aspect-ratio", action=argparse.BooleanOptionalAction,
                         help="preprocess the image with preserve aspect ratio")
-    parser.add_argument("--labels", type=str, default="assets/imagenet_labels.txt",
+    parser.add_argument("--labels", type=str,
                         help="Path to the labels file")
+    parser.add_argument("--print-intrinsics", action="store_true",
+                        help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 
@@ -112,13 +115,38 @@ if __name__ == "__main__":
 
     # This must be called before instantiation of Picamera2
     imx500 = IMX500(args.model)
+    intrinsics = imx500.network_intrinsics
+    if not intrinsics:
+        intrinsics = NetworkIntrinsics()
+        intrinsics.task = "classification"
+    elif intrinsics.task != "classification":
+        print("Network is not a classification task", file=sys.stderr)
+        exit()
+
+    # Override intrinsics from args
+    for key, value in vars(args).items():
+        if key == 'labels' and value is not None:
+            with open(value, 'r') as f:
+                intrinsics.labels = f.read().splitlines()
+        elif hasattr(intrinsics, key) and value is not None:
+            setattr(intrinsics, key, value)
+
+    # Defaults
+    if intrinsics.labels is None:
+        with open("assets/imagenet_labels.txt", "r") as f:
+            intrinsics.labels = f.read().splitlines()
+    intrinsics.update_with_defaults()
+
+    if args.print_intrinsics:
+        print(intrinsics)
+        exit()
 
     picam2 = Picamera2(imx500.camera_num)
-    config = picam2.create_preview_configuration(controls={"FrameRate": args.fps}, buffer_count=12)
+    config = picam2.create_preview_configuration(controls={"FrameRate": intrinsics.inference_rate}, buffer_count=12)
 
     imx500.show_network_fw_progress_bar()
     picam2.start(config, show_preview=True)
-    if args.preserve_aspect_ratio:
+    if intrinsics.preserve_aspect_ratio:
         imx500.set_auto_aspect_ratio()
     # Register the callback to parse and draw classification results
     picam2.pre_callback = parse_and_draw_classification_results

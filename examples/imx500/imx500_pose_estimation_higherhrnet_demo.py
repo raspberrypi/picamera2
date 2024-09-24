@@ -1,10 +1,11 @@
 import argparse
+import sys
 import time
 
 import numpy as np
 
 from picamera2 import CompletedRequest, MappedArray, Picamera2
-from picamera2.devices.imx500 import IMX500
+from picamera2.devices.imx500 import IMX500, NetworkIntrinsics
 from picamera2.devices.imx500.postprocess import COCODrawer
 from picamera2.devices.imx500.postprocess_highernet import \
     postprocess_higherhrnet
@@ -53,17 +54,18 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, help="Path of the model",
                         default="/usr/share/imx500-models/imx500_network_higherhrnet_coco.rpk")
-    parser.add_argument("--fps", type=int, default=10, help="Frames per second")
+    parser.add_argument("--fps", type=int, help="Frames per second")
     parser.add_argument("--detection-threshold", type=float, default=0.3,
                         help="Post-process detection threshold")
-    parser.add_argument("--labels", type=str, default="assets/coco_labels.txt",
+    parser.add_argument("--labels", type=str,
                         help="Path to the labels file")
+    parser.add_argument("--print-intrinsics", action="store_true",
+                        help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 
 def get_drawer():
-    with open(args.labels, "r") as f:
-        categories = f.read().split("\n")
+    categories = intrinsics.labels
     categories = [c for c in categories if c and c != "-"]
     return COCODrawer(categories, imx500, needs_rescale_coords=False)
 
@@ -73,10 +75,38 @@ if __name__ == "__main__":
 
     # This must be called before instantiation of Picamera2
     imx500 = IMX500(args.model)
+    intrinsics = imx500.network_intrinsics
+    if not intrinsics:
+        intrinsics = NetworkIntrinsics()
+        intrinsics.task = "pose estimation"
+    elif intrinsics.task != "pose estimation":
+        print("Network is not a pose estimation task", file=sys.stderr)
+        exit()
+
+    # Override intrinsics from args
+    for key, value in vars(args).items():
+        if key == 'labels' and value is not None:
+            with open(value, 'r') as f:
+                intrinsics.labels = f.read().splitlines()
+        elif hasattr(intrinsics, key) and value is not None:
+            setattr(intrinsics, key, value)
+
+    # Defaults
+    if intrinsics.inference_rate is None:
+        intrinsics.inference_rate = 10
+    if intrinsics.labels is None:
+        with open("assets/coco_labels.txt", "r") as f:
+            intrinsics.labels = f.read().splitlines()
+    intrinsics.update_with_defaults()
+
+    if args.print_intrinsics:
+        print(intrinsics)
+        exit()
+
     drawer = get_drawer()
 
     picam2 = Picamera2(imx500.camera_num)
-    config = picam2.create_preview_configuration(controls={'FrameRate': args.fps}, buffer_count=12)
+    config = picam2.create_preview_configuration(controls={'FrameRate': intrinsics.inference_rate}, buffer_count=12)
 
     imx500.show_network_fw_progress_bar()
     picam2.start(config, show_preview=True)

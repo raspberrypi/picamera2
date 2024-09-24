@@ -1,12 +1,15 @@
 import ctypes
 import fcntl
 import io
+import json
 import multiprocessing
 import os
 import struct
+import sys
 import time
-from typing import Optional
+from typing import List, Optional
 
+import jsonschema
 import numpy as np
 from libarchive.read import fd_reader
 from libcamera import Rectangle, Size
@@ -45,6 +48,226 @@ class CnnOutputTensorInfoExported(ctypes.LittleEndianStructure):
         ('info', OutputTensorInfo * MAX_NUM_TENSORS)
     ]
 
+class NetworkIntrinsics:
+    def __init__(self, val=None):
+        self.__intrinsics: Optional[dict] = None
+        self.__schema = {
+            "$schema": "https://json-schema.org/draft-07/schema",
+            "title": "network_intrinsics",
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "enum": ["classification", "object detection", "pose estimation", "segmentation"],
+                    "description": "Network task",
+                },
+                "inference_rate": {"type": "number", "minimum": 0},
+                "cpu": {
+                    "type": "object",
+                    "properties": {
+                        "bbox_normalization": {"type": "boolean"},
+                        "softmax": {"type": "boolean"},
+                        "post_processing": {"type": "string"},
+                    },
+                },
+                "input_aspect_ratio": {
+                    "type": "object",
+                    "properties": {
+                        "width": {"type": "integer", "exclusiveMinimum": 0},
+                        "height": {"type": "integer", "exclusiveMinimum": 0},
+                    },
+                    "required": ["width", "height"],
+                },
+                "classes": {
+                    "type": "object",
+                    "properties": {
+                        "labels": {"type": "array", "items": {"type": "string"}},
+                        "ignore_undefined": {"type": "boolean"},
+                    },
+                },
+            },
+        }
+        if val is not None:
+            jsonschema.validate(val, self.__schema)
+            self.__intrinsics = val
+
+        self.__defaults = {'inference_rate': 30.0}
+        jsonschema.validate(self.__defaults, self.__schema | {'additionalProperties': False})
+
+    @property
+    def intrinsics(self) -> Optional[dict]:
+        return self.__intrinsics
+
+    @intrinsics.setter
+    def intrinsics(self, val):
+        jsonschema.validate(val, self.__schema)
+        self.__intrinsics = val
+
+    def __repr__(self):
+        return json.dumps(self.__intrinsics) if self.__intrinsics else ""
+
+    def __top_level_validated_insert(self, val: dict):
+        jsonschema.validate(val, self.__schema | {'additionalProperties': False})
+        self.__intrinsics = self.__intrinsics | val if self.__intrinsics else val
+
+    def __intrinsics_has_key(self, key: str) -> bool:
+        return key in self.__intrinsics if self.__intrinsics else False
+
+    def __intrinsics_get_key(self, key, default=None):
+        return self.__intrinsics.get(key, default) if self.__intrinsics else default
+
+    def update_with_defaults(self):
+        # Updates intrinsics with default settings (but does not overwrite)
+        if not self.__intrinsics:
+            self.__intrinsics = {}
+        self.__intrinsics = self.__defaults | self.__intrinsics
+
+    @property
+    def task(self) -> Optional[str]:
+        return self.__intrinsics_get_key('task')
+
+    @task.setter
+    def task(self, val: str):
+        self.__top_level_validated_insert({'task': val})
+
+    @property
+    def inference_rate(self) -> Optional[float]:
+        return self.__intrinsics_get_key('inference_rate')
+
+    @inference_rate.setter
+    def inference_rate(self, val: float):
+        if val < 0:
+            if self.__intrinsics is not None:
+                self.__intrinsics.pop('inference_rate', None)
+        else:
+            self.__top_level_validated_insert({'inference_rate': val})
+
+    @property
+    def fps(self) -> Optional[float]:
+        # @deprecated("Prefer inference_rate")
+        return self.inference_rate
+
+    @fps.setter
+    def fps(self, val: Optional[float]):
+        # @deprecated("Prefer inference_rate")
+        self.inference_rate = val
+
+    def __get_cpu(self, key: str):
+        return self.__intrinsics['cpu'].get(key, None) if self.__intrinsics_has_key('cpu') else None
+
+    def __set_cpu(self, val: dict):
+        jsonschema.validate({'cpu': val}, self.__schema | {'additionalProperties': False})
+        cpu = self.__intrinsics_get_key('cpu', {}) | val
+        if self.__intrinsics:
+            self.__intrinsics['cpu'] = cpu
+        else:
+            self.__intrinsics = {'cpu': cpu}
+
+    @property
+    def bbox_normalization(self) -> Optional[bool]:
+        self.__get_cpu('bbox_normalization')
+
+    @bbox_normalization.setter
+    def bbox_normalization(self, val: Optional[bool]):
+        if val is None:
+            return
+
+        if val:
+            self.__set_cpu({'bbox_normalization': val})
+        elif self.__intrinsics_has_key('cpu'):
+            self.__intrinsics['cpu'].pop('bbox_normalization', None)
+
+        if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
+            self.__intrinsics.pop('cpu')
+
+    @property
+    def softmax(self) -> Optional[bool]:
+        self.__get_cpu('softmax')
+
+    @softmax.setter
+    def softmax(self, val: Optional[bool]):
+        if val is None:
+            return
+
+        if val:
+            self.__set_cpu({'softmax': val})
+        elif self.__intrinsics_has_key('cpu'):
+            self.__intrinsics['cpu'].pop('softmax', None)
+
+        if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
+            self.__intrinsics.pop('cpu')
+
+    @property
+    def postprocess(self) -> Optional[str]:
+        self.__get_cpu('post_processing')
+
+    @postprocess.setter
+    def postprocess(self, val: str):
+        if val != "":
+            self.__set_cpu({'post_processing': val})
+        elif self.__intrinsics_has_key('cpu'):
+            self.__intrinsics['cpu'].pop('post_processing', None)
+
+        if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
+            self.__intrinsics.pop('cpu')
+
+    @property
+    def preserve_aspect_ratio(self) -> Optional[bool]:
+        if not self.__intrinsics_has_key('input_aspect_ratio'):
+            return None
+        ar = self.__intrinsics['input_aspect_ratio']
+        return ar['width'] == ar['height']
+
+    @preserve_aspect_ratio.setter
+    def preserve_aspect_ratio(self, val: Optional[bool]):
+        if val is None:
+            return
+
+        if val:
+            iar = {'input_aspect_ratio': {'width': 1, 'height': 1}}
+            self.__top_level_validated_insert(iar)
+        elif self.__intrinsics_has_key('input_aspect_ratio'):
+            self.__intrinsics.pop('input_aspect_ratio')
+
+    @property
+    def labels(self) -> Optional[List[str]]:
+        return self.__intrinsics['classes'].get('labels', None) if self.__intrinsics_has_key('classes') else None
+
+    @labels.setter
+    def labels(self, val: List[str]):
+        if len(val) != 0:
+            classes = {'labels': val}
+            jsonschema.validate({'classes': classes}, self.__schema | {'additionalProperties': False})
+
+            classes = self.__intrinsics_get_key('classes', {}) | classes
+            if self.__intrinsics:
+                self.__intrinsics['classes'] = classes
+            else:
+                self.__intrinsics = {'classes': classes}
+        elif self.__intrinsics_has_key('classes'):
+            self.__intrinsics['classes'].pop('labels', None)
+            if len(self.__intrinsics['classes']) == 0:
+                self.__intrinsics.pop('classes')
+
+    @property
+    def ignore_dash_labels(self) -> Optional[bool]:
+        return self.__intrinsics['classes'].get('ignore_undefined', None) if self.__intrinsics_has_key('classes') else None
+
+    @ignore_dash_labels.setter
+    def ignore_dash_labels(self, val: Optional[bool]):
+        if val is None:
+            return
+
+        if val:
+            iu = {'ignore_undefined': val}
+            jsonschema.validate({'classes': iu}, self.__schema | {'additionalProperties': False})
+
+            classes = {'classes': self.__intrinsics_get_key('classes', {}) | iu}
+            self.__intrinsics = self.__intrinsics | classes if self.__intrinsics else classes
+        elif self.__intrinsics_has_key('classes'):
+            self.__intrinsics['classes'].pop('ignore_undefined', None)
+            if len(self.__intrinsics['classes']) == 0:
+                self.__intrinsics.pop('classes')
 
 class IMX500:
     def __init__(self, network_file: str, camera_id: str = ''):
@@ -111,6 +334,10 @@ class IMX500:
     @property
     def config(self) -> dict:
         return self.__cfg
+
+    @property
+    def network_intrinsics(self) -> Optional[NetworkIntrinsics]:
+        return self.__cfg.get('intrinsics', None)
 
     def convert_inference_coords(self, coords: tuple, metadata: dict, picam2: Picamera2, stream='main') -> tuple:
         """Convert relative inference coordinates into the output image coordinates space."""
@@ -364,7 +591,7 @@ class IMX500:
                 fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
                 print('\n------------------------------------------------------------------------------------------------------------------\n'  # noqa
                       'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'  # noqa
-                      '\n------------------------------------------------------------------------------------------------------------------\n')  # noqa
+                      '\n------------------------------------------------------------------------------------------------------------------\n', file=sys.stderr)  # noqa
             except OSError as err:
                 raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
             finally:
@@ -397,6 +624,8 @@ class IMX500:
             for entry in archive:
                 if 'network_info.txt' == str(entry):
                     self.__cfg['network_info_raw'] = b''.join(entry.get_blocks())
+                elif 'network_intrinsics' == str(entry):
+                    self.__cfg['intrinsics'] = NetworkIntrinsics(json.loads(b''.join(entry.get_blocks())))
 
         os.close(cpio_fd)
 

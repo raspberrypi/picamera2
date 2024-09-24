@@ -1,4 +1,4 @@
-from .imx500 import IMX500
+from .imx500 import IMX500, NetworkIntrinsics
 from .postprocess_efficientdet_lite0 import \
     postprocess_efficientdet_lite0_detection
 from .postprocess_nanodet import postprocess_nanodet_detection

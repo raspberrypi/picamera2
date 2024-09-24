@@ -1,4 +1,5 @@
 import argparse
+import sys
 import time
 from typing import Dict
 
@@ -6,6 +7,7 @@ import numpy as np
 
 from picamera2 import CompletedRequest, Picamera2
 from picamera2.devices import IMX500
+from picamera2.devices.imx500 import NetworkIntrinsics
 
 COLOURS = np.loadtxt("assets/colours.txt")
 
@@ -58,7 +60,9 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, help="Path of the model",
                         default="/usr/share/imx500-models/imx500_network_deeplabv3plus.rpk")
-    parser.add_argument("--fps", type=int, default=30, help="Frames per second")
+    parser.add_argument("--fps", type=int, help="Frames per second")
+    parser.add_argument("--print-intrinsics", action="store_true",
+                        help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 
@@ -67,9 +71,28 @@ if __name__ == "__main__":
 
     # This must be called before instantiation of Picamera2
     imx500 = IMX500(args.model)
+    intrinsics = imx500.network_intrinsics
+    if not intrinsics:
+        intrinsics = NetworkIntrinsics()
+        intrinsics.task = "segmentation"
+    elif intrinsics.task != "segmentation":
+        print("Network is not a segmentation task", file=sys.stderr)
+        exit()
+
+    # Override intrinsics from args
+    for key, value in vars(args).items():
+        if hasattr(intrinsics, key) and value is not None:
+            setattr(intrinsics, key, value)
+
+    # Defaults
+    intrinsics.update_with_defaults()
+
+    if args.print_intrinsics:
+        print(intrinsics)
+        exit()
 
     picam2 = Picamera2(imx500.camera_num)
-    config = picam2.create_preview_configuration(controls={'FrameRate': args.fps}, buffer_count=12)
+    config = picam2.create_preview_configuration(controls={'FrameRate': intrinsics.inference_rate}, buffer_count=12)
     imx500.show_network_fw_progress_bar()
     picam2.start(config, show_preview=True)
     picam2.pre_callback = create_and_draw_masks
