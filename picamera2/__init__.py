@@ -52,3 +52,17 @@ libcamera.Transform.__eq__ = libcamera_transforms_eq
 
 libcamera.ColorSpace.__repr__ = libcamera.ColorSpace.__str__
 libcamera.ColorSpace.__eq__ = libcamera_colour_spaces_eq
+
+
+def _libcamera_size_to_tuple(sz):
+    return (sz.width, sz.height)
+
+
+libcamera.Size.to_tuple = _libcamera_size_to_tuple
+
+
+def _libcamera_rect_to_tuple(rect):
+    return (rect.x, rect.y, rect.width, rect.height)
+
+
+libcamera.Rectangle.to_tuple = _libcamera_rect_to_tuple

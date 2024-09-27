@@ -6,6 +6,13 @@
 
 ### Changed
 
+## 0.3.22 Beta Release 21
+
+### Changed
+
+* Add to_tuple methods to libcamera Rectangle and Size types
+* Add IMX500 support
+
 ## 0.3.21 Beta Release 20
 
 ### Changed

@@ -30,7 +30,7 @@ def check(raw_config, fps):
     set_format = SensorFormat(camera_config["raw"]["format"])
     requested_format = SensorFormat(raw_config["format"])
     # For now, assume all our cameras are rotated 180 degrees.
-    rotation = 180  # picam2.camera_properties["Rotation"]
+    rotation = picam2.camera_properties["Rotation"]
     set_format.transform(Transform(rotation=rotation))
     # Bayer order should match, as should bit depth (taking it from the sensor config
     # if present). Insist that there either is packing of some form on both, or none.
