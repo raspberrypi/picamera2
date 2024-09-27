@@ -1,3 +1,11 @@
+picamera2 (0.3.22-1) bookworm; urgency=medium
+
+  * New upstream version 0.3.22
+  * Add python3-libarchive-c build dependency
+  * Update dependencies and debian/py3dist-overrides
+
+ -- Serge Schneider <serge@raspberrypi.com>  Fri, 27 Sep 2024 14:48:32 +0100
+
 picamera2 (0.3.21-1) bookworm; urgency=medium
 
   * New upstream version 0.3.21
