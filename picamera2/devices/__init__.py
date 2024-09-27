@@ -3,4 +3,5 @@ try:
     from .hailo import Hailo
 except ModuleNotFoundError:
     pass
+from .imx500 import IMX500
 from .imx708 import IMX708
