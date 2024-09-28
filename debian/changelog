@@ -1,3 +1,9 @@
+picamera2 (0.3.22-2) bookworm; urgency=medium
+
+  * Add python3-jsonschema to debian/py3dist-overrides
+
+ -- Serge Schneider <serge@raspberrypi.com>  Sat, 28 Sep 2024 14:44:16 +0100
+
 picamera2 (0.3.22-1) bookworm; urgency=medium
 
   * New upstream version 0.3.22
