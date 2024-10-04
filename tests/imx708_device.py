@@ -26,3 +26,11 @@ if camera_num is not None:
     if len(picam2.sensor_modes) != 1:
         print("ERROR: We should only report 1 sensor HDR mode")
     picam2.close()
+
+    # Be sure to leave us in the HDR off state!
+    cam = IMX708(camera_num)
+    cam.set_sensor_hdr_mode(False)
+    picam2 = Picamera2(camera_num)
+    if len(picam2.sensor_modes) <= 1:
+        print("ERROR: We should only report 1 sensor HDR mode")
+    picam2.close()
