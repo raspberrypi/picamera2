@@ -69,6 +69,9 @@ class Encoder:
         self.audio_sync = -100000  # in us, so by default, delay audio by 100ms
         self._audio_start = threading.Event()
         self.frames_encoded = 0
+        # For camera sync.
+        self.sync_enable = False
+        self.sync = threading.Event()
 
     @property
     def running(self):
@@ -239,6 +242,17 @@ class Encoder:
         """
         if self.audio:
             self._audio_start.set()  # Signal the audio encode thread to start.
+
+        # If "sync" has been requested, we must wait for the image metadata to say that we
+        # don't need to wait any more. While waiting, we simply don't encode any frames.
+        if self.sync_enable:
+            metadata = request.get_metadata()
+            if metadata.get('SyncReady', False):
+                self.sync_enable = False
+                self.sync.set()
+            else:
+                return
+
         if self._skip_count == 0:
             with self._lock:
                 if not self._running:
