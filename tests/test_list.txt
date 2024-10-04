@@ -43,6 +43,8 @@ examples/still_during_video.py
 examples/switch_mode.py
 examples/switch_mode_2.py
 examples/switch_mode_persist.py
+examples/sync_capture.py
+examples/sync_recording.py
 examples/timestamp_capture.py
 examples/title_bar.py
 examples/tuning_file.py
@@ -85,6 +87,7 @@ tests/preview_location_test.py
 tests/preview_start_stop.py
 tests/quality_check.py
 tests/qt_gl_preview_test.py
+tests/sync_test.py
 tests/stop_slow_framerate.py
 tests/allocator_test.py
 tests/allocator_leak_test.py
