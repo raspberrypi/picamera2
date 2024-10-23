@@ -19,7 +19,7 @@ def create_and_draw_masks(request: CompletedRequest):
 
 
 def create_masks(request: CompletedRequest) -> Dict[int, np.ndarray]:
-    """Create masks from the output tensor, scaled to the ISP out."""
+    """Create masks from the output tensor, scaled to the ISP output."""
     res = {}
     np_outputs = imx500.get_outputs(metadata=request.get_metadata())
     input_w, input_h = imx500.get_input_size()

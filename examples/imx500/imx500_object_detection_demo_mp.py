@@ -23,7 +23,7 @@ class Detection:
 
 
 def parse_detections(metadata: dict):
-    """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
+    """Parse the output tensor into a number of detected objects, scaled to the ISP output."""
     bbox_normalization = intrinsics.bbox_normalization
     threshold = args.threshold
     iou = args.iou
