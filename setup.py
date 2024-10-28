@@ -36,6 +36,6 @@ setup(
     python_requires='>=3.9',
     licence='BSD 2-Clause License',
     install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3',
-                      'python-prctl', 'av', 'python3-libarchive-c', 'python3-tqdm',
+                      'python-prctl', 'av>=12.3.0,<13.0.0', 'python3-libarchive-c', 'python3-tqdm',
                       'python3-jsonschema'],
     extras_require={"gui": ['pyopengl', 'PyQt5']})
