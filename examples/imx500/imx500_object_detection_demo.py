@@ -25,6 +25,7 @@ def parse_detections(metadata: dict):
     """Parse the output tensor into a number of detected objects, scaled to the ISP output."""
     global last_detections
     bbox_normalization = intrinsics.bbox_normalization
+    bbox_order = intrinsics.bbox_order
     threshold = args.threshold
     iou = args.iou
     max_detections = args.max_detections
@@ -44,6 +45,8 @@ def parse_detections(metadata: dict):
         if bbox_normalization:
             boxes = boxes / input_h
 
+        if bbox_order == "xy":
+            boxes = boxes[:, [1, 0, 3, 2]]
         boxes = np.array_split(boxes, 4, axis=1)
         boxes = zip(*boxes)
 
@@ -113,6 +116,8 @@ def get_args():
                         default="/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk")
     parser.add_argument("--fps", type=int, help="Frames per second")
     parser.add_argument("--bbox-normalization", action=argparse.BooleanOptionalAction, help="Normalize bbox")
+    parser.add_argument("--bbox-order", choices=["yx", "xy"], default="yx",
+                        help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)")
     parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")

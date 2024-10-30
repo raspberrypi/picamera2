@@ -67,6 +67,7 @@ class NetworkIntrinsics:
                     "type": "object",
                     "properties": {
                         "bbox_normalization": {"type": "boolean"},
+                        "bbox_order": {"type": "string", "enum": ["xy", "yx"]},
                         "softmax": {"type": "boolean"},
                         "post_processing": {"type": "string"},
                     },
@@ -178,6 +179,18 @@ class NetworkIntrinsics:
         elif self.__intrinsics_has_key('cpu'):
             self.__intrinsics['cpu'].pop('bbox_normalization', None)
 
+        if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
+            self.__intrinsics.pop('cpu')
+
+    @property
+    def bbox_order(self) -> Optional[str]:
+        return self.__get_cpu('bbox_order')
+
+    @bbox_order.setter
+    def bbox_order(self, val: str):
+        if val not in ["xy", "yx"]:
+            raise ValueError("bbox_order must be either 'xy' or 'yx'")
+        self.__set_cpu({'bbox_order': val})
         if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
             self.__intrinsics.pop('cpu')
 
