@@ -245,7 +245,7 @@ class Encoder:
     def _stop(self):
         pass
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
         """Writes a frame
 
         :param frame: Frame
@@ -253,8 +253,12 @@ class Encoder:
         :param keyframe: Whether frame is a keyframe or not, defaults to True
         :type keyframe: bool, optional
         """
-        for out in self._output:
-            out.outputframe(frame, keyframe, timestamp)
+        if packet:
+            for out in self._output:
+                out.outputframe(frame, keyframe, timestamp, packet)
+        else:
+            for out in self._output:
+                out.outputframe(frame, keyframe, timestamp)
 
     def _setup(self, quality):
         pass

@@ -40,7 +40,7 @@ class CircularOutput(FileOutput):
             self._buffersize = value
             self._circular = collections.deque(maxlen=value)
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
         """Write frame to circular buffer
 
         :param frame: Frame
