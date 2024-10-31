@@ -33,6 +33,8 @@ examples/picamera2_multiprocessing.py
 examples/pick_mode.py
 examples/preview.py
 examples/preview_x_forwarding.py
+examples/pyav_capture.py
+examples/pyav_circular_capture.py
 examples/raw.py
 examples/request_context_manager.py
 examples/rotation.py

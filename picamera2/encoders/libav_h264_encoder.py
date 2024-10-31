@@ -57,6 +57,9 @@ class LibavH264Encoder(Encoder):
         self._stream.height = self.height
         self._stream.pix_fmt = "yuv420p"
 
+        for out in self._output:
+            out._add_stream(self._stream, self._codec, rate=self.framerate)
+
         preset = "ultrafast"
         if self.profile is not None:
             if not isinstance(self.profile, str):
@@ -110,7 +113,7 @@ class LibavH264Encoder(Encoder):
                     if delay_us > 0:
                         time.sleep(delay_us / 1000000)
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
-                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
         self._container.close()
 
     def _encode(self, stream, request):
@@ -120,4 +123,4 @@ class LibavH264Encoder(Encoder):
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
-                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)

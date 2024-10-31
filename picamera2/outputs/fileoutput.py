@@ -72,7 +72,7 @@ class FileOutput(Output):
         else:
             raise RuntimeError("Must pass callback function or None")
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
         """Outputs frame from encoder
 
         :param frame: Frame

@@ -22,7 +22,7 @@ class Output:
         """Stop recording"""
         self.recording = False
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
         """Outputs frame from encoder
 
         :param frame: Frame
@@ -57,3 +57,7 @@ class Output:
                 self._ptsoutput = open(file, "w")
             else:
                 self._ptsoutput = file
+
+    def _add_stream(self, encoder_stream, *args, **kwargs):
+        # Some output types might need to know about an encoder's output stream.
+        pass
