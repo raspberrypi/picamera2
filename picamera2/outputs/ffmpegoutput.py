@@ -97,7 +97,9 @@ class FfmpegOutput(Output):
             # This seems to be necessary to get the subprocess to clean up fully.
             gc.collect()
 
-    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
+        if audio:
+            raise RuntimeError("FfmpegOutput does not support audio packets from Picamera2")
         if self.recording and self.ffmpeg:
             # Handle the case where the FFmpeg prcoess has gone away for reasons of its own.
             try:

@@ -40,7 +40,7 @@ class CircularOutput(FileOutput):
             self._buffersize = value
             self._circular = collections.deque(maxlen=value)
 
-    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Write frame to circular buffer
 
         :param frame: Frame
@@ -50,6 +50,8 @@ class CircularOutput(FileOutput):
         :param timestamp: Timestamp of frame
         :type timestamp: int
         """
+        if audio:
+            raise RuntimeError("CircularOutput does not support audio")
         with self._lock:
             if self._buffersize == 0:
                 return

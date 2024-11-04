@@ -7,14 +7,19 @@ from .output import Output
 
 
 class CircularOutput2(Output):
-    """Circular buffer implementation for general outputs
+    """
+    Circular buffer implementation, much like CircularOutput, but for general outputs.
 
-    Very like the original CircularOutput, but this version can also be used with a
-    PyavOutput underneath, so as directly to create mp4 files.
+    This means it can be used in conjunction with, for example, a PyavOutput to create time-shifted
+    recordings of both video and audio straight to an mp4 file.
+
+    Once the CircularOutput2 has been started, use the open_output method to start start recording
+    a new output, and use close_output when finished. If the output has not been closed when the
+    circular buffer is stopped, then the remainder of the buffer will be flush into the output.
     """
 
-    def __init__(self, pts=None, buffer_duration_ms=5000, always_output=True):
-        """Creates circular buffer for 5s worth of 30fps frames"""
+    def __init__(self, pts=None, buffer_duration_ms=5000):
+        """Create a CircularOutput2."""
         super().__init__(pts=pts)
         # A note on locking. The lock is principally to protect outputframe, which is called by
         # the background encoder thread. Applications are going to call things like open_output,
@@ -27,7 +32,6 @@ class CircularOutput2(Output):
             raise RuntimeError("buffer_duration_ms may not be negative")
         self._buffer_duration_ms = buffer_duration_ms
         self._circular = collections.deque()
-        self.always_output = always_output
         self._output = None
         self._output_available = False
         self._streams = []
@@ -44,7 +48,7 @@ class CircularOutput2(Output):
             self._buffer_duration_ms = value
 
     def open_output(self, output):
-        """Set a new output object"""
+        """Open a new output object and start writing to it."""
         if self._output:
             raise RuntimeError("Underlying output must be closed first")
 
@@ -72,6 +76,7 @@ class CircularOutput2(Output):
         self._output = None
 
     def _get_frame(self):
+        # Fetch the next frame to be saved to the underlying output.
         if not self._circular:
             return
         if not self._first_frame:
@@ -79,22 +84,24 @@ class CircularOutput2(Output):
         # Must skip ahead to the first I frame if we haven't seen one yet.
         while self._circular:
             entry = self._circular.popleft()
-            _, key_frame, _, _ = entry
-            if key_frame:
+            _, key_frame, _, _, audio = entry
+            # If there is audio, all audio frames are likely to be keyframes, so we must ignore them when
+            # deciding when the streams can resume - only the video counts.
+            if key_frame and not audio:
                 self._first_frame = False
                 return entry
 
-    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Write frame to circular buffer"""
         with self._lock:
             if self._buffer_duration_ms == 0 or not self.recording:
                 return
-            self._circular.append((frame, keyframe, timestamp, packet))
+            self._circular.append((frame, keyframe, timestamp, packet, audio))
             # Discard any expired buffer entries.
             while timestamp - self._circular[0][2] > self._buffer_duration_ms * 1000:
                 self._circular.popleft()
 
-            if self._output_available and self.always_output:
+            if self._output_available:
                 # Actually write this to the underlying output.
                 entry = self._get_frame()
                 if entry:
@@ -108,7 +115,7 @@ class CircularOutput2(Output):
             self.recording = True
 
     def stop(self):
-        """Close file handle and prevent recording"""
+        """Close file handle and stop recording"""
         with self._lock:
             if not self.recording:
                 raise RuntimeError("Circular output was not started")
@@ -123,5 +130,7 @@ class CircularOutput2(Output):
             self._output.stop()
             self._output = None
 
-    def _add_stream(self, encoder_stream, codec, **kwargs):
-        self._streams.append((encoder_stream, codec, kwargs))
+    def _add_stream(self, encoder_stream, codec_name, **kwargs):
+        # Notice the PyavOutput of a stream that will be sending it packets to write out. It will need
+        # to forward these whenever a new underlying output is opened.
+        self._streams.append((encoder_stream, codec_name, kwargs))
