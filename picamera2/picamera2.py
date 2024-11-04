@@ -1122,7 +1122,7 @@ class Picamera2:
         self.controls = Controls(self, controls=self.camera_config['controls'])
         self.configure_count += 1
 
-        if "ScalerCrops" in self.camera_controls:
+        if False and "ScalerCrops" in self.camera_controls:
             par_crop = self.camera_controls["ScalerCrops"]
             full_fov = self.camera_controls["ScalerCrop"][1]
             scaler_crops = [par_crop[0] if camera_config["main"]["preserve_ar"] else full_fov]

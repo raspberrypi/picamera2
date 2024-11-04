@@ -22,7 +22,7 @@ class Output:
         """Stop recording"""
         self.recording = False
 
-    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Outputs frame from encoder
 
         :param frame: Frame
