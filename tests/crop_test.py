@@ -4,13 +4,18 @@
 
 import cv2
 
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Platform
+
+# VC4 platforms do not support different crops for the two outputs.
+if Picamera2.platform == Platform.VC4:
+    print("SKIPPED (VC4 platform)")
+    quit(0)
 
 picam2 = Picamera2()
 
 for m, l in [(False, False), (False, True), (True, False), (True, True)]:
     cfg = picam2.create_video_configuration(main={"size": (1920, 1080), "format": 'XRGB8888', "preserve_ar": m},
-                                            lores={"size": (640, 640), "format": 'YUV420', "preserve_ar": l},
+                                            lores={"size": (640, 640), "format": 'XRGB8888', "preserve_ar": l},
                                             display="main")
     picam2.configure(cfg)
     picam2.start(show_preview=True)
