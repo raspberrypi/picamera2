@@ -6,6 +6,7 @@ from math import sqrt
 
 import av
 
+import picamera2.platform as Platform
 from picamera2.encoders.encoder import Encoder, Quality
 
 from ..request import MappedArray
@@ -28,6 +29,22 @@ class LibavH264Encoder(Encoder):
         self.drop_final_frames = False
         self.threads = 0  # means "you choose"
         self._lasttimestamp = None
+        self._use_hw = False
+
+    @property
+    def use_hw(self):
+        """Whether hardware encode will be used (can be set to True only for VC4 platforms)."""
+        return self._use_hw
+
+    @use_hw.setter
+    def use_hw(self, value):
+        """Set this property in order to get libav to use the V4L2 hardware encoder (VC4 platforms only)."""
+        if value:
+            if Platform.get_platform() == Platform.Platform.VC4:
+                self._use_hw = True
+                self._codec = "h264_v4l2m2m"
+            else:
+                print("Warning: use_hw has no effect on non-VC4 platforms")
 
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
