@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 import av
 
 from .output import Output
@@ -50,15 +52,26 @@ class PyavOutput(Output):
             except Exception:
                 pass
             self._container = None
+            self._streams = {}
 
     def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Output an encoded frame using PyAv."""
         if self.recording and self._container:
-            orig_stream = packet.stream
-            if orig_stream not in self._streams:
-                raise RuntimeError("Stream not found in PyavOutput")
-            # Here we replace in encoder's stream by the corresponding one for our output container.
-            packet.stream = self._streams[orig_stream]
+            orig_stream = None
+            # We must make a packet that looks like it came from our own container's version of the stream.
+            if not packet:
+                # No packet present. It must have come from a video encoder that isn't using libav, so make one up.
+                packet = av.Packet(frame)
+                packet.dts = timestamp
+                packet.pts = timestamp
+                packet.time_base = Fraction(1, 1000000)
+                packet.stream = self._streams["video"]
+            else:
+                # We can perform a switcheroo on the packet's stream, swapping the encoder's version for ours!
+                orig_stream = packet.stream
+                if orig_stream not in self._streams:
+                    raise RuntimeError("Stream not found in PyavOutput")
+                packet.stream = self._streams[orig_stream]
 
             try:
                 self._container.mux(packet)
@@ -74,4 +87,5 @@ class PyavOutput(Output):
             # Put the original stream back, just in case the encoder has multiple outputs and will pass
             # it to each one.
             packet.stream = orig_stream
+
             self.outputtimestamp(timestamp)

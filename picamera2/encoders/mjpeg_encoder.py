@@ -34,3 +34,10 @@ class MJPEGEncoder(V4L2Encoder):
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
             self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)
+
+    def _start(self):
+        # The output objects may need to know what kind of stream this is.
+        for out in self._output:
+            out._add_stream("video", "mjpeg", rate=30)  # seem to need a rate to prevent timestamp warnings
+
+        super()._start()
