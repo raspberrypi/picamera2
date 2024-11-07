@@ -20,7 +20,7 @@ from v4l2 import (VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS, v4l2_control,
 from picamera2 import CompletedRequest, Picamera2
 
 NETWORK_NAME_LEN = 64
-MAX_NUM_TENSORS = 8
+MAX_NUM_TENSORS = 16
 MAX_NUM_DIMENSIONS = 8
 
 FW_LOADER_STAGE = 0
