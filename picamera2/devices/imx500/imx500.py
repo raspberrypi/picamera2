@@ -568,14 +568,14 @@ class IMX500:
 
     @staticmethod
     def get_kpi_info(metadata: dict) -> Optional[tuple[float, float]]:
-        """Return the KPI parameters in the form (dnn_runtime, dsp_runtime)."""
+        """
+            Return the KPI parameters in the form (dnn_runtime, dsp_runtime).
+            the numbers are in milliseconds
+        """
         kpi_info = metadata.get('CnnKpiInfo')
         if kpi_info is None:
             return None
-        if type(kpi_info) not in [bytes, bytearray]:
-            kpi_info = bytes(kpi_info)
-
-        dnn_runtime, dsp_runtime = struct.unpack('II', kpi_info)
+        dnn_runtime, dsp_runtime = kpi_info[0], kpi_info[1]
         return dnn_runtime / 1000, dsp_runtime / 1000
 
     def __set_network_firmware(self, network_filename: str):
