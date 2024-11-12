@@ -81,14 +81,17 @@ class LibavH264Encoder(Encoder):
         if self.profile is not None:
             if not isinstance(self.profile, str):
                 raise RuntimeError("Profile should be a string value")
-            # Much more helpful to compare profile names case insensitively!
-            available_profiles = {k.lower(): v for k, v in self._stream.codec.profiles.items()}
-            profile = self.profile.lower()
-            if profile not in available_profiles:
+            # Find the right profile name, ignoring case.
+            profile = None
+            for available_profile in self._stream.profiles:
+                if self.profile.lower() == available_profile.lower():
+                    profile = available_profile
+                    break
+            if not profile:
                 raise RuntimeError("Profile " + self.profile + " not recognised")
-            self._stream.codec_context.profile = available_profiles[profile]
+            self._stream.profile = profile
             # The "ultrafast" preset always produces baseline, so:
-            if "baseline" not in profile:
+            if "baseline" not in profile.lower():
                 preset = "superfast"
 
         if self.bitrate is not None:
