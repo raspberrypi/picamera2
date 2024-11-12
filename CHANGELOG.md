@@ -6,6 +6,23 @@
 
 ### Changed
 
+## 0.3.23 Beta Release 22
+
+### Added
+
+* rpi::ScalerCrops control support
+* Hailo multi-model support
+* Stereo preview example script
+* Add PyavOutput and a new CircularOutput2
+* Allow libav H264 encoder to use V4L2 hardware on VC4 platforms
+* bbox-order argument for imx500_object_detection_demo script
+
+### Changed
+
+* Fix ScalerCrops tests
+* imx500: Update MAX_NUM_TENSORS and MAX_NUM_DIMENSIONS
+* Fix V4L2 encoder not releasing requests
+
 ## 0.3.22 Beta Release 21
 
 ### Changed
