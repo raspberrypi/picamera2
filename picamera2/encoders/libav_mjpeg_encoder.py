@@ -1,5 +1,6 @@
 """This is a base class for a multi-threaded software encoder."""
 
+import collections
 from fractions import Fraction
 
 import av
@@ -21,6 +22,8 @@ class LibavMjpegEncoder(Encoder):
         self.iperiod = iperiod
         self.framerate = framerate
         self.qp = qp
+        self._request_release_delay = 1
+        self._request_release_queue = None
 
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
@@ -40,7 +43,7 @@ class LibavMjpegEncoder(Encoder):
         self._stream = self._container.add_stream(self._codec, rate=self.framerate)
 
         self._stream.codec_context.thread_count = 8
-        self._stream.codec_context.thread_type = av.codec.context.ThreadType.FRAME
+        self._stream.codec_context.thread_type = av.codec.context.ThreadType.FRAME  # noqa
 
         self._stream.width = self.width
         self._stream.height = self.height
@@ -62,7 +65,11 @@ class LibavMjpegEncoder(Encoder):
         self._stream.codec_context.qmin = self.qp
         self._stream.codec_context.qmax = self.qp
         self._stream.codec_context.color_range = 2  # JPEG (full range)
-        self._stream.codec_context.flags |= av.codec.context.Flags.QSCALE
+        try:
+            # "qscale" is now correct, but some older versions used "QSCALE"
+            self._stream.codec_context.flags |= av.codec.context.Flags.qscale  # noqa
+        except AttributeError:
+            self._stream.codec_context.flags |= av.codec.context.Flags.QSCALE  # noqa
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)
 
@@ -73,15 +80,21 @@ class LibavMjpegEncoder(Encoder):
                         "XRGB8888": "bgra"}
         self._av_input_format = FORMAT_TABLE[self._format]
 
+        self._request_release_queue = collections.deque()
+
     def _stop(self):
         for packet in self._stream.encode():
             self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
+        while self._request_release_queue:
+            self._request_release_queue.popleft().release()
         self._container.close()
 
     def _encode(self, stream, request):
         timestamp_us = self._timestamp(request)
         with MappedArray(request, stream) as m:
-            frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format, width=self.width)
+            frame = av.VideoFrame.from_numpy_buffer(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
                 self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
+        while len(self._request_release_queue) > self._request_release_delay:
+            self._request_release_queue.popleft().release()

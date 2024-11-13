@@ -1,5 +1,6 @@
 """This is a base class for a multi-threaded software encoder."""
 
+import collections
 import time
 from fractions import Fraction
 from math import sqrt
@@ -30,6 +31,8 @@ class LibavH264Encoder(Encoder):
         self.threads = 0  # means "you choose"
         self._lasttimestamp = None
         self._use_hw = False
+        self._request_release_delay = 1
+        self._request_release_queue = None
 
     @property
     def use_hw(self):
@@ -121,6 +124,8 @@ class LibavH264Encoder(Encoder):
                         "XRGB8888": "bgra"}
         self._av_input_format = FORMAT_TABLE[self._format]
 
+        self._request_release_queue = collections.deque()
+
     def _stop(self):
         if not self.drop_final_frames:
             # Annoyingly, libav still has lots of encoded frames internally which we must flush
@@ -134,13 +139,19 @@ class LibavH264Encoder(Encoder):
                         time.sleep(delay_us / 1000000)
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
                 self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
+        while self._request_release_queue:
+            self._request_release_queue.popleft().release()
         self._container.close()
 
     def _encode(self, stream, request):
+        request.acquire()
+        self._request_release_queue.append(request)
         timestamp_us = self._timestamp(request)
         with MappedArray(request, stream) as m:
-            frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format, width=self.width)
+            frame = av.VideoFrame.from_numpy_buffer(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
                 self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
+        while len(self._request_release_queue) > self._request_release_delay:
+            self._request_release_queue.popleft().release()
