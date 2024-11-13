@@ -68,6 +68,7 @@ class Encoder:
         self.audio_output = {'codec_name': 'aac'}
         self.audio_sync = -100000  # in us, so by default, delay audio by 100ms
         self._audio_start = threading.Event()
+        self.frames_encoded = 0
 
     @property
     def running(self):
@@ -240,8 +241,11 @@ class Encoder:
             self._audio_start.set()  # Signal the audio encode thread to start.
         if self._skip_count == 0:
             with self._lock:
+                if not self._running:
+                    return
                 self._encode(stream, request)
         self._skip_count = (self._skip_count + 1) % self.frame_skip_count
+        self.frames_encoded += 1
 
     def _encode(self, stream, request):
         if isinstance(stream, str):
@@ -254,6 +258,7 @@ class Encoder:
         with self._lock:
             if self._running:
                 raise RuntimeError("Encoder already running")
+            self.frames_encoded = 0
             self._setup(quality)
             self._running = True
             self.firsttimestamp = None
