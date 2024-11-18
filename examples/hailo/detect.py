@@ -78,4 +78,4 @@ if __name__ == "__main__":
                 results = hailo.run(frame)
 
                 # Extract detections from the inference results
-                detections = extract_detections(results[0], video_w, video_h, class_names, args.score_thresh)
+                detections = extract_detections(results, video_w, video_h, class_names, args.score_thresh)
