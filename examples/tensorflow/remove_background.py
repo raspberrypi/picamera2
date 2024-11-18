@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Usage: ./remove_background.py --model deeplapv3.tflite --background thing.png
+# Usage: ./remove_background.py --model deeplabv3.tflite --background thing.png
 
 import argparse
 
