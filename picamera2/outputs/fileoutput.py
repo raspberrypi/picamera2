@@ -72,7 +72,7 @@ class FileOutput(Output):
         else:
             raise RuntimeError("Must pass callback function or None")
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Outputs frame from encoder
 
         :param frame: Frame
@@ -82,6 +82,8 @@ class FileOutput(Output):
         :param timestamp: Timestamp of frame
         :type timestamp: int
         """
+        if audio:
+            raise RuntimeError("Fileoutput does not support audio")
         if self._fileoutput is not None and self.recording:
             if self._firstframe:
                 if not keyframe:

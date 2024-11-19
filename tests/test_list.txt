@@ -33,6 +33,8 @@ examples/picamera2_multiprocessing.py
 examples/pick_mode.py
 examples/preview.py
 examples/preview_x_forwarding.py
+examples/pyav_capture.py
+examples/pyav_circular_capture.py
 examples/raw.py
 examples/request_context_manager.py
 examples/rotation.py
@@ -62,6 +64,7 @@ tests/colour_spaces.py
 tests/config_with_sensor.py
 tests/configurations.py
 tests/context_test.py
+tests/crop_test.py
 tests/display_transform_null.py
 tests/display_transform_qt.py
 tests/easy_video2.py
@@ -85,3 +88,4 @@ tests/stop_slow_framerate.py
 tests/allocator_test.py
 tests/allocator_leak_test.py
 tests/wait_cancel_test.py
+tests/stride_test.py

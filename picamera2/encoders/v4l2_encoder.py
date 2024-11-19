@@ -189,6 +189,9 @@ class V4L2Encoder(Encoder):
                 # few hundred ms than wait forever. Note that self.buf_frame.qsize()
                 # frames (usually just 1) are getting dropped here, and won't be
                 # encoded. I've only ever seen this on a Pi Zero.
+                while self.buf_frame.qsize() > 0:
+                    queue_item = self.buf_frame.get()
+                    queue_item.release()
                 break
 
             for _, event in events:

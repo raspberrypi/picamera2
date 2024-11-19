@@ -20,5 +20,5 @@ jobs:
         clean: true
 
     - name: Test
-      run: DISPLAY=:0 PYTHONPATH=/home/pi/_work/picamera2/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2 python3 ${{github.workspace}}/tools/run_tests.py -p ${{github.workspace}}
+      run: DISPLAY=:0 ASSET_DIR=/home/pi/assets PYTHONPATH=/home/pi/_work/picamera2/picamera2:/home/pi/libcamera/build/src/py:/home/pi/kmsxx/build/py:/home/pi/python-v4l2 python3 ${{github.workspace}}/tools/run_tests.py -p ${{github.workspace}}
       timeout-minutes: 30

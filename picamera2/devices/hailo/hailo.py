@@ -6,6 +6,9 @@ from hailo_platform import HEF, FormatType, HailoSchedulingAlgorithm, VDevice
 
 
 class Hailo:
+    TARGET = None
+    TARGET_REF_COUNT = 0
+
     def __init__(self, hef_path, batch_size=None, output_type='FLOAT32'):
         """
         Initialize the HailoAsyncInference class with the provided HEF model file path.
@@ -20,7 +23,10 @@ class Hailo:
 
         self.batch_size = batch_size
         self.hef = HEF(hef_path)
-        self.target = VDevice(params)
+        if Hailo.TARGET is None:
+            Hailo.TARGET = VDevice(params)
+            Hailo.TARGET_REF_COUNT += 1
+        self.target = Hailo.TARGET
         self.infer_model = self.target.create_infer_model(hef_path)
         self.infer_model.set_batch_size(1 if batch_size is None else batch_size)
         self._set_input_output(output_type)
@@ -175,4 +181,6 @@ class Hailo:
     def close(self):
         """Release the Hailo device."""
         del self.configured_infer_model
-        self.target.release()
+        Hailo.TARGET_REF_COUNT -= 1
+        if Hailo.TARGET_REF_COUNT == 0:
+            self.target.release()
