@@ -17,7 +17,7 @@ WINDOW_SIZE_H_W = (480, 640)
 
 
 def ai_output_tensor_parse(metadata: dict):
-    """Parse the output tensor into a number of detected objects, scaled to the ISP out."""
+    """Parse the output tensor into a number of detected objects, scaled to the ISP output."""
     global last_boxes, last_scores, last_keypoints
     np_outputs = imx500.get_outputs(metadata=metadata, add_batch=True)
     if np_outputs is not None:

@@ -46,6 +46,9 @@ class LibavMjpegEncoder(Encoder):
         self._stream.height = self.height
         self._stream.pix_fmt = "yuv420p"
 
+        for out in self._output:
+            out._add_stream(self._stream, self._codec, rate=self.framerate)
+
         # This is all rather arbitrary but comes out with a vaguely plausible a quantiser. I
         # found that the sqrt of the quantiser times the bitrate was approximately constant with
         # the value 64000000 for a 1080p30 stream, though obviously it will depend on content,
@@ -72,7 +75,7 @@ class LibavMjpegEncoder(Encoder):
 
     def _stop(self):
         for packet in self._stream.encode():
-            self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+            self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
         self._container.close()
 
     def _encode(self, stream, request):
@@ -81,4 +84,4 @@ class LibavMjpegEncoder(Encoder):
             frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
-                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)

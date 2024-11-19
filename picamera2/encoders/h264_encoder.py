@@ -84,6 +84,10 @@ class H264Encoder(V4L2Encoder):
             self._controls += [(V4L2_CID_MPEG_VIDEO_H264_MIN_QP, self.qp)]
             self._controls += [(V4L2_CID_MPEG_VIDEO_H264_MAX_QP, self.qp)]
 
+        # The output objects may need to know what kind of stream this is.
+        for out in self._output:
+            out._add_stream("video", "h264")
+
         super()._start()
 
     def _setup(self, quality):

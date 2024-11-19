@@ -20,8 +20,8 @@ from v4l2 import (VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS, v4l2_control,
 from picamera2 import CompletedRequest, Picamera2
 
 NETWORK_NAME_LEN = 64
-MAX_NUM_TENSORS = 8
-MAX_NUM_DIMENSIONS = 8
+MAX_NUM_TENSORS = 16
+MAX_NUM_DIMENSIONS = 16
 
 FW_LOADER_STAGE = 0
 FW_MAIN_STAGE = 1
@@ -67,6 +67,7 @@ class NetworkIntrinsics:
                     "type": "object",
                     "properties": {
                         "bbox_normalization": {"type": "boolean"},
+                        "bbox_order": {"type": "string", "enum": ["xy", "yx"]},
                         "softmax": {"type": "boolean"},
                         "post_processing": {"type": "string"},
                     },
@@ -178,6 +179,18 @@ class NetworkIntrinsics:
         elif self.__intrinsics_has_key('cpu'):
             self.__intrinsics['cpu'].pop('bbox_normalization', None)
 
+        if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
+            self.__intrinsics.pop('cpu')
+
+    @property
+    def bbox_order(self) -> Optional[str]:
+        return self.__get_cpu('bbox_order')
+
+    @bbox_order.setter
+    def bbox_order(self, val: str):
+        if val not in ["xy", "yx"]:
+            raise ValueError("bbox_order must be either 'xy' or 'yx'")
+        self.__set_cpu({'bbox_order': val})
         if self.__intrinsics_has_key('cpu') and len(self.__intrinsics['cpu']) == 0:
             self.__intrinsics.pop('cpu')
 
@@ -568,14 +581,11 @@ class IMX500:
 
     @staticmethod
     def get_kpi_info(metadata: dict) -> Optional[tuple[float, float]]:
-        """Return the KPI parameters in the form (dnn_runtime, dsp_runtime)."""
+        """Return the KPI parameters in the form (dnn_runtime, dsp_runtime) in milliseconds."""
         kpi_info = metadata.get('CnnKpiInfo')
         if kpi_info is None:
             return None
-        if type(kpi_info) not in [bytes, bytearray]:
-            kpi_info = bytes(kpi_info)
-
-        dnn_runtime, dsp_runtime = struct.unpack('II', kpi_info)
+        dnn_runtime, dsp_runtime = kpi_info[0], kpi_info[1]
         return dnn_runtime / 1000, dsp_runtime / 1000
 
     def __set_network_firmware(self, network_filename: str):
