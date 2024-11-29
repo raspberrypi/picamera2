@@ -56,40 +56,11 @@ class MappedArray:
         if self.__reshape:
             if isinstance(self.__stream, str):
                 config = cast(Dict[str, Any], self.__request.config)[self.__stream]
-                fmt = config["format"]
-                w, h = config["size"]
-                stride = config["stride"]
             else:
                 config = self.__stream.configuration
-                fmt = str(config.pixel_format)
-                w = config.size.width
-                h = config.size.height
-                stride = config.stride
 
-            # Turning the 1d array into a 2d image-like array only works if the
-            # image stride (which is in bytes) is a whole number of pixels. Even
-            # then, if they don't match exactly you will get "padding" down the RHS.
-            # Working around this requires another expensive copy of all the data.
-            if fmt in ("BGR888", "RGB888"):
-                if stride != w * 3:
-                    array = array.reshape((h, stride))
-                    array = array[:, :w * 3]
-                array = array.reshape((h, w, 3))
-            elif fmt in ("XBGR8888", "XRGB8888"):
-                if stride != w * 4:
-                    array = array.reshape((h, stride))
-                    array = array[:, :w * 4]
-                array = array.reshape((h, w, 4))
-            elif fmt in ("YUV420", "YVU420"):
-                # Returning YUV420 as an image of 50% greater height (the extra bit continaing
-                # the U/V data) is useful because OpenCV can convert it to RGB for us quite
-                # efficiently. We leave any packing in there, however, as it would be easier
-                # to remove that after conversion to RGB (if that's what the caller does).
-                array = array.reshape((h * 3 // 2, stride))
-            elif formats.is_raw(fmt):
-                array = array.reshape((h, stride))
-            else:
-                raise RuntimeError("Format " + fmt + " not supported")
+            # helpers.make_array never makes a copy.
+            array = self.__request.picam2.helpers.make_array(array, config)
 
         self.__array = array
         return self
@@ -167,12 +138,55 @@ class CompletedRequest:
         return metadata
 
     def make_array(self, name: str) -> np.ndarray:
-        """Make a 2D numpy array from the named stream's buffer."""
-        return self.picam2.helpers.make_array(self.make_buffer(name), cast(Dict[str, Any], self.config)[name])
+        """Make a 2d numpy array from the named stream's buffer."""
+        config = self.config.get(name, None)
+        if config is None:
+            raise RuntimeError(f'Stream {name!r} is not defined')
+        elif config['format'] == 'MJPEG': 
+            return np.array(Image.open(io.BytesIO(self.make_buffer(name))))
+
+        # We don't want to send out an exported handle to the camera buffer, so we're going to have
+        # to do a copy. If the buffer is not contiguous, we can use the copy to make it so.
+        with MappedArray(self, name) as m:
+            if m.array.data.c_contiguous:
+                return np.copy(m.array)
+            else:
+                return np.ascontiguousarray(m.array)
 
     def make_image(self, name: str, width: Optional[int] = None, height: Optional[int] = None) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
-        return self.picam2.helpers.make_image(self.make_buffer(name), cast(Dict[str, Any], self.config)[name], width, height)
+        config = self.config.get(name, None)
+        if config is None:
+            raise RuntimeError(f'Stream {name!r} is not defined')
+
+        fmt = config['format']
+        if fmt == 'MJPEG':
+            return Image.open(io.BytesIO(self.make_buffer(name)))
+        mode = self.picam2.helpers._get_pil_mode(fmt)
+
+        with MappedArray(self, name, write=False) as m:
+            shape = m.array.shape
+            # At this point, array is the same memory as the camera buffer - no copy has happened.
+            buffer = m.array
+            stride = m.array.strides[0]
+            if mode == "RGBX":
+                # FOr RGBX mode only, PIL shares the underlying buffer. So if we don't want to pass
+                # out a handle to the camera buffer, then we must copy it.
+                buffer = np.copy(m.array)
+                stride = buffer.strides[0]
+            elif not m.array.data.c_contiguous:
+                # PIL will accept images with padding, but we must give it a contiguous buffer and
+                # pass the stride as the penultimate "magic" parameter to frombuffer.
+                buffer = m.array.base
+
+            pil_img = Image.frombuffer("RGB", (shape[1], shape[0]), buffer, "raw", mode, stride, 1)
+
+        width = width or shape[1]
+        height = height or shape[0]
+        if width != shape[1] or height != shape[0]:
+            # This will be slow. Consider requesting camera images of this size in the first place!
+            pil_img = pil_img.resize((width, height))
+        return pil_img
 
     def save(self, name: str, file_output: Any, format: Optional[str] = None,
              exif_data: Optional[Dict[str, Any]] = None) -> None:
@@ -187,8 +201,12 @@ class CompletedRequest:
 
     def save_dng(self, file_output: Any, name: str = "raw") -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(),
-                                            cast(Dict[str, Any], self.config)[name], file_output)
+        # Don't use make_buffer(), this saves a copy.
+        if self.stream_map.get(name, None) is None:
+            raise RuntimeError(f'Stream {name!r} is not defined')
+        with _MappedBuffer(self, name, write=False) as b:
+            buffer = np.array(b, copy=False, dtype=np.uint8)
+            return self.picam2.helpers.save_dng(buffer, self.get_metadata(), self.config[name], file_output)
 
 
 class Helpers:
@@ -214,17 +232,17 @@ class Helpers:
         if fmt in ("BGR888", "RGB888"):
             if stride != w * 3:
                 array = array.reshape((h, stride))
-                array = np.asarray(array[:, :w * 3], order='C')
+                array = array[:, :w * 3]
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
             if stride != w * 4:
                 array = array.reshape((h, stride))
-                array = np.asarray(array[:, :w * 4], order='C')
+                array = array[:, :w * 4]
             image = array.reshape((h, w, 4))
         elif fmt in ("BGR161616", "RGB161616"):
             if stride != w * 6:
                 array = array.reshape((h, stride))
-                array = np.asarray(array[:, :w * 6], order='C')
+                array = array[:, :w * 6]
             array = array.view(np.uint16)
             image = array.reshape((h, w, 3))
         elif fmt in ("YUV420", "YVU420"):
@@ -245,6 +263,13 @@ class Helpers:
             raise RuntimeError("Format " + fmt + " not supported")
         return image
 
+    def _get_pil_mode(self, fmt):
+        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBX", "XRGB8888": "BGRX"}
+        mode = mode_lookup.get(fmt, None)
+        if mode is None:
+            raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
+        return mode
+
     def make_image(self, buffer: np.ndarray, config: Dict[str, Any], width: Optional[int] = None,
                    height: Optional[int] = None) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
@@ -253,15 +278,17 @@ class Helpers:
             return Image.open(io.BytesIO(buffer))  # type: ignore
         else:
             rgb = self.make_array(buffer, config)
-        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBX", "XRGB8888": "BGRX"}
-        if fmt not in mode_lookup:
-            raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
-        mode = mode_lookup[fmt]
-        pil_img = Image.frombuffer("RGB", (rgb.shape[1], rgb.shape[0]), rgb, "raw", mode, 0, 1)
-        if width is None:
-            width = rgb.shape[1]
-        if height is None:
-            height = rgb.shape[0]
+
+        # buffer was already a copy, so don't need to worry about an extra copy for the "RGBX" mode.
+        buf = rgb
+        if not rgb.data.c_contiguous:
+            buf = rgb.base
+
+        mode = self._get_pil_mode(fmt)
+        pil_img = Image.frombuffer("RGB", (rgb.shape[1], rgb.shape[0]), buf, "raw", mode, rgb.strides[0], 1)
+
+        width = width or rgb.shape[1]
+        height = height or rgb.shape[0]
         if width != rgb.shape[1] or height != rgb.shape[0]:
             # This will be slow. Consider requesting camera images of this size in the first place!
             pil_img = pil_img.resize((width, height))  # type: ignore
