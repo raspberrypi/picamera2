@@ -12,7 +12,7 @@ There are also many examples in the `examples` folder of this repository, and so
 
 ## Installation
 
-_Picamera2_ is only supported on Raspberry Pi OS Bullseye (or later) images, both 32 and 64-bit. As of September 2022, _Picamera2_ is pre-installed on images downloaded from Raspberry Pi. It works on all Raspberry Pi boards right down to the Pi Zero, although performance in some areas may be worse on less powerful devices.
+_Picamera2_ is only supported on Raspberry Pi OS Bullseye (or later) images, both 32 and 64-bit. As of September 2022, _Picamera2_ is pre-installed on Raspberry Pi OS images, but not on Raspberry Pi OS Lite images. It works on all Raspberry Pi boards right down to the Pi Zero, although performance in some areas may be worse on less powerful devices.
 
 _Picamera2_ is _not_ supported on:
 
@@ -20,50 +20,17 @@ _Picamera2_ is _not_ supported on:
 * Raspberry Pi OS Legacy images.
 * Bullseye (or later) images where the legacy camera stack has been re-enabled.
 
-On Raspberry Pi OS images, _Picamera2_ is now installed with all the GUI (_Qt_ and _OpenGL_) dependencies. On Raspberry Pi OS Lite, it is installed without the GUI dependencies, although preview images can still be displayed using DRM/KMS. If these users wish to use the additional X-Windows GUI features, they will need to run
+On systems where _Picamera2_ is supported but not pre-installed, you can install it with
 ```
-sudo apt install -y python3-pyqt5 python3-opengl
+sudo apt install python3-picamera2 --no-install-recommends
 ```
-(No changes are required to _Picamera2_ itself.)
+to get a slightly reduced installation with fewer of the window system related elements (this would be suitable for installing on a Raspberry Pi OS Lite system), or
+```
+sudo apt install python3-picamera2
+```
+for a full installation.
 
-### Installation using `apt`
-
-`apt` is the recommended way of installing and updating _Picamera2_.
-
-If _Picamera2_ is already installed, you can update it with `sudo apt install -y python3-picamera2`, or as part of a full system update (for example, `sudo apt upgrade`).
-
-If _Picamera2_ is not already installed, then your image is presumably older and you should start with
-```
-sudo apt update
-sudo apt upgrade
-```
-If you have installed _Picamera2_ previously using `pip`, then you should also uninstall this (`pip3 uninstall picamera2`).
-
-Thereafter, you can install _Picamera2_ _with_ all the GUI (_Qt_ and _OpenGL_) dependencies using
-```
-sudo apt install -y python3-picamera2
-```
-If you do _not_ want the GUI dependencies, use
-```
-sudo apt install -y python3-picamera2 --no-install-recommends
-```
-
-### Installation using `pip`
-
-This is no longer the recommended way to install _Picamera2_. However, if you want to do so you can use
-```
-sudo apt install -y python3-libcamera python3-kms++
-sudo apt install -y python3-pyqt5 python3-prctl libatlas-base-dev ffmpeg python3-pip
-pip3 install numpy --upgrade
-pip3 install picamera2[gui]
-```
-which will install _Picamera2_ with all the GUI (_Qt_ and _OpenGL_) dependencies. If you do not want these, please use
-```
-sudo apt install -y python3-libcamera python3-kms++
-sudo apt install -y python3-prctl libatlas-base-dev ffmpeg libopenjp2-7 python3-pip
-pip3 install numpy --upgrade
-pip3 install picamera2
-```
+_Picamera2_ can be installed using `pip`, however, we recommend installing through `apt` as this guarantees you will get versions of _Picamera2_ and the underlying _libcamera_ libraries that have been confirmed as working together.
 
 ## Contributing
 
