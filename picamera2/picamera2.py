@@ -1666,7 +1666,7 @@ class Picamera2:
                      partial(capture_arrays_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_image_(self, name: str) -> Image:
+    def capture_image_(self, name: str) -> Image.Image:
         """Capture image
 
         :param name: Stream name
@@ -1679,7 +1679,7 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image:
+    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image.Image:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1689,19 +1689,19 @@ class Picamera2:
         :param signal_function: Callback, defaults to None
         :type signal_function: function, optional
         :return: PIL Image
-        :rtype: Image
+        :rtype: Image.Image
         """
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
     def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None,
-                                      signal_function=None, delay=0) -> Image:
+                                      signal_function=None, delay=0) -> Image.Image:
         """Switch the camera into a new (capture) mode, capture the image.
 
         Then return back to the initial camera mode.
         """
         preview_config = self.camera_config
 
-        def capture_image_and_switch_back_(self, preview_config, name) -> Image:
+        def capture_image_and_switch_back_(self, preview_config, name) -> Image.Image:
             done, result = self.capture_image_(name)
             if not done:
                 return (False, None)
