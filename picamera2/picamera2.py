@@ -1130,9 +1130,9 @@ class Picamera2:
                 scaler_crops.append(par_crop[1] if camera_config["lores"]["preserve_ar"] else scaler_crops[0])
             self.set_controls({"ScalerCrops": scaler_crops})
 
-    def configure(self, camera_config="preview") -> None:
-        """Configure the camera system with the given configuration."""
-        self.configure_(camera_config)
+    def configure(self, camera_config=None) -> None:
+        """Configure the camera system with the given configuration. Defaults to the 'preview' configuration."""
+        self.configure_("preview" if camera_config is None else camera_config)
 
     def camera_configuration(self) -> dict:
         """Return the camera configuration."""
