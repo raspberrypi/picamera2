@@ -3,9 +3,19 @@
 ## Unreleased (on "next" branch)
 
 ### Added
+
+### Changed
+
+## 0.3.24 Beta Release 23
+
+### Added
+
 * FfmpegOutput support custom audio filter
 
 ### Changed
+
+* Updated for newer version of PyAV which we can use to encode
+  more efficiently.
 
 ## 0.3.23 Beta Release 22
 
