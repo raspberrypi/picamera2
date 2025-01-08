@@ -270,12 +270,12 @@ class Picamera2:
             _log.debug(f"{self.camera_manager}")
             # We deliberately make raw streams with no size so that it will be filled in
             # later once the main stream size has been set.
-            self.preview_configuration = self.create_preview_configuration()
-            self.preview_configuration.enable_raw()  # causes the size to be reset to None
-            self.still_configuration = self.create_still_configuration()
-            self.still_configuration.enable_raw()  # ditto
-            self.video_configuration = self.create_video_configuration()
-            self.video_configuration.enable_raw()  # ditto
+            self.preview_configuration_ = CameraConfiguration(self.create_preview_configuration(), self)
+            self.preview_configuration_.enable_raw()  # causes the size to be reset to None
+            self.still_configuration_ = CameraConfiguration(self.create_still_configuration(), self)
+            self.still_configuration_.enable_raw()  # ditto
+            self.video_configuration_ = CameraConfiguration(self.create_video_configuration(), self)
+            self.video_configuration_.enable_raw()  # ditto
         except Exception:
             _log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -425,12 +425,10 @@ class Picamera2:
         elif isinstance(idx, int):
             return self.camera_manager.cameras[idx]
 
-    def _initialize_camera(self) -> bool:
+    def _initialize_camera(self) -> None:
         """Initialize camera
 
         :raises RuntimeError: Failure to initialise camera
-        :return: True if success
-        :rtype: bool
         """
         if not self.camera_manager.cameras:
             _log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
@@ -458,7 +456,6 @@ class Picamera2:
         self.sensor_format = self._native_mode['format']
 
         _log.info('Initialization successful.')
-        return True
 
     def __identify_camera(self):
         for idx, address in enumerate(self.camera_manager.cameras):
@@ -471,7 +468,9 @@ class Picamera2:
 
         :raises RuntimeError: Failed to setup camera
         """
-        if not self._initialize_camera():
+        try:
+            self._initialize_camera()
+        except RuntimeError:
             raise RuntimeError("Failed to initialize camera")
 
         # This now throws an error if it can't open the camera.
@@ -628,12 +627,12 @@ class Picamera2:
         self.streams = None
         self.stream_map = None
         self.camera = None
-        self.camera_ctrl_info = None
+        self.camera_ctrl_info = {}
         self.camera_config = None
         self.libcamera_config = None
-        self.preview_configuration_ = None
-        self.still_configuration_ = None
-        self.video_configuration_ = None
+        self.preview_configuration = {}
+        self.still_configuration = {}
+        self.video_configuration = {}
         self.notifymeread.close()
         os.close(self.notifyme_w)
         # Clean up the allocator
@@ -1130,9 +1129,9 @@ class Picamera2:
                 scaler_crops.append(par_crop[1] if camera_config["lores"]["preserve_ar"] else scaler_crops[0])
             self.set_controls({"ScalerCrops": scaler_crops})
 
-    def configure(self, camera_config="preview") -> None:
-        """Configure the camera system with the given configuration."""
-        self.configure_(camera_config)
+    def configure(self, camera_config=None) -> None:
+        """Configure the camera system with the given configuration. Defaults to the 'preview' configuration."""
+        self.configure_("preview" if camera_config is None else camera_config)
 
     def camera_configuration(self) -> dict:
         """Return the camera configuration."""
@@ -1666,7 +1665,7 @@ class Picamera2:
                      partial(capture_arrays_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_image_(self, name: str) -> Image:
+    def capture_image_(self, name: str) -> Image.Image:
         """Capture image
 
         :param name: Stream name
@@ -1679,7 +1678,7 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image:
+    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image.Image:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1689,19 +1688,19 @@ class Picamera2:
         :param signal_function: Callback, defaults to None
         :type signal_function: function, optional
         :return: PIL Image
-        :rtype: Image
+        :rtype: Image.Image
         """
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
     def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None,
-                                      signal_function=None, delay=0) -> Image:
+                                      signal_function=None, delay=0) -> Image.Image:
         """Switch the camera into a new (capture) mode, capture the image.
 
         Then return back to the initial camera mode.
         """
         preview_config = self.camera_config
 
-        def capture_image_and_switch_back_(self, preview_config, name) -> Image:
+        def capture_image_and_switch_back_(self, preview_config, name) -> Image.Image:
             done, result = self.capture_image_(name)
             if not done:
                 return (False, None)
