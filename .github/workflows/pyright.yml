@@ -3,6 +3,7 @@ name: Pyright static type checking
 on:
   pull_request:
     branches: [ main, next ]
+  workflow_dispatch:
 
 jobs:
   type-check:
