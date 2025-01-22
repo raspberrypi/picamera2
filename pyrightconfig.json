@@ -1,0 +1,22 @@
+{
+  "include": ["picamera2"],
+  "exclude": ["tests"],
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportGeneralTypeIssues": "warning",
+  "reportAttributeAccessIssue": "warning",
+  "reportUndefinedVariable": "warning",
+  "reportOptionalOperand": "warning",
+  "reportAssignmentType": "warning",
+  "reportInvalidTypeArguments": "warning",
+  "reportCallIssue": "warning",
+  "reportOptionalSubscript": "warning",
+  "reportArgumentType": "warning",
+  "reportOperatorIssue": "warning",
+  "reportReturnType": "warning",
+  "reportOptionalIterable": "warning",
+  "reportIndexIssue": "warning",
+  "typeCheckingMode": "basic"
+}
