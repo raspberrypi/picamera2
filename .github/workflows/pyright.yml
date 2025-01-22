@@ -1,0 +1,25 @@
+name: Pyright static type checking
+
+on:
+  pull_request:
+    branches: ['*']
+  workflow_dispatch:
+
+jobs:
+  type-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js (needed for Pyright)
+        uses: actions/setup-node@v4
+        with:
+          node-version: current
+
+      - name: Install Pyright
+        run: npm install -g pyright
+
+      - name: Run Pyright static type checker
+        run: pyright
