@@ -1,0 +1,38 @@
+name: Pyright static type checking
+
+on:
+  pull_request:
+    branches: [ main, next ]
+
+jobs:
+  type-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: |
+            3.9
+            3.10
+            3.11
+            3.12
+
+      - name: Install project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Install Node.js (needed for Pyright)
+        uses: actions/setup-node@v4
+        with:
+          node-version: current
+
+      - name: Install Pyright
+        run: npm install -g pyright
+
+      - name: Run Pyright static type checker
+        run: pyright
