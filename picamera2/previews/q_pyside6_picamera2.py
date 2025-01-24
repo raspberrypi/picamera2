@@ -2,10 +2,10 @@ import logging
 
 import numpy as np
 from libcamera import Transform
-from PyQt5.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
-                          pyqtSignal, pyqtSlot)
-from PyQt5.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
-from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView
+from PySide6.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
+                          Signal, Slot)
+from PySide6.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
 
 try:
     import cv2
@@ -15,8 +15,8 @@ except ImportError:
 
 
 class QPicamera2(QGraphicsView):
-    done_signal = pyqtSignal(object)
-    update_overlay_signal = pyqtSignal(object)
+    done_signal = Signal(object)
+    update_overlay_signal = Signal(object)
 
     def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
                  keep_ar=True, transform=None, preview_window=None):
@@ -36,14 +36,14 @@ class QPicamera2(QGraphicsView):
         self.setScene(self.scene)
         self.setBackgroundBrush(QBrush(QColor(*bg_colour)))
         self.resize(width, height)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.enabled = True
         self.title_function = None
 
         self.update_overlay_signal.connect(self.update_overlay)
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                               QSocketNotifier.Read, self)
+                                               QSocketNotifier.Type.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
         # Must always run cleanup when this widget goes away.
         self.destroyed.connect(lambda: self.cleanup())
@@ -94,12 +94,12 @@ class QPicamera2(QGraphicsView):
         if overlay is not None:
             overlay = np.copy(overlay, order='C')
             shape = overlay.shape
-            qim = QImage(overlay.data, shape[1], shape[0], QImage.Format_RGBA8888)
+            qim = QImage(overlay.data, shape[1], shape[0], QImage.Format.Format_RGBA8888)
             new_pixmap = QPixmap(qim)
             # No scaling here - we leave it to fitInView to set that up.
         self.update_overlay_signal.emit(new_pixmap)
 
-    @pyqtSlot(object)
+    @Slot(object)
     def update_overlay(self, pix):
         if pix is None:
             # Delete overlay if present
@@ -116,7 +116,7 @@ class QPicamera2(QGraphicsView):
             self.overlay.setPixmap(pix)
         self.fitInView()
 
-    @pyqtSlot(bool)
+    @Slot(bool)
     def set_enabled(self, enabled):
         self.enabled = enabled
 
@@ -188,7 +188,7 @@ class QPicamera2(QGraphicsView):
         width = min(img.shape[1], stream_config["size"][0])
         width -= width % 4
         img = np.ascontiguousarray(img[:, :width, :3])
-        fmt = QImage.Format_BGR888 if stream_config['format'] in ('RGB888', 'XRGB8888') else QImage.Format_RGB888
+        fmt = QImage.Format.Format_BGR888 if stream_config['format'] in ('RGB888', 'XRGB8888') else QImage.Format.Format_RGB888
         qim = QImage(img.data, width, img.shape[0], fmt)
         pix = QPixmap(qim)
         # Add the pixmap to the scene if there wasn't one, or replace it if the images have
@@ -203,7 +203,7 @@ class QPicamera2(QGraphicsView):
             # Update pixmap
             self.pixmap.setPixmap(pix)
 
-    @pyqtSlot()
+    @Slot()
     def handle_requests(self):
         if not self.running:
             return

@@ -15,8 +15,8 @@ from OpenGL.GLES2.OES.EGL_image import *
 from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
-from PyQt5.QtCore import QSocketNotifier, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtCore import QSocketNotifier, Qt, Signal, Slot
+from PySide6.QtWidgets import QWidget
 
 from picamera2.previews.gl_helpers import *
 
@@ -72,15 +72,15 @@ class EglState:
 
 
 class QGlPicamera2(QWidget):
-    done_signal = pyqtSignal(object)
+    done_signal = Signal(object)
 
     def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
                  keep_ar=True, transform=None, preview_window=None):
         super().__init__(parent=parent)
         self.resize(width, height)
 
-        self.setAttribute(Qt.WA_PaintOnScreen)
-        self.setAttribute(Qt.WA_NativeWindow)
+        self.setAttribute(Qt.WidgetAttribute.WA_PaintOnScreen)
+        self.setAttribute(Qt.WidgetAttribute.WA_NativeWindow)
 
         self.bg_colour = [colour / 255.0 for colour in bg_colour] + [1.0]
         self.keep_ar = keep_ar
@@ -108,7 +108,7 @@ class QGlPicamera2(QWidget):
         self.preview_window = preview_window
 
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                               QSocketNotifier.Read, self)
+                                               QSocketNotifier.Type.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
         # Must always run cleanup when this widget goes away.
         self.destroyed.connect(lambda: self.cleanup())
@@ -396,7 +396,7 @@ class QGlPicamera2(QWidget):
             if self.own_current:
                 self.current_request.acquire()
 
-    @pyqtSlot()
+    @Slot()
     def handle_requests(self):
         if not self.running:
             return
