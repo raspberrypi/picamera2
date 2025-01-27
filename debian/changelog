@@ -1,3 +1,9 @@
+picamera2 (0.3.25-1) bookworm; urgency=medium
+
+  * New upstream version 0.3.25
+
+ -- Serge Schneider <serge@raspberrypi.com>  Mon, 27 Jan 2025 22:56:21 +0000
+
 picamera2 (0.3.24-1) bookworm; urgency=medium
 
   * New upstream version 0.3.24
