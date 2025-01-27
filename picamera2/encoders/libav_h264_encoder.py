@@ -1,11 +1,13 @@
 """This is a base class for a multi-threaded software encoder."""
 
+import collections
 import time
 from fractions import Fraction
 from math import sqrt
 
 import av
 
+import picamera2.platform as Platform
 from picamera2.encoders.encoder import Encoder, Quality
 
 from ..request import MappedArray
@@ -28,6 +30,24 @@ class LibavH264Encoder(Encoder):
         self.drop_final_frames = False
         self.threads = 0  # means "you choose"
         self._lasttimestamp = None
+        self._use_hw = False
+        self._request_release_delay = 1
+        self._request_release_queue = None
+
+    @property
+    def use_hw(self):
+        """Whether hardware encode will be used (can be set to True only for VC4 platforms)."""
+        return self._use_hw
+
+    @use_hw.setter
+    def use_hw(self, value):
+        """Set this property in order to get libav to use the V4L2 hardware encoder (VC4 platforms only)."""
+        if value:
+            if Platform.get_platform() == Platform.Platform.VC4:
+                self._use_hw = True
+                self._codec = "h264_v4l2m2m"
+            else:
+                print("Warning: use_hw has no effect on non-VC4 platforms")
 
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
@@ -57,18 +77,24 @@ class LibavH264Encoder(Encoder):
         self._stream.height = self.height
         self._stream.pix_fmt = "yuv420p"
 
+        for out in self._output:
+            out._add_stream(self._stream, self._codec, rate=self.framerate)
+
         preset = "ultrafast"
         if self.profile is not None:
             if not isinstance(self.profile, str):
                 raise RuntimeError("Profile should be a string value")
-            # Much more helpful to compare profile names case insensitively!
-            available_profiles = {k.lower(): v for k, v in self._stream.codec.profiles.items()}
-            profile = self.profile.lower()
-            if profile not in available_profiles:
+            # Find the right profile name, ignoring case.
+            profile = None
+            for available_profile in self._stream.profiles:
+                if self.profile.lower() == available_profile.lower():
+                    profile = available_profile
+                    break
+            if not profile:
                 raise RuntimeError("Profile " + self.profile + " not recognised")
-            self._stream.codec_context.profile = available_profiles[profile]
+            self._stream.profile = profile
             # The "ultrafast" preset always produces baseline, so:
-            if "baseline" not in profile:
+            if "baseline" not in profile.lower():
                 preset = "superfast"
 
         if self.bitrate is not None:
@@ -98,6 +124,8 @@ class LibavH264Encoder(Encoder):
                         "XRGB8888": "bgra"}
         self._av_input_format = FORMAT_TABLE[self._format]
 
+        self._request_release_queue = collections.deque()
+
     def _stop(self):
         if not self.drop_final_frames:
             # Annoyingly, libav still has lots of encoded frames internally which we must flush
@@ -110,14 +138,20 @@ class LibavH264Encoder(Encoder):
                     if delay_us > 0:
                         time.sleep(delay_us / 1000000)
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
-                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
+        while self._request_release_queue:
+            self._request_release_queue.popleft().release()
         self._container.close()
 
     def _encode(self, stream, request):
+        request.acquire()
+        self._request_release_queue.append(request)
         timestamp_us = self._timestamp(request)
         with MappedArray(request, stream) as m:
-            frame = av.VideoFrame.from_ndarray(m.array, format=self._av_input_format, width=self.width)
+            frame = av.VideoFrame.from_numpy_buffer(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
             for packet in self._stream.encode(frame):
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
-                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts)
+                self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
+        while len(self._request_release_queue) > self._request_release_delay:
+            self._request_release_queue.popleft().release()

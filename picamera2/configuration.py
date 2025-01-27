@@ -83,7 +83,7 @@ class Configuration:
 
 
 class StreamConfiguration(Configuration):
-    _ALLOWED_FIELDS = ("size", "format", "stride", "framesize")
+    _ALLOWED_FIELDS = ("size", "format", "stride", "framesize", "preserve_ar")
     _FIELD_CLASS_MAP = {}
     _FORWARD_FIELDS = {}
 

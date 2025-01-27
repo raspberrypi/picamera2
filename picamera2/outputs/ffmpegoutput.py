@@ -1,3 +1,4 @@
+import gc
 import signal
 import subprocess
 
@@ -33,12 +34,13 @@ class FfmpegOutput(Output):
     """
 
     def __init__(self, output_filename, audio=False, audio_device="default", audio_sync=-0.3,
-                 audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000, pts=None):
+                 audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000, audio_filter=None, pts=None):
         super().__init__(pts=pts)
         self.ffmpeg = None
         self.output_filename = output_filename
         self.audio = audio
         self.audio_device = audio_device
+        self.audio_filter = audio_filter
         self.audio_sync = audio_sync
         self.audio_samplerate = audio_samplerate
         self.audio_codec = audio_codec
@@ -71,6 +73,8 @@ class FfmpegOutput(Output):
                            '-i', self.audio_device]
             audio_codec = ['-b:a', str(self.audio_bitrate),
                            '-c:a', self.audio_codec]
+            if self.audio_filter:  # Check if audio_filter is not empty or None
+                audio_codec.extend(['-af', self.audio_filter])
 
         command = ['ffmpeg'] + general_options + audio_input + video_input + \
             audio_codec + video_codec + self.output_filename.split()
@@ -93,8 +97,12 @@ class FfmpegOutput(Output):
                 except Exception:
                     pass
             self.ffmpeg = None
+            # This seems to be necessary to get the subprocess to clean up fully.
+            gc.collect()
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
+        if audio:
+            raise RuntimeError("FfmpegOutput does not support audio packets from Picamera2")
         if self.recording and self.ffmpeg:
             # Handle the case where the FFmpeg prcoess has gone away for reasons of its own.
             try:

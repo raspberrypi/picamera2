@@ -11,7 +11,7 @@ with open("README.md") as readme:
 
 setup(
     name='picamera2',
-    version='0.3.18',
+    version='0.3.24',
     description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -30,8 +30,12 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
     ],
-    packages=['picamera2', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews', 'picamera2.allocators'],
+    packages=['picamera2', 'picamera2.devices', 'picamera2.devices.hailo', 'picamera2.devices.imx500',
+              'picamera2.devices.imx708', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews',
+              'picamera2.allocators'],
     python_requires='>=3.9',
     licence='BSD 2-Clause License',
-    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3', 'python-prctl', 'av'],
+    install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'v4l2-python3',
+                      'python-prctl', 'av', 'libarchive-c', 'tqdm',
+                      'jsonschema'],
     extras_require={"gui": ['pyopengl', 'PyQt5']})

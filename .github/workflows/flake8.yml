@@ -11,7 +11,7 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9.13'
+        python-version: '3.9.19'
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
@@ -32,7 +32,7 @@ jobs:
         key: ${{ runner.os }}-libcamera2-${{env.LIBCAMERA-HASH}}
     - name: Generate libcamera
       if: steps.cache-libcamera.outputs.cache-hit != 'true'
-      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build --buildtype=release -Dpipelines=rpi/vc4 -Dipas=rpi/vc4 -Dv4l2=true -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=enabled -Dpycamera=enabled -Ddocumentation=disabled ; ninja -C build
+      run: cd /home/runner/work; git clone https://github.com/raspberrypi/libcamera.git; cd libcamera; meson build --buildtype=release -Dpipelines=rpi/vc4 -Dipas=rpi/vc4 -Dv4l2=true -Dtest=false -Dlc-compliance=disabled -Dcam=disabled -Dqcam=disabled -Dpycamera=enabled -Ddocumentation=disabled ; ninja -C build
   lint:
     name: lint code
     needs: compile
@@ -42,7 +42,7 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9.13'
+        python-version: '3.9.19'
     - name: Display python version
       run: python -c "import sys; print(sys.version)"
     - name: Update

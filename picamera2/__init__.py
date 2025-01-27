@@ -1,10 +1,12 @@
 import os
+from concurrent.futures import TimeoutError
 
 import libcamera
 
 from .configuration import CameraConfiguration, StreamConfiguration
 from .controls import Controls
 from .converters import YUV420_to_RGB
+from .job import CancelledError
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .platform import Platform, get_platform
@@ -50,3 +52,17 @@ libcamera.Transform.__eq__ = libcamera_transforms_eq
 
 libcamera.ColorSpace.__repr__ = libcamera.ColorSpace.__str__
 libcamera.ColorSpace.__eq__ = libcamera_colour_spaces_eq
+
+
+def _libcamera_size_to_tuple(sz):
+    return (sz.width, sz.height)
+
+
+libcamera.Size.to_tuple = _libcamera_size_to_tuple
+
+
+def _libcamera_rect_to_tuple(rect):
+    return (rect.x, rect.y, rect.width, rect.height)
+
+
+libcamera.Rectangle.to_tuple = _libcamera_rect_to_tuple

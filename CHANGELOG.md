@@ -6,6 +6,75 @@
 
 ### Changed
 
+## 0.3.24 Beta Release 23
+
+### Added
+
+* FfmpegOutput support custom audio filter
+
+### Changed
+
+* Updated for newer version of PyAV which we can use to encode
+  more efficiently.
+
+## 0.3.23 Beta Release 22
+
+### Added
+
+* rpi::ScalerCrops control support
+* Hailo multi-model support
+* Stereo preview example script
+* Add PyavOutput and a new CircularOutput2
+* Allow libav H264 encoder to use V4L2 hardware on VC4 platforms
+* bbox-order argument for imx500_object_detection_demo script
+
+### Changed
+
+* Fix ScalerCrops tests
+* imx500: Update MAX_NUM_TENSORS and MAX_NUM_DIMENSIONS
+* Fix V4L2 encoder not releasing requests
+
+## 0.3.22 Beta Release 21
+
+### Changed
+
+* Add to_tuple methods to libcamera Rectangle and Size types
+* Add IMX500 support
+
+## 0.3.21 Beta Release 20
+
+### Changed
+
+* Fixed setup.py for the devices helpers
+* Fixed handling of the ScalerCrops control in app_full.py
+
+## 0.3.20 Beta Release 19
+
+### Added
+
+* Initial support for Hailo AI devices, including some examples.
+* IMX708 helper class so that the sensor HDR mode can be set with Python.
+
+### Changed
+
+* Improved handling of timeouts when cameras stop responding, including a mechanism for a complete
+  reset if requests stop being returned.
+* Platform checking more robust.
+* Add missing flush parameter to captured_request() (for use with context manager).
+
+## 0.3.19 Beta Release 18
+
+### Added
+
+* Add an example showing how to forward images to other processes using zero-copy.
+* Add a context manager method for capturing requests, e.g. `with picam2.captured_request() as r:`
+* Encoders can skip frames, e.g. run at half the rate of the camera.
+
+### Changed
+
+* Configuration alignment fixed on Pi 5.
+* Improve support for displays without alpha blending.
+
 ## 0.3.18 Beta Release 17
 
 ### Added

@@ -2,6 +2,7 @@
 """picamera2 main class"""
 
 import atexit
+import contextlib
 import json
 import logging
 import os
@@ -55,12 +56,23 @@ class CameraManager:
         self.running = False
         self.cameras = {}
         self._lock = threading.Lock()
+        self._cms = None
 
     def setup(self):
-        self.cms = libcamera.CameraManager.singleton()
         self.thread = threading.Thread(target=self.listen, daemon=True)
         self.running = True
         self.thread.start()
+
+    @property
+    def cms(self):
+        if self._cms is None:
+            self._cms = libcamera.CameraManager.singleton()
+        return self._cms
+
+    def reset(self):
+        with self._lock:
+            self._cms = None
+            self._cms = libcamera.CameraManager.singleton()
 
     def add(self, index, camera):
         with self._lock:
@@ -77,7 +89,7 @@ class CameraManager:
                 flag = True
         if flag:
             self.thread.join()
-            self.cms = None
+            self._cms = None
 
     def listen(self):
         sel = selectors.DefaultSelector()
@@ -90,7 +102,7 @@ class CameraManager:
                 callback()
 
         sel.unregister(self.cms.event_fd)
-        self.cms = None
+        self._cms = None
 
     def handle_request(self, flushid=None):
         """Handle requests
@@ -208,7 +220,7 @@ class Picamera2:
             info["Id"] = cam.id
             info["Num"] = num
             return info
-        cameras = [describe_camera(cam, i) for i, cam in enumerate(libcamera.CameraManager.singleton().cameras)]
+        cameras = [describe_camera(cam, i) for i, cam in enumerate(Picamera2._cm.cms.cameras)]
         # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
         return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
 
@@ -258,12 +270,12 @@ class Picamera2:
             _log.debug(f"{self.camera_manager}")
             # We deliberately make raw streams with no size so that it will be filled in
             # later once the main stream size has been set.
-            self.preview_configuration = self.create_preview_configuration()
-            self.preview_configuration.enable_raw()  # causes the size to be reset to None
-            self.still_configuration = self.create_still_configuration()
-            self.still_configuration.enable_raw()  # ditto
-            self.video_configuration = self.create_video_configuration()
-            self.video_configuration.enable_raw()  # ditto
+            self.preview_configuration_ = CameraConfiguration(self.create_preview_configuration(), self)
+            self.preview_configuration_.enable_raw()  # causes the size to be reset to None
+            self.still_configuration_ = CameraConfiguration(self.create_still_configuration(), self)
+            self.still_configuration_.enable_raw()  # ditto
+            self.video_configuration_ = CameraConfiguration(self.create_video_configuration(), self)
+            self.video_configuration_.enable_raw()  # ditto
         except Exception:
             _log.error("Camera __init__ sequence did not complete.")
             raise RuntimeError("Camera __init__ sequence did not complete.")
@@ -413,12 +425,10 @@ class Picamera2:
         elif isinstance(idx, int):
             return self.camera_manager.cameras[idx]
 
-    def _initialize_camera(self) -> bool:
+    def _initialize_camera(self) -> None:
         """Initialize camera
 
         :raises RuntimeError: Failure to initialise camera
-        :return: True if success
-        :rtype: bool
         """
         if not self.camera_manager.cameras:
             _log.error("Camera(s) not found (Do not forget to disable legacy camera with raspi-config).")
@@ -446,7 +456,6 @@ class Picamera2:
         self.sensor_format = self._native_mode['format']
 
         _log.info('Initialization successful.')
-        return True
 
     def __identify_camera(self):
         for idx, address in enumerate(self.camera_manager.cameras):
@@ -459,7 +468,9 @@ class Picamera2:
 
         :raises RuntimeError: Failed to setup camera
         """
-        if not self._initialize_camera():
+        try:
+            self._initialize_camera()
+        except RuntimeError:
             raise RuntimeError("Failed to initialize camera")
 
         # This now throws an error if it can't open the camera.
@@ -616,12 +627,12 @@ class Picamera2:
         self.streams = None
         self.stream_map = None
         self.camera = None
-        self.camera_ctrl_info = None
+        self.camera_ctrl_info = {}
         self.camera_config = None
         self.libcamera_config = None
-        self.preview_configuration_ = None
-        self.still_configuration_ = None
-        self.video_configuration_ = None
+        self.preview_configuration = {}
+        self.still_configuration = {}
+        self.video_configuration = {}
         self.notifymeread.close()
         os.close(self.notifyme_w)
         # Clean up the allocator
@@ -643,7 +654,7 @@ class Picamera2:
         """
         if updates is None:
             return None
-        valid = ("format", "size", "stride")
+        valid = ("format", "size", "stride", "preserve_ar")
         for key, value in updates.items():
             if isinstance(value, SensorFormat):
                 value = str(value)
@@ -680,9 +691,9 @@ class Picamera2:
         if not self._is_rpi_camera():
             raw = None
             sensor = None
-        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480)}, main)
+        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (640, 480), "preserve_ar": True}, main)
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"], "preserve_ar": False}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
@@ -714,9 +725,10 @@ class Picamera2:
         if not self._is_rpi_camera():
             raw = None
             sensor = None
-        main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution}, main)
+        main = self._make_initial_stream_config({"format": "BGR888", "size": self.sensor_resolution, "preserve_ar": True},
+                                                main)
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"], "preserve_ar": False}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
@@ -748,9 +760,9 @@ class Picamera2:
         if not self._is_rpi_camera():
             raw = None
             sensor = None
-        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720)}, main)
+        main = self._make_initial_stream_config({"format": "XBGR8888", "size": (1280, 720), "preserve_ar": True}, main)
         self.align_stream(main, optimal=False)
-        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"]}, lores)
+        lores = self._make_initial_stream_config({"format": "YUV420", "size": main["size"], "preserve_ar": False}, lores)
         if lores is not None:
             self.align_stream(lores, optimal=False)
         raw = self._make_initial_stream_config({"format": self.sensor_format, "size": main["size"]},
@@ -933,13 +945,13 @@ class Picamera2:
     @staticmethod
     def align_stream(stream_config: dict, optimal=True) -> None:
         if optimal:
-            # Adjust the image size so that all planes are a mutliple of 32 bytes wide.
+            # Adjust the image size so that all planes are a mutliple of 32/64 bytes wide.
             # This matches the hardware behaviour and means we can be more efficient.
-            align = 32
+            align = 32 if Picamera2.platform == Platform.Platform.VC4 else 64
             if stream_config["format"] in ("YUV420", "YVU420"):
-                align = 64  # because the UV planes will have half this alignment
-            elif stream_config["format"] in ("XBGR8888", "XRGB8888"):
-                align = 16  # 4 channels per pixel gives us an automatic extra factor of 2
+                align *= 2  # because the UV planes will have half this alignment
+            elif stream_config["format"] in ("XBGR8888", "XRGB8888", "RGB161616", "BGR161616"):
+                align //= 2  # we have an automatic extra factor of 2 here
         else:
             align = 2
         size = stream_config["size"]
@@ -1109,9 +1121,17 @@ class Picamera2:
         self.controls = Controls(self, controls=self.camera_config['controls'])
         self.configure_count += 1
 
-    def configure(self, camera_config="preview") -> None:
-        """Configure the camera system with the given configuration."""
-        self.configure_(camera_config)
+        if "ScalerCrops" in self.camera_controls:
+            par_crop = self.camera_controls["ScalerCrops"]
+            full_fov = self.camera_controls["ScalerCrop"][1]
+            scaler_crops = [par_crop[0] if camera_config["main"]["preserve_ar"] else full_fov]
+            if self.lores_index >= 0:
+                scaler_crops.append(par_crop[1] if camera_config["lores"]["preserve_ar"] else scaler_crops[0])
+            self.set_controls({"ScalerCrops": scaler_crops})
+
+    def configure(self, camera_config=None) -> None:
+        """Configure the camera system with the given configuration. Defaults to the 'preview' configuration."""
+        self.configure_("preview" if camera_config is None else camera_config)
 
     def camera_configuration(self) -> dict:
         """Return the camera configuration."""
@@ -1163,6 +1183,20 @@ class Picamera2:
         if show_preview is not None and not self._event_loop_running:
             self.start_preview(show_preview)
         self.start_()
+
+    def cancel_all_and_flush(self) -> None:
+        """
+        Clear the camera system queue of pending jobs and cancel them.
+
+        Depending on what was happening at the time, this may leave the camera system in
+        an indeterminate state. This function is really only intended for tidying up
+        after an operation has unexpectedly timed out (for example, the camera cable has
+        become dislodged) so that the camera can be closed.
+        """
+        with self.lock:
+            for job in self._job_list:
+                job.cancel()
+            self._job_list = []
 
     def stop_(self, request=None) -> None:
         """Stop the camera.
@@ -1302,9 +1336,18 @@ class Picamera2:
         When there are multiple items each will be processed on a separate
         trip round the event loop, meaning that a single operation could stop and restart the
         camera and the next operation would receive a request from after the restart.
+
+        The wait parameter should be one of:
+            True - wait as long as necessary for the operation to compelte
+            False - return immediately, giving the caller a "job" they can wait for
+            None - default, if a signal_function was given do not wait, otherwise wait as long as necessary
+            a number - wait for this number of seconds before raising a "timed out" error.
         """
         if wait is None:
             wait = signal_function is None
+        timeout = wait
+        if timeout is True:
+            timeout = None
         with self.lock:
             only_job = not self._job_list
             job = Job(functions, signal_function)
@@ -1316,7 +1359,7 @@ class Picamera2:
             # stop commands, for which no requests are needed).
             if only_job and (self.completed_requests or immediate):
                 self._run_process_requests()
-        return job.get_result() if wait else job
+        return job.get_result(timeout=timeout) if wait else job
 
     def set_frame_drops_(self, num_frames):
         """Only for use within the camera event loop before calling drop_frames_."""  # noqa
@@ -1476,6 +1519,15 @@ class Picamera2:
                      partial(capture_request_and_stop_, self)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
+    @contextlib.contextmanager
+    def captured_request(self, wait=None, flush=None):
+        """Capture a completed request using the context manager which guarantees its release."""
+        request = self.capture_request(wait=wait, flush=flush)
+        try:
+            yield request
+        finally:
+            request.release()
+
     def capture_metadata_(self):
         if not self.completed_requests:
             return (False, None)
@@ -1613,7 +1665,7 @@ class Picamera2:
                      partial(capture_arrays_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_image_(self, name: str) -> Image:
+    def capture_image_(self, name: str) -> Image.Image:
         """Capture image
 
         :param name: Stream name
@@ -1626,7 +1678,7 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image:
+    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image.Image:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1636,19 +1688,19 @@ class Picamera2:
         :param signal_function: Callback, defaults to None
         :type signal_function: function, optional
         :return: PIL Image
-        :rtype: Image
+        :rtype: Image.Image
         """
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
     def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None,
-                                      signal_function=None, delay=0) -> Image:
+                                      signal_function=None, delay=0) -> Image.Image:
         """Switch the camera into a new (capture) mode, capture the image.
 
         Then return back to the initial camera mode.
         """
         preview_config = self.camera_config
 
-        def capture_image_and_switch_back_(self, preview_config, name) -> Image:
+        def capture_image_and_switch_back_(self, preview_config, name) -> Image.Image:
             done, result = self.capture_image_(name)
             if not done:
                 return (False, None)

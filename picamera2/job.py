@@ -1,4 +1,4 @@
-from concurrent.futures import Future
+from concurrent.futures import CancelledError, Future
 
 
 class Job:
@@ -77,3 +77,11 @@ class Job:
         if necessary for the job to complete.
         """
         return self._future.result(timeout=timeout)
+
+    def cancel(self):
+        """Mark this job as cancelled, so that requesting the result raises a CancelledError.
+
+        User code should not call this because it won't unschedule the job, i.e. remove it
+        from the job queue. Use Picamera2.cancel_all_and_flush() to cancel and clear all jobs.
+        """
+        self._future.set_exception(CancelledError)
