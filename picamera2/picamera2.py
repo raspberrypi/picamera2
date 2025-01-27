@@ -1528,6 +1528,18 @@ class Picamera2:
         finally:
             request.release()
 
+    @contextlib.contextmanager
+    def captured_sync_request(self, wait=None):
+        """Capture the first synchronised request using the context manager which guarantees its release.
+
+        Only for use when running with the software sync algorith.
+        """
+        request = self.capture_sync_request(wait=wait)
+        try:
+            yield request
+        finally:
+            request.release()
+
     def capture_metadata_(self):
         if not self.completed_requests:
             return (False, None)
@@ -2006,3 +2018,24 @@ class Picamera2:
                      partial(wait_for_af_state, self,
                              {controls.AfStateEnum.Focused, controls.AfStateEnum.Failed, controls.AfStateEnum.Idle})]
         return self.dispatch_functions(functions, wait, signal_function)
+
+    def capture_sync_request(self, wait=None, signal_function=None):
+        """Return the first request when the camera system has reached sychronisation point.
+
+        This method can be used when this camera is the sychronisation server or client
+        for the software sync algorithm.
+        """
+
+        def capture_sync_request_(self):
+            if not self.completed_requests:
+                return (False, None)
+            req = self.completed_requests.pop(0)
+            sync_ready = req.get_metadata().get('SyncReady', False)
+            if not sync_ready:
+                # Not yet synced. Discard this request and wait some more.
+                req.release()
+                return (False, None)
+            # Sync achieved. Return this request.
+            return (True, req)
+
+        return self.dispatch_functions([partial(capture_sync_request_, self)], wait, signal_function)

@@ -6,6 +6,14 @@
 
 ### Changed
 
+## 0.3.25 Beta Release 24
+
+### Added
+
+* Support for software camera sync.
+
+### Changed
+
 ## 0.3.24 Beta Release 23
 
 ### Added
