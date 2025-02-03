@@ -95,3 +95,4 @@ tests/allocator_test.py
 tests/allocator_leak_test.py
 tests/wait_cancel_test.py
 tests/stride_test.py
+tests/yuv_capture.py
