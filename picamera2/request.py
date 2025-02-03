@@ -203,7 +203,7 @@ class CompletedRequest:
         config = self.config.get(name, None)
         if config is None:
             raise RuntimeError(f'Stream {name!r} is not defined')
-        if self.FASTER_JPEG and config['format'] != "MJPEG" and \
+        if (config['format'] == 'YUV420' or (self.FASTER_JPEG and config['format'] != "MJPEG")) and \
            self.picam2.helpers._get_format_str(file_output, format) in ('jpg', 'jpeg'):
             quality = self.picam2.options.get("quality", 90)
             with MappedArray(self, 'main') as m:
