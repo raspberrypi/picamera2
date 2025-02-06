@@ -24,6 +24,7 @@ from typing import (
     TypeVar,
     Union,
     Literal,
+    cast,
 )
 
 import libcamera
@@ -315,7 +316,7 @@ class Picamera2:
         self.stop_count = 0
         self.configure_count = 0
         self.frames = 0
-        self._job_list = []
+        self._job_list: List[Job] = []
         self.options = {}
         self._encoders = set()
         self.pre_callback = None
@@ -1039,7 +1040,7 @@ class Picamera2:
             sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
             camera_config['sensor'] = sensor_config
 
-    def configure_(self, camera_config="preview") -> None:
+    def configure_(self, camera_config: Union[CameraConfiguration, str, Dict, None] = "preview") -> None:
         """Configure the camera system with the given configuration.
 
         :param camera_config: Configuration, defaults to the 'preview' configuration
@@ -1222,7 +1223,7 @@ class Picamera2:
                 job.cancel()
             self._job_list = []
 
-    def stop_(self, request=None) -> None:
+    def stop_(self, request: Optional[CompletedRequest] = None) -> Tuple[Literal[True], None]:
         """Stop the camera.
 
         Only call this function directly from within the camera event
@@ -1458,11 +1459,11 @@ class Picamera2:
         functions = [partial(self.set_frame_drops_, num_frames), self.drop_frames_]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_file_(self, file_output, name: str, format=None, exif_data=None) -> dict:
+    def capture_file_(self, file_output: Any, name: str, format=None, exif_data=None) -> Tuple[bool, Optional[Dict]]:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
-        if name == "raw" and formats.is_raw(self.camera_config["raw"]["format"]):
+        if name == "raw" and formats.is_raw(cast(Dict, self.camera_config)["raw"]["format"]):
             request.save_dng(file_output)
         else:
             request.save(name, file_output, format=format, exif_data=exif_data)
@@ -1478,7 +1479,7 @@ class Picamera2:
             format=None,
             wait=None,
             signal_function=None,
-            exif_data=None) -> dict:
+            exif_data=None) -> Optional[dict]:
         """Capture an image to a file in the current camera mode.
 
         Return the metadata for the frame captured.
@@ -1490,7 +1491,7 @@ class Picamera2:
                              exif_data=exif_data)]
         return self.dispatch_functions(functions, wait, signal_function)
 
-    def switch_mode_(self, camera_config):
+    def switch_mode_(self, camera_config: Union[str, Dict, None]) -> Tuple[bool, Union[Dict, str, None]]:
         self.stop_()
         self.configure_(camera_config)
         self.start_()
@@ -1759,7 +1760,8 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name: str = "main", wait: Optional[bool] = None, signal_function=None) -> Optional[Image.Image]:
+    def capture_image(self, name: str = "main", wait: Optional[Union[bool, float]] = None,
+                      signal_function=None) -> Optional[Image.Image]:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1773,7 +1775,7 @@ class Picamera2:
         """
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
-    def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: Optional[bool] = None,
+    def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: Optional[Union[bool, float]] = None,
                                       signal_function=None, delay=0) -> Optional[Image.Image]:
         """Switch the camera into a new (capture) mode, capture the image.
 
