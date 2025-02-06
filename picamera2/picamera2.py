@@ -13,7 +13,19 @@ import threading
 import time
 from enum import Enum
 from functools import partial
-from typing import Any, Dict, List, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+    Optional,
+    overload,
+    Callable,
+    TypeVar,
+    Union,
+    Literal,
+    cast,
+)
 
 import libcamera
 import numpy as np
@@ -41,6 +53,7 @@ VIEWFINDER = libcamera.StreamRole.Viewfinder
 
 _log = logging.getLogger(__name__)
 
+T = TypeVar('T')
 
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
@@ -303,7 +316,7 @@ class Picamera2:
         self.stop_count = 0
         self.configure_count = 0
         self.frames = 0
-        self._job_list = []
+        self._job_list: List[Job] = []
         self.options = {}
         self._encoders = set()
         self.pre_callback = None
@@ -640,8 +653,20 @@ class Picamera2:
         self.allocator = Allocator()
         _log.info('Camera closed successfully.')
 
+    @overload
     @staticmethod
-    def _make_initial_stream_config(stream_config: dict, updates: dict, ignore_list=[]) -> dict:
+    def _make_initial_stream_config(
+        stream_config: Dict, updates: None, ignore_list=[]
+    ) -> None: ...
+
+    @overload
+    @staticmethod
+    def _make_initial_stream_config(
+        stream_config: Dict, updates: Dict, ignore_list=[]
+    ) -> Dict: ...
+
+    @staticmethod
+    def _make_initial_stream_config(stream_config: dict, updates: Optional[dict], ignore_list=[]) ->  Optional[dict]:
         """Take an initial stream_config and add any user updates.
 
         :param stream_config: Stream configuration
@@ -1015,7 +1040,7 @@ class Picamera2:
             sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
             camera_config['sensor'] = sensor_config
 
-    def configure_(self, camera_config="preview") -> None:
+    def configure_(self, camera_config: Union[CameraConfiguration, str, Dict, None] = "preview") -> None:
         """Configure the camera system with the given configuration.
 
         :param camera_config: Configuration, defaults to the 'preview' configuration
@@ -1198,7 +1223,7 @@ class Picamera2:
                 job.cancel()
             self._job_list = []
 
-    def stop_(self, request=None) -> None:
+    def stop_(self, request: Optional[CompletedRequest] = None) -> Tuple[Literal[True], None]:
         """Stop the camera.
 
         Only call this function directly from within the camera event
@@ -1330,7 +1355,49 @@ class Picamera2:
         """
         return job.get_result(timeout=timeout)
 
-    def dispatch_functions(self, functions, wait, signal_function=None, immediate=False) -> None:
+    @overload
+    def dispatch_functions(
+        self,
+        functions: List[Callable[[], Tuple[bool, T]]],
+        wait: bool,
+        signal_function: Optional[Callable[['Job[T]'], None]] = None,
+        immediate: bool = False,
+    ) -> T: ...
+
+    @overload
+    def dispatch_functions(
+        self,
+        functions: List[Callable[[], Tuple[bool, T]]],
+        wait: float,
+        signal_function: Optional[Callable[['Job[T]'], None]] = None,
+        immediate: bool = False,
+    ) -> T: ...
+
+    @overload
+    def dispatch_functions(
+        self,
+        functions: List[Callable[[], Tuple[bool, T]]],
+        wait: None,
+        signal_function: Optional[Callable[['Job[T]'], None]] = None,
+        immediate: bool = False,
+    ) -> Optional[T]: ...
+
+    @overload
+    def dispatch_functions(
+        self,
+        functions: List[Callable[[], Tuple[bool, T]]],
+        wait: bool = False,
+        signal_function: Optional[Callable[['Job[T]'], None]] = None,
+        immediate: bool = False,
+    ) -> Job[T]: ...
+
+    def dispatch_functions(
+        self,
+        functions: List[Callable[[], Tuple[bool, Any]]],
+        wait: Union[bool, float, None] = False,
+        signal_function: Optional[Callable[['Job[Any]'], None]] = None,
+        immediate: bool = False,
+    ) -> Union[T, Job[Any], Optional[T]]:
         """The main thread should use this to dispatch a number of operations for the event loop to perform.
 
         When there are multiple items each will be processed on a separate
@@ -1392,11 +1459,11 @@ class Picamera2:
         functions = [partial(self.set_frame_drops_, num_frames), self.drop_frames_]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_file_(self, file_output, name: str, format=None, exif_data=None) -> dict:
+    def capture_file_(self, file_output: Any, name: str, format=None, exif_data=None) -> Tuple[bool, Optional[Dict]]:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
-        if name == "raw" and formats.is_raw(self.camera_config["raw"]["format"]):
+        if name == "raw" and formats.is_raw(cast(Dict, self.camera_config)["raw"]["format"]):
             request.save_dng(file_output)
         else:
             request.save(name, file_output, format=format, exif_data=exif_data)
@@ -1412,7 +1479,7 @@ class Picamera2:
             format=None,
             wait=None,
             signal_function=None,
-            exif_data=None) -> dict:
+            exif_data=None) -> Optional[dict]:
         """Capture an image to a file in the current camera mode.
 
         Return the metadata for the frame captured.
@@ -1424,7 +1491,7 @@ class Picamera2:
                              exif_data=exif_data)]
         return self.dispatch_functions(functions, wait, signal_function)
 
-    def switch_mode_(self, camera_config):
+    def switch_mode_(self, camera_config: Union[str, Dict, None]) -> Tuple[bool, Union[Dict, str, None]]:
         self.stop_()
         self.configure_(camera_config)
         self.start_()
@@ -1540,7 +1607,7 @@ class Picamera2:
         finally:
             request.release()
 
-    def capture_metadata_(self):
+    def capture_metadata_(self) -> Tuple[bool, Optional[Dict[str, Any]]]:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
@@ -1565,7 +1632,7 @@ class Picamera2:
         """Make a 1d numpy array from the next frame in the named stream."""
         return self.dispatch_functions([partial(self.capture_buffer_, name)], wait, signal_function)
 
-    def capture_buffers_and_metadata_(self, names) -> Tuple[List[np.ndarray], dict]:
+    def capture_buffers_and_metadata_(self, names) -> Tuple[bool, Optional[Tuple[List[np.ndarray], Dict[str, Any]]]]:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
@@ -1615,7 +1682,7 @@ class Picamera2:
                      partial(capture_buffers_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_array_(self, name):
+    def capture_array_(self, name) -> Tuple[bool, Optional[np.ndarray]]:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
@@ -1623,11 +1690,14 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_array(self, name="main", wait=None, signal_function=None):
+    def capture_array(self, name="main", wait=None, signal_function=None) -> Optional[np.ndarray]:
         """Make a 2d image from the next frame in the named stream."""
         return self.dispatch_functions([partial(self.capture_array_, name)], wait, signal_function)
 
-    def capture_arrays_and_metadata_(self, names) -> Tuple[List[np.ndarray], Dict[str, Any]]:
+    def capture_arrays_and_metadata_(self, names) -> Union[
+        Tuple[Literal[False], None],
+        Tuple[Literal[True], Tuple[List[np.ndarray], Dict[str, Any]]],
+    ]:
         if not self.completed_requests:
             return (False, None)
         request = self.completed_requests.pop(0)
@@ -1677,7 +1747,7 @@ class Picamera2:
                      partial(capture_arrays_and_switch_back_, self, preview_config, names)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def capture_image_(self, name: str) -> Image.Image:
+    def capture_image_(self, name: str) -> Tuple[bool, Optional[Image.Image]]:
         """Capture image
 
         :param name: Stream name
@@ -1690,7 +1760,8 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name: str = "main", wait: bool = None, signal_function=None) -> Image.Image:
+    def capture_image(self, name: str = "main", wait: Optional[Union[bool, float]] = None,
+                      signal_function=None) -> Optional[Image.Image]:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1704,15 +1775,15 @@ class Picamera2:
         """
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
-    def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: bool = None,
-                                      signal_function=None, delay=0) -> Image.Image:
+    def switch_mode_and_capture_image(self, camera_config, name: str = "main", wait: Optional[Union[bool, float]] = None,
+                                      signal_function=None, delay=0) -> Optional[Image.Image]:
         """Switch the camera into a new (capture) mode, capture the image.
 
         Then return back to the initial camera mode.
         """
         preview_config = self.camera_config
 
-        def capture_image_and_switch_back_(self, preview_config, name) -> Image.Image:
+        def capture_image_and_switch_back_(self, preview_config, name) -> Tuple[bool, Optional[Image.Image]]:
             done, result = self.capture_image_(name)
             if not done:
                 return (False, None)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any, Dict, Optional, cast, TYPE_CHECKING
 import io
 import logging
 import time
@@ -15,40 +17,56 @@ import picamera2.formats as formats
 from .controls import Controls
 from .sensor_format import SensorFormat
 from .utils import convert_from_libcamera_type
+from typing_extensions import Buffer
+
+
+if TYPE_CHECKING:
+    from picamera2.picamera2 import Picamera2
 
 _log = logging.getLogger(__name__)
 
 
 class _MappedBuffer:
-    def __init__(self, request, stream, write=True):
+    def __init__(
+        self, request: "CompletedRequest", stream: str, write: bool = True
+    ) -> None:
         if isinstance(stream, str):
-            stream = request.stream_map[stream]
+            stream = cast(Dict[str, Any], request.stream_map)[stream]
+        assert request.request is not None
         self.__fb = request.request.buffers[stream]
-        self.__sync = request.picam2.allocator.sync(request.picam2.allocator, self.__fb, write)
+        self.__sync = request.picam2.allocator.sync(
+            request.picam2.allocator, self.__fb, write
+        )
 
-    def __enter__(self):
+    def __enter__(self) -> Any:
         self.__mm = self.__sync.__enter__()
         return self.__mm
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type: Any, exc_value: Any, exc_traceback: Any) -> None:
         self.__sync.__exit__(exc_type, exc_value, exc_traceback)
 
 
 class MappedArray:
-    def __init__(self, request, stream, reshape=True, write=True):
-        self.__request = request
-        self.__stream = stream
-        self.__buffer = _MappedBuffer(request, stream, write=write)
-        self.__array = None
-        self.__reshape = reshape
+    def __init__(
+        self,
+        request: "CompletedRequest",
+        stream: str,
+        reshape: bool = True,
+        write: bool = True,
+    ) -> None:
+        self.__request: "CompletedRequest" = request
+        self.__stream: str = stream
+        self.__buffer: _MappedBuffer = _MappedBuffer(request, stream, write=write)
+        self.__array: Optional[np.ndarray] = None
+        self.__reshape: bool = reshape
 
-    def __enter__(self):
+    def __enter__(self) -> "MappedArray":
         b = self.__buffer.__enter__()
         array = np.array(b, copy=False, dtype=np.uint8)
 
         if self.__reshape:
             if isinstance(self.__stream, str):
-                config = self.__request.config[self.__stream]
+                config = cast(Dict[str, Any], self.__request.config)[self.__stream]
                 fmt = config["format"]
                 w, h = config["size"]
                 stride = config["stride"]
@@ -87,40 +105,40 @@ class MappedArray:
         self.__array = array
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type: Any, exc_value: Any, exc_traceback: Any) -> None:
         if self.__array is not None:
             del self.__array
         self.__buffer.__exit__(exc_type, exc_value, exc_traceback)
 
     @property
-    def array(self):
+    def array(self) -> Optional[np.ndarray]:
         return self.__array
 
 
 class CompletedRequest:
-    def __init__(self, request, picam2):
+    def __init__(self, request: Any, picam2: "Picamera2") -> None:
         self.request = request
-        self.ref_count = 1
+        self.ref_count: int = 1
         self.lock = picam2.request_lock
         self.picam2 = picam2
-        self.stop_count = picam2.stop_count
-        self.configure_count = picam2.configure_count
-        self.config = self.picam2.camera_config.copy()
-        self.stream_map = self.picam2.stream_map.copy()
+        self.stop_count: int = picam2.stop_count
+        self.configure_count: int = picam2.configure_count
+        self.config = cast(Dict[str, Any], self.picam2.camera_config).copy()
+        self.stream_map = cast(Dict[str, Any], self.picam2.stream_map).copy()
         with self.lock:
             self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False)
                           for buffer in self.request.buffers.values()]
             self.picam2.allocator.acquire(self.request.buffers)
             [sync.__enter__() for sync in self.syncs]
 
-    def acquire(self):
+    def acquire(self) -> None:
         """Acquire a reference to this completed request, which stops it being recycled back to the camera system."""
         with self.lock:
             if self.ref_count == 0:
                 raise RuntimeError("CompletedRequest: acquiring lock with ref_count 0")
             self.ref_count += 1
 
-    def release(self):
+    def release(self) -> None:
         """Release this completed frame back to the camera system (once its reference count reaches zero)."""
         with self.lock:
             self.ref_count -= 1
@@ -130,6 +148,7 @@ class CompletedRequest:
                 # If the camera has been stopped since this request was returned then we
                 # can't recycle it.
                 if self.picam2.camera and self.stop_count == self.picam2.stop_count and self.picam2.started:
+                    assert self.request is not None
                     self.request.reuse()
                     controls = self.picam2.controls.get_libcamera_controls()
                     for id, value in controls.items():
@@ -137,45 +156,65 @@ class CompletedRequest:
                     self.picam2.controls = Controls(self.picam2)
                     self.picam2.camera.queue_request(self.request)
                 [sync.__exit__() for sync in self.syncs]
+                assert self.request is not None
                 self.picam2.allocator.release(self.request.buffers)
                 self.request = None
                 self.config = None
                 self.stream_map = None
 
-    def make_buffer(self, name):
-        """Make a 1d numpy array from the named stream's buffer."""
-        if self.stream_map.get(name, None) is None:
-            raise RuntimeError(f'Stream {name!r} is not defined')
+    def make_buffer(self, name: str) -> np.ndarray:
+        """Make a 1D numpy array from the named stream's buffer."""
+        if cast(Dict[str, Any], self.stream_map).get(name) is None:
+            raise RuntimeError(f"Stream {name!r} is not defined")
         with _MappedBuffer(self, name, write=False) as b:
             return np.array(b, dtype=np.uint8)
 
-    def get_metadata(self):
+    def get_metadata(self) -> Dict[str, Any]:
         """Fetch the metadata corresponding to this completed request."""
         metadata = {}
+        assert self.request is not None
         for k, v in self.request.metadata.items():
             metadata[k.name] = convert_from_libcamera_type(v)
         return metadata
 
-    def make_array(self, name):
-        """Make a 2d numpy array from the named stream's buffer."""
-        return self.picam2.helpers.make_array(self.make_buffer(name), self.config[name])
+    def make_array(self, name: str) -> np.ndarray:
+        """Make a 2D numpy array from the named stream's buffer."""
+        return self.picam2.helpers.make_array(self.make_buffer(name), cast(Dict[str, Any], self.config)[name])
 
-    def make_image(self, name, width=None, height=None):
+    def make_image(
+        self, name: str, width: Optional[int] = None, height: Optional[int] = None
+    ) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
-        return self.picam2.helpers.make_image(self.make_buffer(name), self.config[name], width, height)
+        return self.picam2.helpers.make_image(
+            self.make_buffer(name), cast(Dict[str, Any], self.config), width, height
+        )
 
-    def save(self, name, file_output, format=None, exif_data=None):
-        """Save a JPEG or PNG image of the named stream's buffer.
+    def save(
+        self,
+        name: str,
+        file_output: Any,
+        format: Optional[str] = None,
+        exif_data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Save a JPEG or PNG image of the named stream's buffer.
 
         exif_data - dictionary containing user defined exif data (based on `piexif`). This will
             overwrite existing exif information generated by picamera2.
         """
-        return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output,
-                                        format, exif_data)
+        return self.picam2.helpers.save(
+            self.make_image(name),
+            self.get_metadata(),
+            file_output,
+            format,
+            exif_data,
+        )
 
-    def save_dng(self, file_output, name="raw"):
+    def save_dng(self, file_output: Any, name: str = "raw") -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
-        return self.picam2.helpers.save_dng(self.make_buffer(name), self.get_metadata(), self.config[name], file_output)
+        return self.picam2.helpers.save_dng(
+            self.make_buffer(name), self.get_metadata(), cast(Dict[str, Any], self.config)[name], file_output
+        )
 
 
 class Helpers:
@@ -184,11 +223,11 @@ class Helpers:
     In such a way that it can be usefully accessed even without a CompletedRequest object.
     """
 
-    def __init__(self, picam2):
+    def __init__(self, picam2: "Picamera2"):
         self.picam2 = picam2
 
-    def make_array(self, buffer, config):
-        """Make a 2d numpy array from the named stream's buffer."""
+    def make_array(self, buffer: np.ndarray, config: Dict[str, Any]) -> np.ndarray:
+        """Make a 2D numpy array from the named stream's buffer."""
         array = buffer
         fmt = config["format"]
         w, h = config["size"]
@@ -225,21 +264,32 @@ class Helpers:
             # cv2.cvtColor(image, cv2.COLOR_YUV2BGR_YUYV) will convert directly to RGB.
             image = array.reshape(h, stride // 2, 2)
         elif fmt == "MJPEG":
-            image = np.array(Image.open(io.BytesIO(array)))
+            image = np.array(Image.open(io.BytesIO(cast(Buffer, array))))
         elif formats.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
             raise RuntimeError("Format " + fmt + " not supported")
         return image
 
-    def make_image(self, buffer, config, width=None, height=None):
+    def make_image(
+        self,
+        buffer: np.ndarray,
+        config: Dict[str, Any],
+        width: Optional[int] = None,
+        height: Optional[int] = None
+    ) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
         fmt = config["format"]
         if fmt == "MJPEG":
-            return Image.open(io.BytesIO(buffer))
+            return Image.open(io.BytesIO(cast(Buffer, buffer)))
         else:
             rgb = self.make_array(buffer, config)
-        mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBX", "XRGB8888": "BGRX"}
+        mode_lookup = {
+            "RGB888": "BGR",
+            "BGR888": "RGB",
+            "XBGR8888": "RGBX",
+            "XRGB8888": "BGRX",
+        }
         if fmt not in mode_lookup:
             raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
         mode = mode_lookup[fmt]
@@ -280,14 +330,19 @@ class Helpers:
             # Make up some extra EXIF data.
             if "AnalogueGain" in metadata and "DigitalGain" in metadata:
                 datetime_now = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
-                zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
-                            piexif.ImageIFD.Model: self.picam2.camera.id,
-                            piexif.ImageIFD.Software: "Picamera2",
-                            piexif.ImageIFD.DateTime: datetime_now}
+                assert self.picam2.camera is not None
+                zero_ifd = {
+                    piexif.ImageIFD.Make: "Raspberry Pi",
+                    piexif.ImageIFD.Model: self.picam2.camera.id,
+                    piexif.ImageIFD.Software: "Picamera2",
+                    piexif.ImageIFD.DateTime: datetime_now,
+                }
                 total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
-                exif_ifd = {piexif.ExifIFD.DateTimeOriginal: datetime_now,
-                            piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
-                            piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
+                exif_ifd = {
+                    piexif.ExifIFD.DateTimeOriginal: datetime_now,
+                    piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                    piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100),
+                }
                 exif_dict = {"0th": zero_ifd, "Exif": exif_ifd}
                 # merge user provided exif data, overwriting the defaults
                 exif_dict = exif_dict | exif_data
@@ -303,7 +358,13 @@ class Helpers:
         _log.info(f"Saved {self} to file {file_output}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def save_dng(self, buffer, metadata, config, file_output):
+    def save_dng(
+        self,
+        buffer: np.ndarray,
+        metadata: Dict[str, Any],
+        config: Dict[str, Any],
+        file_output: Any
+    ) -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
         raw = self.make_array(buffer, config)
@@ -334,7 +395,7 @@ class Helpers:
         _log.info(f"Saved {self} to file {file_output}.")
         _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
 
-    def decompress(self, array):
+    def decompress(self, array: np.ndarray):
         """Decompress an image buffer that has been compressed with a PiSP compression format."""
         # These are the standard configurations used in the drivers.
         offset = 2048
