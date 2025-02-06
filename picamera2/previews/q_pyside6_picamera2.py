@@ -4,8 +4,8 @@ import numpy as np
 from libcamera import Transform
 from PySide6.QtCore import (QRect, QRectF, QSize, QSocketNotifier, Qt,
                           Signal, Slot)
-from PySide6.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
-from PySide6.QtWidgets import QGraphicsScene, QGraphicsView
+from PySide2.QtGui import QBrush, QColor, QImage, QPixmap, QTransform
+from PySide2.QtWidgets import QGraphicsScene, QGraphicsView
 
 try:
     import cv2
