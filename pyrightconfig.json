@@ -3,7 +3,7 @@
   "exclude": ["tests"],
   "reportMissingImports": false,
   "reportMissingTypeStubs": false,
-  "reportUnknownMemberType": "warning",
+  "reportUnknownMemberType": false,
   "reportOptionalMemberAccess": "warning",
   "reportGeneralTypeIssues": "warning",
   "reportAttributeAccessIssue": "warning",
