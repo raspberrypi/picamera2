@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple, TypeVar, Generic
+from typing import Callable, List, Optional, Tuple, TypeVar, Generic, cast
 from concurrent.futures import Future, CancelledError
 
 
@@ -81,8 +81,7 @@ class Job(Generic[T]):
         assert not self._functions, "Job not finished!"
 
         if not self._future.done():
-            assert self._result is not None, "Job result is None"
-            self._future.set_result(self._result)
+            self._future.set_result(cast(T, self._result))
         if self._signal_function:
             self._signal_function(self)
 
