@@ -25,6 +25,7 @@ from typing import (
     Union,
     Literal,
     cast,
+    TypedDict,
 )
 
 import libcamera
@@ -62,6 +63,24 @@ class Preview(Enum):
     DRM = 1
     QT = 2
     QTGL = 3
+
+class GlobalCameraInfo(TypedDict):
+    """
+    TypedDict for camera information fields.
+
+    Fields:
+        Model: The model name of the camera, as advertised by the camera driver.
+        Location: A number reporting how the camera is mounted, as reported by libcamera.
+        Rotation: How the camera is rotated for normal operation, as reported by libcamera.
+        Id: An identifier string for the camera, indicating how the camera is connected.
+        Num: A camera index.
+    """
+    Model: str
+    Location: int
+    Rotation: int
+    Id: str
+    Num: int
+
 
 
 class CameraManager:
@@ -222,17 +241,18 @@ class Picamera2:
         return next(algo for algo in tuning["algorithms"] if name in algo)[name]
 
     @staticmethod
-    def global_camera_info() -> list:
-        """Return Id string and Model name for all attached cameras, one dict per camera.
+    def global_camera_info() -> List[GlobalCameraInfo]:
+        """
+        Return Id string and Model name for all attached cameras, one dict per camera.
 
         Ordered correctly by camera number. Also return the location and rotation
         of the camera when known, as these may help distinguish which is which.
         """
-        def describe_camera(cam, num):
+        def describe_camera(cam, num: int):
             info = {k.name: v for k, v in cam.properties.items() if k.name in ("Model", "Location", "Rotation")}
             info["Id"] = cam.id
             info["Num"] = num
-            return info
+            return cast(GlobalCameraInfo, info)
         cameras = [describe_camera(cam, i) for i, cam in enumerate(Picamera2._cm.cms.cameras)]
         # Sort alphabetically so they are deterministic, but send USB cams to the back of the class.
         return sorted(cameras, key=lambda cam: ("/usb" not in cam['Id'], cam['Id']), reverse=True)
@@ -1902,7 +1922,7 @@ class Picamera2:
         self.stop()
         self.stop_encoder()
 
-    def set_overlay(self, overlay) -> None:
+    def set_overlay(self, overlay: Optional[np.ndarray]) -> None:
         """Display an overlay on the camera image.
 
         The overlay may be either None, in which case any overlay is removed,
