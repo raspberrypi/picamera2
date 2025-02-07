@@ -1,6 +1,5 @@
-from typing import Callable, List, Optional, Tuple, TypeVar, Generic, cast
-from concurrent.futures import Future, CancelledError
-
+from concurrent.futures import CancelledError, Future
+from typing import Callable, Generic, List, Optional, Tuple, TypeVar, cast
 
 T = TypeVar('T')
 
