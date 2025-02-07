@@ -173,7 +173,7 @@ class CompletedRequest:
 
     def make_image(self, name: str, width: Optional[int] = None, height: Optional[int] = None) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
-        return self.picam2.helpers.make_image(self.make_buffer(name), cast(Dict[str, Any], self.config), width, height)
+        return self.picam2.helpers.make_image(self.make_buffer(name), cast(Dict[str, Any], self.config)[name], width, height)
 
     def save(self, name: str, file_output: Any, format: Optional[str] = None,
              exif_data: Optional[Dict[str, Any]] = None) -> None:
