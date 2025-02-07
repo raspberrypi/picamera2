@@ -1,24 +1,24 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional, cast, TYPE_CHECKING, Union
+
 import io
 import logging
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union, cast
 
 import numpy as np
 import piexif
 from pidng.camdefs import Picamera2Camera
 from pidng.core import PICAM2DNG
 from PIL import Image
+from typing_extensions import Buffer
 
 import picamera2.formats as formats
 
 from .controls import Controls
 from .sensor_format import SensorFormat
 from .utils import convert_from_libcamera_type
-from typing_extensions import Buffer
-
 
 if TYPE_CHECKING:
     from picamera2.picamera2 import Picamera2
@@ -245,7 +245,6 @@ class Helpers:
         else:
             raise RuntimeError("Format " + fmt + " not supported")
         return image
-
 
     def make_image(self, buffer: np.ndarray, config: Dict[str, Any], width: Optional[int] = None,
                    height: Optional[int] = None) -> Image.Image:

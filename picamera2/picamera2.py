@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 """picamera2 main class"""
 
+from __future__ import annotations
+
 import atexit
 import contextlib
 import json
@@ -13,20 +15,8 @@ import threading
 import time
 from enum import Enum
 from functools import partial
-from typing import (
-    Any,
-    Dict,
-    List,
-    Tuple,
-    Optional,
-    overload,
-    Callable,
-    TypeVar,
-    Union,
-    Literal,
-    cast,
-    TypedDict,
-)
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple,
+                    TypedDict, TypeVar, Union, cast, overload)
 
 import libcamera
 import numpy as np
@@ -56,6 +46,7 @@ _log = logging.getLogger(__name__)
 
 T = TypeVar('T')
 
+
 class Preview(Enum):
     """Enum that applications can pass to the start_preview method."""
 
@@ -63,6 +54,7 @@ class Preview(Enum):
     DRM = 1
     QT = 2
     QTGL = 3
+
 
 class GlobalCameraInfo(TypedDict):
     """
@@ -75,12 +67,12 @@ class GlobalCameraInfo(TypedDict):
         Id: An identifier string for the camera, indicating how the camera is connected.
         Num: A camera index.
     """
+
     Model: str
     Location: int
     Rotation: int
     Id: str
     Num: int
-
 
 
 class CameraManager:
@@ -677,16 +669,18 @@ class Picamera2:
     @staticmethod
     def _make_initial_stream_config(
         stream_config: Dict, updates: None, ignore_list=[]
-    ) -> None: ...
+    ) -> None:
+        ...
 
     @overload
     @staticmethod
     def _make_initial_stream_config(
         stream_config: Dict, updates: Dict, ignore_list=[]
-    ) -> Dict: ...
+    ) -> Dict:
+        ...
 
     @staticmethod
-    def _make_initial_stream_config(stream_config: dict, updates: Optional[dict], ignore_list=[]) ->  Optional[dict]:
+    def _make_initial_stream_config(stream_config: dict, updates: Optional[dict], ignore_list=[]) -> Optional[dict]:
         """Take an initial stream_config and add any user updates.
 
         :param stream_config: Stream configuration
@@ -1382,7 +1376,8 @@ class Picamera2:
         wait: bool,
         signal_function: Optional[Callable[['Job[T]'], None]] = None,
         immediate: bool = False,
-    ) -> T: ...
+    ) -> T:
+        ...
 
     @overload
     def dispatch_functions(
@@ -1391,7 +1386,8 @@ class Picamera2:
         wait: float,
         signal_function: Optional[Callable[['Job[T]'], None]] = None,
         immediate: bool = False,
-    ) -> T: ...
+    ) -> T:
+        ...
 
     @overload
     def dispatch_functions(
@@ -1400,7 +1396,8 @@ class Picamera2:
         wait: None,
         signal_function: Optional[Callable[['Job[T]'], None]] = None,
         immediate: bool = False,
-    ) -> Optional[T]: ...
+    ) -> Optional[T]:
+        ...
 
     @overload
     def dispatch_functions(
@@ -1409,7 +1406,8 @@ class Picamera2:
         wait: bool = False,
         signal_function: Optional[Callable[['Job[T]'], None]] = None,
         immediate: bool = False,
-    ) -> Job[T]: ...
+    ) -> Job[T]:
+        ...
 
     def dispatch_functions(
         self,
