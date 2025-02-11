@@ -12,7 +12,6 @@ import piexif
 from pidng.camdefs import Picamera2Camera
 from pidng.core import PICAM2DNG
 from PIL import Image
-from typing_extensions import Buffer
 
 import picamera2.formats as formats
 
@@ -239,7 +238,7 @@ class Helpers:
             # cv2.cvtColor(image, cv2.COLOR_YUV2BGR_YUYV) will convert directly to RGB.
             image = array.reshape(h, stride // 2, 2)
         elif fmt == "MJPEG":
-            image = np.array(Image.open(io.BytesIO(cast(Buffer, array))))
+            image = np.array(Image.open(io.BytesIO(array)))  # type: ignore
         elif formats.is_raw(fmt):
             image = array.reshape((h, stride))
         else:
@@ -251,7 +250,7 @@ class Helpers:
         """Make a PIL image from the named stream's buffer."""
         fmt = config["format"]
         if fmt == "MJPEG":
-            return Image.open(io.BytesIO(cast(Buffer, buffer)))
+            return Image.open(io.BytesIO(buffer))  # type: ignore
         else:
             rgb = self.make_array(buffer, config)
         mode_lookup = {"RGB888": "BGR", "BGR888": "RGB", "XBGR8888": "RGBX", "XRGB8888": "BGRX"}
@@ -265,7 +264,7 @@ class Helpers:
             height = rgb.shape[0]
         if width != rgb.shape[1] or height != rgb.shape[0]:
             # This will be slow. Consider requesting camera images of this size in the first place!
-            pil_img = pil_img.resize((width, height))
+            pil_img = pil_img.resize((width, height))  # type: ignore
         return pil_img
 
     def save(self, img: Image.Image, metadata: Dict[str, Any], file_output: Union[str, Path], format: Optional[str] = None,
