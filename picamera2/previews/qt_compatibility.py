@@ -1,11 +1,13 @@
-from types import ModuleType
-from enum import Enum
 import importlib
+from enum import Enum
+from types import ModuleType
+
 
 class _QT_BINDING(Enum):
     PyQt5 = 'PyQt5'
     PyQt6 = 'PyQt6'
     PySide6 = 'PySide6'
+
 
 def _get_qt_modules(qt_module: _QT_BINDING) -> tuple[ModuleType, ModuleType, ModuleType]:
     """
@@ -37,4 +39,3 @@ def _get_qt_modules(qt_module: _QT_BINDING) -> tuple[ModuleType, ModuleType, Mod
         return (QtCoreModule, QtGuiModule, QtWidgetsModule)
     except ImportError:
         raise ImportError(f'{qt_module} is not installed or could not be imported.')
-
