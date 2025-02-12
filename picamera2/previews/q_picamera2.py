@@ -36,14 +36,14 @@ class QPicamera2(QGraphicsView):
         self.setScene(self.scene)
         self.setBackgroundBrush(QBrush(QColor(*bg_colour)))
         self.resize(width, height)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.enabled = True
         self.title_function = None
 
         self.update_overlay_signal.connect(self.update_overlay)
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                               QSocketNotifier.Read, self)
+                                               QSocketNotifier.Type.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
         # Must always run cleanup when this widget goes away.
         self.destroyed.connect(lambda: self.cleanup())
@@ -94,7 +94,7 @@ class QPicamera2(QGraphicsView):
         if overlay is not None:
             overlay = np.copy(overlay, order='C')
             shape = overlay.shape
-            qim = QImage(overlay.data, shape[1], shape[0], QImage.Format_RGBA8888)
+            qim = QImage(overlay.data, shape[1], shape[0], QImage.Format.Format_RGBA8888)
             new_pixmap = QPixmap(qim)
             # No scaling here - we leave it to fitInView to set that up.
         self.update_overlay_signal.emit(new_pixmap)
@@ -188,7 +188,7 @@ class QPicamera2(QGraphicsView):
         width = min(img.shape[1], stream_config["size"][0])
         width -= width % 4
         img = np.ascontiguousarray(img[:, :width, :3])
-        fmt = QImage.Format_BGR888 if stream_config['format'] in ('RGB888', 'XRGB8888') else QImage.Format_RGB888
+        fmt = QImage.Format.Format_BGR888 if stream_config['format'] in ('RGB888', 'XRGB8888') else QImage.Format.Format_RGB888
         qim = QImage(img.data, width, img.shape[0], fmt)
         pix = QPixmap(qim)
         # Add the pixmap to the scene if there wasn't one, or replace it if the images have
