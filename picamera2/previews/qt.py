@@ -5,8 +5,8 @@
 # which is in any case what is required for remote preview windows.
 from logging import getLogger
 
-from .qt_compatibility import _QT_BINDING
 from .q_picamera2 import _get_qpicamera2
+from .qt_compatibility import _QT_BINDING
 
 _log = getLogger(__name__)
 

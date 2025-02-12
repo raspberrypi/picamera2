@@ -1,6 +1,8 @@
 import os
 import threading
 import time
+from functools import lru_cache
+from operator import attrgetter
 
 os.environ["PYOPENGL_PLATFORM"] = "egl"
 
@@ -18,10 +20,8 @@ from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
 from picamera2.previews.gl_helpers import *
 
-from functools import lru_cache
-from operator import attrgetter
-
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
+
 
 class EglState:
     def __init__(self):
@@ -79,19 +79,19 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
     # Get Qt modules
     QtCore, QtGui, QtWidgets = _get_qt_modules(qt_module)
 
-    #Get from QtCore
+    # Get from QtCore
     QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter(
         'QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
-    
-    #Get from QtWidgets
+
+    # Get from QtWidgets
     QWidget = attrgetter(
         'QWidget')(QtWidgets)
-    
+
     class QGlPicamera2(QWidget):
         done_signal = pyqtSignal(object)
 
         def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
-                    keep_ar=True, transform=None, preview_window=None):
+                     keep_ar=True, transform=None, preview_window=None):
             super().__init__(parent=parent)
             self.resize(width, height)
 
@@ -113,7 +113,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             self.egl = EglState()
             if picam2.verbose_console:
                 print(f"EGL {eglQueryString(self.egl.display, EGL_VENDOR).decode()} "
-                    f"{eglQueryString(self.egl.display, EGL_VERSION).decode()}")
+                      f"{eglQueryString(self.egl.display, EGL_VERSION).decode()}")
             self.init_gl()
 
             # set_overlay could be called before the first frame arrives, hence:
@@ -124,7 +124,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             self.preview_window = preview_window
 
             self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                                QSocketNotifier.Type.Read, self)
+                                                   QSocketNotifier.Type.Read, self)
             self.camera_notifier.activated.connect(self.handle_requests)
             # Must always run cleanup when this widget goes away.
             self.destroyed.connect(lambda: self.cleanup())
@@ -166,7 +166,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
         def create_surface(self):
             native_surface = c_void_p(self.winId().__int__())
             surface = eglCreateWindowSurface(self.egl.display, self.egl.config,
-                                            native_surface, None)
+                                             native_surface, None)
 
             self.surface = surface
 
@@ -309,10 +309,10 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                     ]
 
                 image = eglCreateImageKHR(display,
-                                        EGL_NO_CONTEXT,
-                                        EGL_LINUX_DMA_BUF_EXT,
-                                        None,
-                                        attribs)
+                                          EGL_NO_CONTEXT,
+                                          EGL_LINUX_DMA_BUF_EXT,
+                                          None,
+                                          attribs)
 
                 self.texture = glGenTextures(1)
                 glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.texture)
@@ -451,12 +451,12 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             # We seem to need a short delay before rendering the background colour works. No idea why.
             time.sleep(0.05)
             self.resizeEvent(None)
-    
+
     return QGlPicamera2
+
 
 # Define QGlPicamera2 class for compatability
 try:
     QPicamera2 = _get_qglpicamera2(_QT_BINDING.PyQt5)
 except ImportError:
     pass
-

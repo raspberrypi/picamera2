@@ -1,4 +1,6 @@
 import logging
+from functools import lru_cache
+from operator import attrgetter
 
 import numpy as np
 from libcamera import Transform
@@ -9,10 +11,8 @@ try:
 except ImportError:
     cv2_available = False
 
-from functools import lru_cache
-from operator import attrgetter
+from .qt_compatability import _QT_BINDING, _get_qt_modules
 
-from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
 @lru_cache(maxsize=None, typed=False)
 def _get_qpicamera2(qt_module: _QT_BINDING):
@@ -20,15 +20,15 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
     # Get Qt modules
     QtCore, QtGui, QtWidgets = _get_qt_modules(qt_module)
 
-    #Get from QtCore
+    # Get from QtCore
     QRect, QRectF, QSize, QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter(
         'QRect', 'QRectF', 'QSize', 'QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
-    
-    #Get from QtGui
+
+    # Get from QtGui
     QBrush, QColor, QImage, QPixmap, QTransform = attrgetter(
         'QBrush', 'QColor', 'QImage', 'QPixmap', 'QTransform')(QtGui)
-    
-    #Get from QtWidgets
+
+    # Get from QtWidgets
     QGraphicsScene, QGraphicsView = attrgetter(
         'QGraphicsScene', 'QGraphicsView')(QtWidgets)
 
@@ -37,7 +37,7 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
         update_overlay_signal = pyqtSignal(object)
 
         def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
-                    keep_ar=True, transform=None, preview_window=None):
+                     keep_ar=True, transform=None, preview_window=None):
             super().__init__(parent=parent)
             self.picamera2 = picam2
             picam2.attach_preview(preview_window)
@@ -61,7 +61,7 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
 
             self.update_overlay_signal.connect(self.update_overlay)
             self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                                QSocketNotifier.Type.Read, self)
+                                                   QSocketNotifier.Type.Read, self)
             self.camera_notifier.activated.connect(self.handle_requests)
             # Must always run cleanup when this widget goes away.
             self.destroyed.connect(lambda: self.cleanup())
@@ -206,7 +206,10 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
             width = min(img.shape[1], stream_config["size"][0])
             width -= width % 4
             img = np.ascontiguousarray(img[:, :width, :3])
-            fmt = QImage.Format.Format_BGR888 if stream_config['format'] in ('RGB888', 'XRGB8888') else QImage.Format.Format_RGB888
+            if stream_config['format'] in ('RGB888', 'XRGB8888'):
+                fmt = QImage.Format.Format_BGR888
+            else:
+                fmt = QImage.Format.Format_RGB888
             qim = QImage(img.data, width, img.shape[0], fmt)
             pix = QPixmap(qim)
             # Add the pixmap to the scene if there wasn't one, or replace it if the images have
@@ -227,8 +230,9 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
                 return
             self.picamera2.notifymeread.read()
             self.picamera2.process_requests(self)
-    
+
     return QPicamera2
+
 
 # Define QPicamera2 class for compatability
 try:
