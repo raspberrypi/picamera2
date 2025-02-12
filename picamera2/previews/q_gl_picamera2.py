@@ -21,7 +21,7 @@ from picamera2.previews.gl_helpers import *
 from functools import lru_cache
 from operator import attrgetter
 
-from .qt_compatability import _QT_BINDING, _get_qt_modules
+from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
 class EglState:
     def __init__(self):
