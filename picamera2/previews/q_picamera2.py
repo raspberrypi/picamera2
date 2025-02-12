@@ -11,7 +11,7 @@ try:
 except ImportError:
     cv2_available = False
 
-from .qt_compatability import _QT_BINDING, _get_qt_modules
+from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
 
 @lru_cache(maxsize=None, typed=False)
