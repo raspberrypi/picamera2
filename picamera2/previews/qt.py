@@ -23,6 +23,8 @@ def __getattr__(name: str):
         return _get_qpicamera2(_QT_BINDING.PyQt5)
     elif name == 'Q6Picamera2':
         return _get_qpicamera2(_QT_BINDING.PyQt6)
+    elif name == 'QSide2Picamera2':
+        return _get_qpicamera2(_QT_BINDING.PySide2)
     elif name == 'QSide6Picamera2':
         return _get_qpicamera2(_QT_BINDING.PySide6)
     # OpenGL accelerated Qt widgets
@@ -30,6 +32,8 @@ def __getattr__(name: str):
         return _get_qglpicamera2(_QT_BINDING.PyQt5)
     elif name == 'QGl6Picamera2':
         return _get_qglpicamera2(_QT_BINDING.PyQt6)
+    elif name == 'QGlSide2Picamera2':
+        return _get_qglpicamera2(_QT_BINDING.PySide2)
     elif name == 'QGlSide6Picamera2':
         return _get_qglpicamera2(_QT_BINDING.PySide6)
     raise AttributeError(f"qt has no attribute '{name}'")
