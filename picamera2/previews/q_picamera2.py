@@ -12,7 +12,7 @@ except ImportError:
 from functools import lru_cache
 from operator import attrgetter
 
-from .qt_compatability import _QT_BINDING, _get_qt_modules
+from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
 @lru_cache(maxsize=None, typed=False)
 def _get_qpicamera2(qt_module: _QT_BINDING):
