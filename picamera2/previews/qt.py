@@ -32,3 +32,4 @@ def __getattr__(name: str):
         return _get_qglpicamera2(_QT_BINDING.PyQt6)
     elif name == 'QGlSide6Picamera2':
         return _get_qglpicamera2(_QT_BINDING.PySide6)
+    raise AttributeError(f"qt has no attribute '{name}'")
