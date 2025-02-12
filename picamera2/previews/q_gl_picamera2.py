@@ -79,8 +79,8 @@ class QGlPicamera2(QWidget):
         super().__init__(parent=parent)
         self.resize(width, height)
 
-        self.setAttribute(Qt.WA_PaintOnScreen)
-        self.setAttribute(Qt.WA_NativeWindow)
+        self.setAttribute(Qt.WidgetAttribute.WA_PaintOnScreen)
+        self.setAttribute(Qt.WidgetAttribute.WA_NativeWindow)
 
         self.bg_colour = [colour / 255.0 for colour in bg_colour] + [1.0]
         self.keep_ar = keep_ar
@@ -108,7 +108,7 @@ class QGlPicamera2(QWidget):
         self.preview_window = preview_window
 
         self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                               QSocketNotifier.Read, self)
+                                               QSocketNotifier.Type.Read, self)
         self.camera_notifier.activated.connect(self.handle_requests)
         # Must always run cleanup when this widget goes away.
         self.destroyed.connect(lambda: self.cleanup())
