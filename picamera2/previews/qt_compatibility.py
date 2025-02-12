@@ -6,6 +6,7 @@ from types import ModuleType
 class _QT_BINDING(Enum):
     PyQt5 = 'PyQt5'
     PyQt6 = 'PyQt6'
+    PySide2 = 'PySide2'
     PySide6 = 'PySide6'
 
 
@@ -32,7 +33,7 @@ def _get_qt_modules(qt_module: _QT_BINDING) -> tuple[ModuleType, ModuleType, Mod
         QtGuiModule = importlib.import_module('.QtGui', package=qt_module.value)
         QtWidgetsModule = importlib.import_module('.QtWidgets', package=qt_module.value)
 
-        if qt_module == _QT_BINDING.PySide6:
+        if qt_module in [_QT_BINDING.PySide2, _QT_BINDING.PySide6]:
             QtCoreModule.pyqtSignal = QtCoreModule.Signal
             QtCoreModule.pyqtSlot = QtCoreModule.Slot
 
