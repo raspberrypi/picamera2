@@ -55,6 +55,8 @@ tests/alignment.py
 tests/app_dual.py
 tests/app_full_test.py
 tests/app_test.py
+tests/app_test_pyqt6.py
+tests/app_test_pyside6.py
 tests/autofocus_test.py
 tests/async_test.py
 tests/bitrate_check.py
