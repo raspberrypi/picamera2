@@ -99,7 +99,7 @@ class NoEncoder:
         if self.format == "XRGB8888":
             # Reshape the frame buffer into a 2D array where each pixel is 4 components (e.g., X, R, G, B),
             # then discard the first column (alpha channel) and write only the RGB components.
-            processed_frame = frame.reshape(-1, 4)[:, 1:]
+            processed_frame = frame.reshape(-1, 4)[:, :3]
             self.output.write(processed_frame)
         else:
             # Write the frame as-is for formats that do not include an alpha channel.
