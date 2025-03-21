@@ -89,7 +89,7 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
         def image_dimensions(self):
             # The dimensions of the camera images we're displaying.
             camera_config = self.picamera2.camera_config
-            if camera_config is not None and camera_config['display'] is not None:
+            if camera_config and camera_config['display'] is not None:
                 # This works even before we receive any camera images.
                 size = (self.picamera2.stream_map[camera_config['display']].configuration.size.width,
                         self.picamera2.stream_map[camera_config['display']].configuration.size.height)
@@ -105,7 +105,7 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
 
         def set_overlay(self, overlay):
             camera_config = self.picamera2.camera_config
-            if camera_config is None:
+            if not camera_config:
                 raise RuntimeError("Camera must be configured before using set_overlay")
 
             new_pixmap = None

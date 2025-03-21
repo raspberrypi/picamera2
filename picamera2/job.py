@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from concurrent.futures import CancelledError, Future
-from typing import Callable, Generic, List, Optional, Tuple, TypeVar, cast
+from typing import Any, Generic, Literal, Optional, TypeVar, Union
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Job(Generic[T]):
@@ -23,17 +24,11 @@ class Job(Generic[T]):
     Picamera2.switch_mode_and_capture_array.
     """
 
-    _functions: List[Callable[[], Tuple[bool, T]]]
-    _future: Future[T]
-    _signal_function: Optional[Callable[['Job[T]'], None]]
-    _result: Optional[T]
-    calls: int
-
-    def __init__(
-        self,
-        functions: List[Callable[[], Tuple[bool, T]]],
-        signal_function: Optional[Callable[['Job[T]'], None]] = None,
-    ) -> None:
+    def __init__(self, functions: list[Callable[..., Union[
+            tuple[Literal[False], None],
+            tuple[Literal[True], Any],
+            tuple[Literal[True], T]]]], signal_function=None
+    ):
         self._functions = functions
         self._future = Future()
         self._future.set_running_or_notify_cancel()
@@ -80,7 +75,7 @@ class Job(Generic[T]):
         assert not self._functions, "Job not finished!"
 
         if not self._future.done():
-            self._future.set_result(cast(T, self._result))
+            self._future.set_result(self._result)
         if self._signal_function:
             self._signal_function(self)
 
