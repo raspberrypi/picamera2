@@ -11,9 +11,11 @@ import sys
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import Any, TypedDict, TypeVar, Union, cast
+from typing import (Any, Literal, Optional, TypedDict, TypeVar, Union, cast,
+                    overload)
 
 import libcamera
 import numpy as np
@@ -1412,6 +1414,30 @@ class Picamera2:
             self.completed_requests.pop(0).release()
         return (False, None)
 
+    @overload
+    def drop_frames(self, num_frames, wait: None = ...,
+                    signal_function: None = ...
+                    ) -> None:
+        ...
+
+    @overload
+    def drop_frames(self, num_frames, wait: None = ...,
+                    signal_function: Callable[[Job], None] = ...
+                    ) -> Job[None]:
+        ...
+
+    @overload
+    def drop_frames(self, num_frames, wait: Literal[True] = ...,
+                    signal_function: Optional[Callable[[Job], None]] = ...
+                    ) -> None:
+        ...
+
+    @overload
+    def drop_frames(self, num_frames, wait: Literal[False] = ...,
+                    signal_function: Optional[Callable[[Job], None]] = ...
+                    ) -> Job[None]:
+        ...
+
     def drop_frames(self, num_frames, wait=None, signal_function=None) -> Union[None, Job[None]]:
         """Drop num_frames frames from the camera."""
         functions = [partial(self.set_frame_drops_, num_frames), self.drop_frames_]
@@ -1430,8 +1456,32 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_file(self, file_output, name="main", format=None, wait=None, signal_function=None,
-                     exif_data=None) -> Union[dict[str, Any], Job[dict[str, Any]]]:
+    @overload
+    def capture_file(self, file_output, name="main", format=None, wait: None = ...,
+                     signal_function: None = ..., exif_data=None
+                     ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def capture_file(self, file_output, name="main", format=None, wait: None = ...,
+                     signal_function: Callable[[Job], None] = ..., exif_data=None
+                     ) -> Job[dict[str, Any]]:
+        ...
+
+    @overload
+    def capture_file(self, file_output, name="main", format=None, wait: Literal[True] = ...,
+                     signal_function: Optional[Callable[[Job], None]] = ..., exif_data=None
+                     ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def capture_file(self, file_output, name="main", format=None, wait: Literal[False] = ...,
+                     signal_function: Optional[Callable[[Job], None]] = ..., exif_data=None
+                     ) -> Job[dict[str, Any]]:
+        ...
+
+    def capture_file(self, file_output, name="main", format=None, wait=None, signal_function=None, exif_data=None
+                     ) -> Union[dict[str, Any], Job[dict[str, Any]]]:
         """Capture an image to a file in the current camera mode.
 
         Return the metadata for the frame captured.
@@ -1449,22 +1499,93 @@ class Picamera2:
         self.start_()
         return (True, self.camera_config)
 
-    def switch_mode(self, camera_config, wait=None, signal_function=None
-    ) -> Union[dict[str, Any], Job[dict[str, Any]]]:
+    @overload
+    def switch_mode(self, camera_config, wait: None = ...,
+                    signal_function: None = ...
+                    ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def switch_mode(self, camera_config, wait: None = ...,
+                    signal_function: Callable[[Job], None] = ...
+                    ) -> Job[dict[str, Any]]:
+        ...
+
+    @overload
+    def switch_mode(self, camera_config, wait: Literal[True] = ...,
+                    signal_function: Optional[Callable[[Job], None]] = ...
+                    ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def switch_mode(self, camera_config, wait: Literal[False] = ...,
+                    signal_function: Optional[Callable[[Job], None]] = ...
+                    ) -> Job[dict[str, Any]]:
+        ...
+
+    def switch_mode(self, camera_config, wait=None, signal_function=None) -> Union[dict[str, Any], Job[dict[str, Any]]]:
         """Switch the camera into another mode given by the camera_config."""
         functions = [partial(self.switch_mode_, camera_config)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait=None,
-                                    signal_function=None) -> Union[None, Job[None]]:
+    @overload
+    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait: None = ...,
+                                    signal_function: None = ...
+                                    ) -> None:
+        ...
+
+    @overload
+    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait: None = ...,
+                                    signal_function: Callable[[Job], None] = ...
+                                    ) -> Job[None]:
+        ...
+
+    @overload
+    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait: Literal[True] = ...,
+                                    signal_function: Optional[Callable[[Job], None]] = ...
+                                    ) -> None:
+        ...
+
+    @overload
+    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait: Literal[False] = ...,
+                                    signal_function: Optional[Callable[[Job], None]] = ...
+                                    ) -> Job[None]:
+        ...
+
+    def switch_mode_and_drop_frames(self, camera_config, num_frames, wait=None, signal_function=None
+                                    ) -> Union[None, Job[None]]:
         """Switch the camera into the mode given by camera_config and drop the first num_frames frames."""
         functions = [partial(self.switch_mode_, camera_config),
                      partial(self.set_frame_drops_, num_frames), self.drop_frames_]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
+    @overload
+    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait: None = ...,
+                                     signal_function: None = ..., exif_data=None, delay=0
+                                     ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait: None = ...,
+                                     signal_function: Callable[[Job], None] = ..., exif_data=None, delay=0
+                                     ) -> Job[dict[str, Any]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait: Literal[True] = ...,
+                                     signal_function: Optional[Callable[[Job], None]] = ..., exif_data=None, delay=0
+                                     ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None, wait: Literal[False] = ...,
+                                     signal_function: Optional[Callable[[Job], None]] = ..., exif_data=None, delay=0
+                                     ) -> Job[dict[str, Any]]:
+        ...
+
     def switch_mode_and_capture_file(self, camera_config, file_output, name="main", format=None,
                                      wait=None, signal_function=None, exif_data=None, delay=0
-    ) -> Union[dict[str, Any], Job[dict[str, Any]]]:
+                                     ) -> Union[dict[str, Any], Job[dict[str, Any]]]:
         """Switch the camera into a new (capture) mode, capture an image to file.
 
         Then return back to the initial camera mode.
@@ -1487,8 +1608,32 @@ class Picamera2:
                              exif_data=exif_data)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None,
-                                        delay=0) -> Union[CompletedRequest, Job[CompletedRequest]]:
+    @overload
+    def switch_mode_and_capture_request(self, camera_config, wait: None = ...,
+                                        signal_function: None = ..., delay=0
+                                        ) -> CompletedRequest:
+        ...
+
+    @overload
+    def switch_mode_and_capture_request(self, camera_config, wait: None = ...,
+                                        signal_function: Callable[[Job], None] = ..., delay=0
+                                        ) -> Job[CompletedRequest]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_request(self, camera_config, wait: Literal[True] = ...,
+                                        signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                        ) -> CompletedRequest:
+        ...
+
+    @overload
+    def switch_mode_and_capture_request(self, camera_config, wait: Literal[False] = ...,
+                                        signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                        ) -> Job[CompletedRequest]:
+        ...
+
+    def switch_mode_and_capture_request(self, camera_config, wait=None, signal_function=None, delay=0
+                                        ) -> Union[CompletedRequest, Job[CompletedRequest]]:
         """Switch the camera into a new (capture) mode and capture a request, then switch back.
 
         Applications should use this with care because it may increase the risk of CMA heap
@@ -1515,8 +1660,31 @@ class Picamera2:
             return (False, None)
         return (True, self.completed_requests.pop(0))
 
-    def capture_request(self, wait=None, signal_function=None,
-                        flush=None) -> Union[CompletedRequest, Job[CompletedRequest]]:
+    @overload
+    def capture_request(self, wait: None = ...,
+                        signal_function: None = ..., flush=None
+                        ) -> CompletedRequest:
+        ...
+
+    @overload
+    def capture_request(self, wait: None = ...,
+                        signal_function: Callable[[Job], None] = ..., flush=None
+                        ) -> Job[CompletedRequest]:
+        ...
+
+    @overload
+    def capture_request(self, wait: Literal[True] = ...,
+                        signal_function: Optional[Callable[[Job], None]] = ..., flush=None
+                        ) -> CompletedRequest:
+        ...
+
+    @overload
+    def capture_request(self, wait: Literal[False] = ...,
+                        signal_function: Optional[Callable[[Job], None]] = ..., flush=None
+                        ) -> Job[CompletedRequest]:
+        ...
+
+    def capture_request(self, wait=None, signal_function=None, flush=None) -> Union[CompletedRequest, Job[CompletedRequest]]:
         """Fetch the next completed request from the camera system.
 
         You will be holding a reference to this request so you must release it again to return it
@@ -1529,8 +1697,32 @@ class Picamera2:
                      self.capture_request_]
         return self.dispatch_functions(functions, wait, signal_function)
 
+    @overload
+    def switch_mode_capture_request_and_stop(self, camera_config, wait: None = ...,
+                                             signal_function: None = ...
+                                             ) -> CompletedRequest:
+        ...
+
+    @overload
+    def switch_mode_capture_request_and_stop(self, camera_config, wait: None = ...,
+                                             signal_function: Callable[[Job], None] = ...
+                                             ) -> Job[CompletedRequest]:
+        ...
+
+    @overload
+    def switch_mode_capture_request_and_stop(self, camera_config, wait: Literal[True] = ...,
+                                             signal_function: Optional[Callable[[Job], None]] = ...
+                                             ) -> CompletedRequest:
+        ...
+
+    @overload
+    def switch_mode_capture_request_and_stop(self, camera_config, wait: Literal[False] = ...,
+                                             signal_function: Optional[Callable[[Job], None]] = ...
+                                             ) -> Job[CompletedRequest]:
+        ...
+
     def switch_mode_capture_request_and_stop(self, camera_config, wait=None, signal_function=None
-    ) -> Union[CompletedRequest, Job[CompletedRequest]]:
+                                             ) -> Union[CompletedRequest, Job[CompletedRequest]]:
         """Switch the camera into a new (capture) mode, capture a request in the new mode and then stop the camera."""
 
         def capture_request_and_stop_(self):
@@ -1543,6 +1735,30 @@ class Picamera2:
         functions = [partial(self.switch_mode_, camera_config),
                      partial(capture_request_and_stop_, self)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
+
+    @overload
+    def capture_sync_request(self, wait: None = ...,
+                             signal_function: None = ...
+                             ) -> CompletedRequest:
+        ...
+
+    @overload
+    def capture_sync_request(self, wait: None = ...,
+                             signal_function: Callable[[Job], None] = ...
+                             ) -> Job[CompletedRequest]:
+        ...
+
+    @overload
+    def capture_sync_request(self, wait: Literal[True] = ...,
+                             signal_function: Optional[Callable[[Job], None]] = ...
+                             ) -> CompletedRequest:
+        ...
+
+    @overload
+    def capture_sync_request(self, wait: Literal[False] = ...,
+                             signal_function: Optional[Callable[[Job], None]] = ...
+                             ) -> Job[CompletedRequest]:
+        ...
 
     def capture_sync_request(self, wait=None, signal_function=None) -> Union[CompletedRequest, Job[CompletedRequest]]:
         """Return the first request when the camera system has reached sychronisation point.
@@ -1594,6 +1810,30 @@ class Picamera2:
         request.release()
         return (True, result)
 
+    @overload
+    def capture_metadata(self, wait: None = ...,
+                         signal_function: None = ...
+                         ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def capture_metadata(self, wait: None = ...,
+                         signal_function: Callable[[Job], None] = ...
+                         ) -> Job[dict[str, Any]]:
+        ...
+
+    @overload
+    def capture_metadata(self, wait: Literal[True] = ...,
+                         signal_function: Optional[Callable[[Job], None]] = ...
+                         ) -> dict[str, Any]:
+        ...
+
+    @overload
+    def capture_metadata(self, wait: Literal[False] = ...,
+                         signal_function: Optional[Callable[[Job], None]] = ...
+                         ) -> Job[dict[str, Any]]:
+        ...
+
     def capture_metadata(self, wait=None, signal_function=None) -> Union[dict[str, Any], Job[dict[str, Any]]]:
         """Fetch the metadata from the next camera frame."""
         functions = [self.capture_metadata_]
@@ -1607,8 +1847,31 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_buffer(self, name="main", wait=None, signal_function=None
-    ) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
+    @overload
+    def capture_buffer(self, name="main", wait: None = ...,
+                       signal_function: None = ...
+                       ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def capture_buffer(self, name="main", wait: None = ...,
+                       signal_function: Callable[[Job], None] = ...
+                       ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    @overload
+    def capture_buffer(self, name="main", wait: Literal[True] = ...,
+                       signal_function: Optional[Callable[[Job], None]] = ...
+                       ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def capture_buffer(self, name="main", wait: Literal[False] = ...,
+                       signal_function: Optional[Callable[[Job], None]] = ...
+                       ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    def capture_buffer(self, name="main", wait=None, signal_function=None) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
         """Make a 1d numpy array from the next frame in the named stream."""
         return self.dispatch_functions([partial(self.capture_buffer_, name)], wait, signal_function)
 
@@ -1620,13 +1883,64 @@ class Picamera2:
         request.release()
         return (True, result)
 
+    @overload
+    def capture_buffers(self, names=["main"], wait: None = ...,
+                        signal_function: None = ...
+                        ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def capture_buffers(self, names=["main"], wait: None = ...,
+                        signal_function: Callable[[Job], None] = ...
+                        ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
+    @overload
+    def capture_buffers(self, names=["main"], wait: Literal[True] = ...,
+                        signal_function: Optional[Callable[[Job], None]] = ...
+                        ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def capture_buffers(self, names=["main"], wait: Literal[False] = ...,
+                        signal_function: Optional[Callable[[Job], None]] = ...
+                        ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
     def capture_buffers(self, names=["main"], wait=None, signal_function=None
-    ) -> Union[tuple[list[NDArray[np.uint8]], dict[str, Any]], Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]]:
+                        ) -> Union[
+        tuple[list[NDArray[np.uint8]], dict[str, Any]],
+        Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]
+    ]:
         """Make a 1d numpy array from the next frame for each of the named streams."""
         return self.dispatch_functions([partial(self.capture_buffers_and_metadata_, names)], wait, signal_function)
 
-    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None,
-                                       delay=0) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
+    @overload
+    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait: None = ...,
+                                       signal_function: None = ..., delay=0
+                                       ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait: None = ...,
+                                       signal_function: Callable[[Job], None] = ..., delay=0
+                                       ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait: Literal[True] = ...,
+                                       signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                       ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait: Literal[False] = ...,
+                                       signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                       ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    def switch_mode_and_capture_buffer(self, camera_config, name="main", wait=None, signal_function=None, delay=0
+                                       ) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
         """Switch the camera into a new (capture) mode, capture the first buffer.
 
         Then return back to the initial camera mode.
@@ -1645,8 +1959,35 @@ class Picamera2:
                      partial(capture_buffer_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
+    @overload
+    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait: None = ...,
+                                        signal_function: None = ..., delay=0
+                                        ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait: None = ...,
+                                        signal_function: Callable[[Job], None] = ..., delay=0
+                                        ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait: Literal[True] = ...,
+                                        signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                        ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait: Literal[False] = ...,
+                                        signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                        ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
     def switch_mode_and_capture_buffers(self, camera_config, names=["main"], wait=None, signal_function=None, delay=0
-    ) -> Union[tuple[list[NDArray[np.uint8]], dict[str, Any]], Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]]:
+                                        ) -> Union[
+        tuple[list[NDArray[np.uint8]], dict[str, Any]],
+        Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]
+    ]:
         """Switch the camera into a new (capture) mode, capture the first buffers.
 
         Then return back to the initial camera mode.
@@ -1673,8 +2014,31 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_array(self, name="main", wait=None, signal_function=None
-                    ) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
+    @overload
+    def capture_array(self, name="main", wait: None = ...,
+                      signal_function: None = ...
+                      ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def capture_array(self, name="main", wait: None = ...,
+                      signal_function: Callable[[Job], None] = ...
+                      ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    @overload
+    def capture_array(self, name="main", wait: Literal[True] = ...,
+                      signal_function: Optional[Callable[[Job], None]] = ...
+                      ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def capture_array(self, name="main", wait: Literal[False] = ...,
+                      signal_function: Optional[Callable[[Job], None]] = ...
+                      ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    def capture_array(self, name="main", wait=None, signal_function=None) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
         """Make a 2d image from the next frame in the named stream."""
         return self.dispatch_functions([partial(self.capture_array_, name)], wait, signal_function)
 
@@ -1686,13 +2050,64 @@ class Picamera2:
         request.release()
         return (True, result)
 
+    @overload
+    def capture_arrays(self, names=["main"], wait: None = ...,
+                       signal_function: None = ...
+                       ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def capture_arrays(self, names=["main"], wait: None = ...,
+                       signal_function: Callable[[Job], None] = ...
+                       ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
+    @overload
+    def capture_arrays(self, names=["main"], wait: Literal[True] = ...,
+                       signal_function: Optional[Callable[[Job], None]] = ...
+                       ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def capture_arrays(self, names=["main"], wait: Literal[False] = ...,
+                       signal_function: Optional[Callable[[Job], None]] = ...
+                       ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
     def capture_arrays(self, names=["main"], wait=None, signal_function=None
-    ) -> Union[tuple[list[NDArray[np.uint8]], dict[str, Any]], Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]]:
+                       ) -> Union[
+        tuple[list[NDArray[np.uint8]], dict[str, Any]],
+        Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]
+    ]:
         """Make 2d image arrays from the next frames in the named streams."""
         return self.dispatch_functions([partial(self.capture_arrays_and_metadata_, names)], wait, signal_function)
 
-    def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None,
-                                      delay=0) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
+    @overload
+    def switch_mode_and_capture_array(self, camera_config, name="main", wait: None = ...,
+                                      signal_function: None = ..., delay=0
+                                      ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_array(self, camera_config, name="main", wait: None = ...,
+                                      signal_function: Callable[[Job], None] = ..., delay=0
+                                      ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_array(self, camera_config, name="main", wait: Literal[True] = ...,
+                                      signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                      ) -> NDArray[np.uint8]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_array(self, camera_config, name="main", wait: Literal[False] = ...,
+                                      signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                      ) -> Job[NDArray[np.uint8]]:
+        ...
+
+    def switch_mode_and_capture_array(self, camera_config, name="main", wait=None, signal_function=None, delay=0
+                                      ) -> Union[NDArray[np.uint8], Job[NDArray[np.uint8]]]:
         """Switch the camera into a new (capture) mode, capture the image array data.
 
         Then return back to the initial camera mode.
@@ -1711,8 +2126,36 @@ class Picamera2:
                      partial(capture_array_and_switch_back_, self, preview_config, name)]
         return self.dispatch_functions(functions, wait, signal_function, immediate=True)
 
-    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait=None, signal_function=None, delay=0
-    ) -> Union[tuple[list[NDArray[np.uint8]], dict[str, Any]], Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]]:
+    @overload
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait: None = ...,
+                                       signal_function: None = ..., delay=0
+                                       ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait: None = ...,
+                                       signal_function: Callable[[Job], None] = ..., delay=0
+                                       ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait: Literal[True] = ...,
+                                       signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                       ) -> tuple[list[NDArray[np.uint8]], dict[str, Any]]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait: Literal[False] = ...,
+                                       signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                       ) -> Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]:
+        ...
+
+    def switch_mode_and_capture_arrays(self, camera_config, names=["main"], wait=None,
+                                       signal_function=None, delay=0
+                                       ) -> Union[
+        tuple[list[NDArray[np.uint8]], dict[str, Any]],
+        Job[tuple[list[NDArray[np.uint8]], dict[str, Any]]]
+    ]:
         """Switch the camera into a new (capture) mode, capture the image arrays.
 
         Then return back to the initial camera mode.
@@ -1744,8 +2187,31 @@ class Picamera2:
         request.release()
         return (True, result)
 
-    def capture_image(self, name="main", wait=None, signal_function=None
-                    ) -> Union[Image.Image, Job[Image.Image]]:
+    @overload
+    def capture_image(self, name="main", wait: None = ...,
+                      signal_function: None = ...
+                      ) -> Image.Image:
+        ...
+
+    @overload
+    def capture_image(self, name="main", wait: None = ...,
+                      signal_function: Callable[[Job], None] = ...
+                      ) -> Job[Image.Image]:
+        ...
+
+    @overload
+    def capture_image(self, name="main", wait: Literal[True] = ...,
+                      signal_function: Optional[Callable[[Job], None]] = ...
+                      ) -> Image.Image:
+        ...
+
+    @overload
+    def capture_image(self, name="main", wait: Literal[False] = ...,
+                      signal_function: Optional[Callable[[Job], None]] = ...
+                      ) -> Job[Image.Image]:
+        ...
+
+    def capture_image(self, name="main", wait=None, signal_function=None) -> Union[Image.Image, Job[Image.Image]]:
         """Make a PIL image from the next frame in the named stream.
 
         :param name: Stream name, defaults to "main"
@@ -1759,8 +2225,32 @@ class Picamera2:
         """
         return self.dispatch_functions([partial(self.capture_image_, name)], wait, signal_function)
 
-    def switch_mode_and_capture_image(self, camera_config, name="main", wait=None, signal_function=None,
-                                      delay=0) -> Union[Image.Image, Job[Image.Image]]:
+    @overload
+    def switch_mode_and_capture_image(self, camera_config, name="main", wait: None = ...,
+                                      signal_function: None = ..., delay=0
+                                      ) -> Image.Image:
+        ...
+
+    @overload
+    def switch_mode_and_capture_image(self, camera_config, name="main", wait: None = ...,
+                                      signal_function: Callable[[Job], None] = ..., delay=0
+                                      ) -> Job[Image.Image]:
+        ...
+
+    @overload
+    def switch_mode_and_capture_image(self, camera_config, name="main", wait: Literal[True] = ...,
+                                      signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                      ) -> Image.Image:
+        ...
+
+    @overload
+    def switch_mode_and_capture_image(self, camera_config, name="main", wait: Literal[False] = ...,
+                                      signal_function: Optional[Callable[[Job], None]] = ..., delay=0
+                                      ) -> Job[Image.Image]:
+        ...
+
+    def switch_mode_and_capture_image(self, camera_config, name="main", wait=None, signal_function=None, delay=0
+                                      ) -> Union[Image.Image, Job[Image.Image]]:
         """Switch the camera into a new (capture) mode, capture the image.
 
         Then return back to the initial camera mode.
@@ -2054,6 +2544,26 @@ class Picamera2:
         if duration:
             time.sleep(duration)
             self.stop_recording()
+
+    @overload
+    def autofocus_cycle(self, wait: None = ...,
+                        signal_function: None = ...) -> bool:
+        ...
+
+    @overload
+    def autofocus_cycle(self, wait: None = ...,
+                        signal_function: Callable[[Job], None] = ...) -> Job[bool]:
+        ...
+
+    @overload
+    def autofocus_cycle(self, wait: Literal[True] = ...,
+                        signal_function: Optional[Callable[[Job], None]] = ...) -> bool:
+        ...
+
+    @overload
+    def autofocus_cycle(self, wait: Literal[False] = ...,
+                        signal_function: Optional[Callable[[Job], None]] = ...) -> Job[bool]:
+        ...
 
     def autofocus_cycle(self, wait=None, signal_function=None) -> Union[bool, Job[bool]]:
         """Switch autofocus to auto mode and run an autofocus cycle.
