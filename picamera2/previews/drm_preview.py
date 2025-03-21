@@ -100,7 +100,7 @@ class DrmPreview(NullPreview):
     def set_overlay(self, overlay):
         if self.picam2 is None:
             raise RuntimeError("Preview must be started before setting an overlay")
-        if self.picam2.camera_config is None:
+        if not self.picam2.camera_config:
             raise RuntimeError("Preview must be configured before setting an overlay")
         if self.picam2.camera_config['buffer_count'] < 2:
             raise RuntimeError("Need at least buffer_count=2 to set overlay")

@@ -325,7 +325,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 eglDestroyImageKHR(display, image)
 
         def set_overlay(self, overlay):
-            if self.picamera2.camera_config is None:
+            if not self.picamera2.camera_config:
                 raise RuntimeError("Camera must be configured before setting overlay")
             if self.picamera2.camera_config['buffer_count'] < 2:
                 raise RuntimeError("Need at least buffer_count=2 to set overlay")
@@ -425,7 +425,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
             stream_map = self.picamera2.stream_map
             camera_config = self.picamera2.camera_config
-            if not self.keep_ar or camera_config is None or camera_config['display'] is None:
+            if not self.keep_ar or not camera_config or camera_config['display'] is None:
                 return 0, 0, window_w, window_h
 
             image_w, image_h = (stream_map[camera_config['display']].configuration.size.width,
