@@ -63,9 +63,23 @@ class DrmPreview(NullPreview):
     def __init__(self, x=0, y=0, width=640, height=480, transform=None):
         self.init_drm(x, y, width, height, transform)
         self.stop_count = 0
-        self.fb = pykms.DumbFramebuffer(self.card, width, height, "XB24")
-        self.mem = mmap.mmap(self.fb.fd(0), width * height * 3, mmap.MAP_SHARED, mmap.PROT_WRITE)
-        self.fd = self.fb.fd(0)
+
+        # Allocate a buffer for MJPEG decode. If "XB24" appears unsupported, try "XR24".
+        self.fb = None
+        try:
+            self.fb = pykms.DumbFramebuffer(self.card, width, height, "XB24")
+        except Exception:
+            pass
+        if not self.fb:
+            try:
+                self.fb = pykms.DumbFramebuffer(self.card, width, height, "XR24")
+            except Exception:
+                pass
+        # Even if we don't have a buffer, only fail later if it turns out we need it.
+        if self.fb:
+            self.mem = mmap.mmap(self.fb.fd(0), width * height * 3, mmap.MAP_SHARED, mmap.PROT_WRITE)
+            self.fd = self.fb.fd(0)
+
         super().__init__(width=width, height=height)
 
     def render_request(self, completed_request):
@@ -182,6 +196,9 @@ class DrmPreview(NullPreview):
 
             if pixel_format == "MJPEG":
                 img = completed_request.make_array(self.display_stream_name).tobytes()
+                if not self.fb:
+                    # This is point at which this buffer really needs to exist!
+                    raise RuntimeError("Failed to allocate buffer for MJPEG frame")
                 self.mem.seek(0)
                 self.mem.write(img)
                 fd = self.fd
