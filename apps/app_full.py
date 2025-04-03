@@ -169,7 +169,7 @@ def on_pic_button_clicked():
 
 
 def on_mode_change(i):
-    global recording
+    global recording  # noqa
     if recording:
         print("Not switching, recording in progress, so back to video")
         mode_tabs.setCurrentIndex(1)
@@ -207,7 +207,7 @@ def capture_done(job):
             switch_config("preview")
     else:
         # HDR Capture
-        global hdr_imgs
+        global hdr_imgs  # noqa
         request = picam2.wait(job)
         new_img = request.make_array("main")
         new_cv_img = cv2.cvtColor(new_img, cv2.COLOR_RGB2BGR)
@@ -826,7 +826,7 @@ class otherTab(QWidget):
         self.layout = QFormLayout()
         self.setLayout(self.layout)
 
-        global implemented_controls, ignore_controls
+        global implemented_controls, ignore_controls  # noqa
         all_controls = picam2.camera_controls.keys()
         other_controls = []
         for control in all_controls:

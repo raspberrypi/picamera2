@@ -89,7 +89,7 @@ def InferenceTensorFlow(image, model, colours, label=None):
 
 
 def capture_image_and_masks(picam2: Picamera2, model, colour_file, label_file):
-    global masks
+    global masks  # noqa
     # Disable Aec and Awb so all images have the same exposure and colour gains
     picam2.set_controls({"AeEnable": False, "AwbEnable": False})
     time.sleep(1.0)
@@ -152,7 +152,7 @@ def main():
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             InferenceTensorFlow(grey, args.model, colour_file, label_file)
             overlay = np.zeros((normalSize[1], normalSize[0], 4), dtype=np.uint8)
-            global masks
+            global masks  # noqa
             for v in masks.values():
                 overlay += v
             # Set Alphas and overlay
