@@ -101,7 +101,7 @@ def InferenceTensorFlow(image, model, label=None):
 
 
 def capture_image_and_masks(picam2: Picamera2, model, label_file):
-    global rectangles
+    global rectangles  # noqa
     picam2.post_callback = None
     # Disable Aec and Awb so all images have the same exposure and colour gains
     picam2.set_controls({"AeEnable": False, "AwbEnable": False})
