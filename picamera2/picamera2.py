@@ -1039,6 +1039,7 @@ class Picamera2:
         :param camera_config: Camera configuration to be set
         :type camera_config: str, dict or CameraConfiguration
         :raises RuntimeError: Failed to configure at runtime
+        :raises TypeError: Invalid type for `camera_config` given
         """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
@@ -1055,18 +1056,20 @@ class Picamera2:
             else:
                 _log.warning("Invalid name for `camera_config` given, assuming default 'preview' configuration")
                 camera_config = self.preview_configuration
-        elif isinstance(camera_config, dict):
-            camera_config = camera_config.copy()
 
-        if isinstance(camera_config, CameraConfiguration):
-            if camera_config.raw is not None:
-                # For raw streams, patch up the format/size now if they haven't been set.
-                if camera_config.raw.format is None:
-                    camera_config.raw.format = self.sensor_format
-                if camera_config.raw.size is None:
-                    camera_config.raw.size = camera_config.main.size
-            # We expect values to have been set for any lores/raw streams.
+        if isinstance(camera_config, dict):
+            camera_config = camera_config.copy()
+        elif isinstance(camera_config, CameraConfiguration):
             camera_config = camera_config.make_dict()
+        else:
+            raise TypeError("Invalid type for `camera_config` given")
+
+        # For unset raw streams, patch up the format/size.
+        if camera_config["raw"] is not None:
+            if camera_config["raw"]["format"] is None:
+                camera_config["raw"]["format"] = self.sensor_format
+            if camera_config["raw"]["size"] is None:
+                camera_config["raw"]["size"] = camera_config["main"]["size"]
 
         # Be 100% sure that non-Pi cameras aren't asking for a raw stream.
         if not self._is_rpi_camera():
@@ -1079,7 +1082,6 @@ class Picamera2:
         # Check the config and turn it into a libcamera config.
         self.check_camera_config(camera_config)
         libcamera_config = self._make_libcamera_config(camera_config)
-        self.libcamera_config = libcamera_config
 
         # Check that libcamera is happy with it.
         status = libcamera_config.validate()
@@ -1135,12 +1137,12 @@ class Picamera2:
         self.camera_config = camera_config
 
         # Fill in the embedded configuration structures if those were used.
-        if initial_config == "preview":
-            self.preview_configuration.update(camera_config)
-        elif initial_config == "still":
+        if initial_config == "still":
             self.still_configuration.update(camera_config)
-        else:
+        elif initial_config == "video":
             self.video_configuration.update(camera_config)
+        elif isinstance(initial_config, str):
+            self.preview_configuration.update(camera_config)
 
         # Set the controls directly so as to overwrite whatever is there.
         self.controls = Controls(self, controls=self.camera_config['controls'])
