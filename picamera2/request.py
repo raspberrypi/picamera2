@@ -5,7 +5,7 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import numpy as np
 import piexif
@@ -29,7 +29,7 @@ _log = logging.getLogger(__name__)
 class _MappedBuffer:
     def __init__(self, request: "CompletedRequest", stream: str, write: bool = True) -> None:
         if isinstance(stream, str):
-            stream = cast(Dict[str, Any], request.stream_map)[stream]
+            stream = request.stream_map[stream]
         assert request.request is not None
         self.__fb = request.request.buffers[stream]
         self.__sync = request.picam2.allocator.sync(request.picam2.allocator, self.__fb, write)
@@ -56,7 +56,7 @@ class MappedArray:
 
         if self.__reshape:
             if isinstance(self.__stream, str):
-                config = cast(Dict[str, Any], self.__request.config)[self.__stream]
+                config = self.__request.config[self.__stream]
             else:
                 config = self.__stream.configuration
 
@@ -86,8 +86,8 @@ class CompletedRequest:
         self.picam2 = picam2
         self.stop_count: int = picam2.stop_count
         self.configure_count: int = picam2.configure_count
-        self.config = cast(Dict[str, Any], self.picam2.camera_config).copy()
-        self.stream_map = cast(Dict[str, Any], self.picam2.stream_map).copy()
+        self.config = self.picam2.camera_config.copy()
+        self.stream_map = self.picam2.stream_map.copy()
         with self.lock:
             self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False)
                           for buffer in self.request.buffers.values()]
@@ -122,12 +122,12 @@ class CompletedRequest:
                 assert self.request is not None
                 self.picam2.allocator.release(self.request.buffers)
                 self.request = None
-                self.config = None
-                self.stream_map = None
+                self.config = {}
+                self.stream_map = {}
 
     def make_buffer(self, name: str) -> np.ndarray:
         """Make a 1D numpy array from the named stream's buffer."""
-        if cast(Dict[str, Any], self.stream_map).get(name) is None:
+        if self.stream_map.get(name) is None:
             raise RuntimeError(f'Stream {name!r} is not defined')
         with _MappedBuffer(self, name, write=False) as b:
             return np.array(b, dtype=np.uint8)
@@ -244,7 +244,7 @@ class CompletedRequest:
     def save_dng(self, file_output: Any, name: str = "raw") -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
         # Don't use make_buffer(), this saves a copy.
-        if self.stream_map.get(name, None) is None:
+        if self.stream_map.get(name) is None:
             raise RuntimeError(f'Stream {name!r} is not defined')
         with _MappedBuffer(self, name, write=False) as b:
             buffer = np.array(b, copy=False, dtype=np.uint8)
