@@ -320,9 +320,9 @@ class Picamera2:
         self.camera = None
         self.camera_ctrl_info = {}
         self.camera_config = {}
-        self.libcamera_config = None
+        self.libcamera_config = {}
         self.streams = []
-        self.stream_map = None
+        self.stream_map = {}
         self.started = False
         self.stop_count = 0
         self.configure_count = 0
@@ -338,7 +338,7 @@ class Picamera2:
         self._preview_stopped = threading.Event()
         self.camera_properties_ = {}
         self.controls = Controls(self)
-        self.sensor_modes_ = None
+        self.sensor_modes_ = []
         self._title_fields = []
         self._frame_drops = 0
 
@@ -469,11 +469,11 @@ class Picamera2:
 
         self.__identify_camera()
 
-        # Re-generate the controls list to someting easer to use.
+        # Re-generate the controls list to something easier to use.
         for k, v in self.camera.controls.items():
             self.camera_ctrl_info[k.name] = (k, v)
 
-        # Re-generate the properties list to someting easer to use.
+        # Re-generate the properties list to something easier to use.
         for k, v in self.camera.properties.items():
             self.camera_properties_[k.name] = utils.convert_from_libcamera_type(v)
 
@@ -514,7 +514,7 @@ class Picamera2:
         When called for the first time this will reconfigure the camera
         in order to read the modes.
         """
-        if self.sensor_modes_ is not None:
+        if self.sensor_modes_:
             return self.sensor_modes_
 
         raw_config = self.camera.generate_configuration([libcamera.StreamRole.Raw])
@@ -600,13 +600,11 @@ class Picamera2:
                 preview = Preview.QTGL.value(**kwargs)
             else:
                 preview = Preview.QT.value(**kwargs)
-        if preview is None or preview is False:  # i.e. None or False
+        elif preview is False or preview is None:
             preview = Preview.NULL.value(**kwargs)
         elif isinstance(preview, Preview):
             preview = preview.value(**kwargs)
-        else:
-            # Assume it's already a preview object.
-            pass
+        # Assume it's already a preview object.
 
         # The preview windows call the attach_preview method.
         self._preview_stopped.clear()
@@ -649,11 +647,11 @@ class Picamera2:
         self._cm.cleanup(self.camera_idx)
         self.is_open = False
         self.streams = []
-        self.stream_map = None
+        self.stream_map = {}
         self.camera = None
         self.camera_ctrl_info = {}
         self.camera_config = {}
-        self.libcamera_config = None
+        self.libcamera_config = {}
         self.preview_configuration = {}
         self.still_configuration = {}
         self.video_configuration = {}
@@ -886,9 +884,8 @@ class Picamera2:
     def _make_libcamera_config(self, camera_config):
         # Make a libcamera configuration object from our Python configuration.
 
-        # We will create each stream with the "viewfinder" role just to get the stream
-        # configuration objects, and note the positions our named streams will have in
-        # libcamera's stream list.
+        # We will create each stream with the "viewfinder" role just to get the stream configuration
+        # objects, and note the positions our named streams will have in libcamera's stream list.
         roles = [VIEWFINDER]
         index = 1
         self.main_index = 0
@@ -902,8 +899,7 @@ class Picamera2:
             self.raw_index = index
             roles += [RAW]
 
-        # Make the libcamera configuration, and then we'll write all our parameters over
-        # the ones it gave us.
+        # Make the libcamera configuration, and then we'll write all our parameters over the ones it gave us.
         libcamera_config = self.camera.generate_configuration(roles)
         libcamera_config.orientation = utils.transform_to_orientation(camera_config["transform"])
         buffer_count = camera_config["buffer_count"]
@@ -924,19 +920,17 @@ class Picamera2:
 
         # We're always going to set up the sensor config fully.
         bit_depth = 0
-        if camera_config['sensor'] is not None and 'bit_depth' in camera_config['sensor'] and \
-           camera_config['sensor']['bit_depth'] is not None:
+        if camera_config['sensor'] is not None and camera_config['sensor'].get('bit_depth') is not None:
             bit_depth = camera_config['sensor']['bit_depth']
-        elif 'raw' in camera_config and camera_config['raw'] is not None and 'format' in camera_config['raw']:
+        elif camera_config.get('raw') is not None and 'format' in camera_config['raw']:
             bit_depth = SensorFormat(camera_config['raw']['format']).bit_depth
         else:
             bit_depth = SensorFormat(self.sensor_format).bit_depth
 
         output_size = None
-        if camera_config['sensor'] is not None and 'output_size' in camera_config['sensor'] and \
-           camera_config['sensor']['output_size'] is not None:
+        if camera_config['sensor'] is not None and camera_config['sensor'].get('output_size') is not None:
             output_size = camera_config['sensor']['output_size']
-        elif 'raw' in camera_config and camera_config['raw'] is not None and 'size' in camera_config['raw']:
+        elif camera_config.get('raw') is not None and 'size' in camera_config['raw']:
             output_size = camera_config['raw']['size']
         else:
             output_size = camera_config['main']['size']
@@ -969,7 +963,7 @@ class Picamera2:
     @staticmethod
     def align_stream(stream_config, optimal=True) -> None:
         if optimal:
-            # Adjust the image size so that all planes are a mutliple of 32/64 bytes wide.
+            # Adjust the image size so that all planes are a multiple of 32/64 bytes wide.
             # This matches the hardware behaviour and means we can be more efficient.
             align = 32 if Picamera2.platform == Platform.Platform.VC4 else 64
             if stream_config["format"] in ("YUV420", "YVU420"):
@@ -984,7 +978,7 @@ class Picamera2:
     @staticmethod
     def align_configuration(config, optimal=True) -> None:
         Picamera2.align_stream(config["main"], optimal=optimal)
-        if "lores" in config and config["lores"] is not None:
+        if config.get("lores") is not None:
             Picamera2.align_stream(config["lores"], optimal=optimal)
         # No point aligning the raw stream, it wouldn't mean anything.
 
@@ -1039,28 +1033,30 @@ class Picamera2:
             sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
             camera_config['sensor'] = sensor_config
 
-    def configure_(self, camera_config="preview"):
+    def configure_(self, camera_config):
         """Configure the camera system with the given configuration.
 
-        :param camera_config: Configuration, defaults to the 'preview' configuration
-        :type camera_config: dict, string or CameraConfiguration, optional
-        :raises RuntimeError: Failed to configure
+        :param camera_config: Camera configuration to be set
+        :type camera_config: str, dict or CameraConfiguration
+        :raises RuntimeError: Failed to configure at runtime
         """
         if self.started:
             raise RuntimeError("Camera must be stopped before configuring")
 
         initial_config = camera_config
+
         if isinstance(camera_config, str):
             if camera_config == "preview":
                 camera_config = self.preview_configuration
             elif camera_config == "still":
                 camera_config = self.still_configuration
-            else:
+            elif camera_config == "video":
                 camera_config = self.video_configuration
+            else:
+                _log.warning("Invalid name for `camera_config` given, assuming default 'preview' configuration")
+                camera_config = self.preview_configuration
         elif isinstance(camera_config, dict):
             camera_config = camera_config.copy()
-        elif camera_config is None:
-            camera_config = self.create_preview_configuration()
 
         if isinstance(camera_config, CameraConfiguration):
             if camera_config.raw is not None:
@@ -1077,7 +1073,7 @@ class Picamera2:
             camera_config['raw'] = None
 
         # Mark ourselves as unconfigured.
-        self.libcamera_config = None
+        self.libcamera_config = {}
         self.camera_config = {}
 
         # Check the config and turn it into a libcamera config.
@@ -1122,10 +1118,9 @@ class Picamera2:
         if self.encode_stream_name is not None and self.encode_stream_name not in camera_config:
             raise RuntimeError(f"Encode stream {self.encode_stream_name} was not defined")
 
-        # Decide whether we are going to keep hold of the last completed request, or
-        # whether capture requests will always wait for the next frame. If there's only
-        # one buffer, never hang on to the request because it would stall the pipeline
-        # instantly.
+        # Decide whether we are going to keep hold of the last completed request, or whether
+        # capture requests will always wait for the next frame. If there's only one buffer,
+        # never hang on to the request because it would stall the pipeline instantly.
         if camera_config['queue'] and camera_config['buffer_count'] > 1:
             self._max_queue_len = 1
         else:
@@ -1134,9 +1129,11 @@ class Picamera2:
         # Allocate all the frame buffers.
         self.streams = [stream_config.stream for stream_config in libcamera_config]
         self.allocator.allocate(libcamera_config, camera_config.get("use_case"))
+
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config
         self.camera_config = camera_config
+
         # Fill in the embedded configuration structures if those were used.
         if initial_config == "preview":
             self.preview_configuration.update(camera_config)
@@ -1144,6 +1141,7 @@ class Picamera2:
             self.still_configuration.update(camera_config)
         else:
             self.video_configuration.update(camera_config)
+
         # Set the controls directly so as to overwrite whatever is there.
         self.controls = Controls(self, controls=self.camera_config['controls'])
         self.configure_count += 1
@@ -1206,7 +1204,7 @@ class Picamera2:
             self.configure(config)
         if not self.camera_config:
             raise RuntimeError("Camera has not been configured")
-        # By default we will create an event loop is there isn't one running already.
+        # By default we will create an event loop if there isn't one running already.
         if show_preview is not None and not self._event_loop_running:
             self.start_preview(show_preview)
         self.start_()
@@ -1269,8 +1267,7 @@ class Picamera2:
         self.controls.set_controls(controls)
 
     def process_requests(self, display) -> None:
-        # This is the function that the event loop, which runs externally to us, must
-        # call.
+        # This is the function that the event loop, which runs externally to us, must call.
         requests = []
         with self._requestslock:
             requests = self._requests
@@ -1287,9 +1284,8 @@ class Picamera2:
         #   "job" for us to execute here in order to accomplish what it wanted.
 
         with self.lock:
-            # These new requests all have one "use" recorded, which is the one for
-            # being in this list.  Increase by one, so it cant't get discarded in
-            # self.functions block.
+            # These new requests all have one "use" recorded, which is the one for being in
+            # this list. Increase by one, so it cant't get discarded in self.functions block.
             for req in requests:
                 req.acquire()
             self.completed_requests += requests
@@ -2580,7 +2576,7 @@ class Picamera2:
             return (af_state in states, af_state == controls.AfStateEnum.Focused)
 
         # First wait for the scan to start. Once we've seen that, the AF cycle may:
-        # succeed, fail or could go back to Idle if it is cancelled.
+        # succeed, fail or could go back to idle if it is cancelled.
         functions = [partial(wait_for_af_state, self, {controls.AfStateEnum.Scanning}),
                      partial(wait_for_af_state, self,
                              {controls.AfStateEnum.Focused, controls.AfStateEnum.Failed, controls.AfStateEnum.Idle})]

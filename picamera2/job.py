@@ -25,8 +25,7 @@ class Job(Generic[T]):
     """
 
     def __init__(self, functions: list[Callable[..., Union[
-            tuple[Literal[False], None],
-            tuple[Literal[True], Any],
+            tuple[bool, Any],
             tuple[Literal[True], T]]]], signal_function=None
     ):
         self._functions = functions
