@@ -13,7 +13,7 @@ numpy
 PiDNG
 piexif
 pillow
-simplejpeg
+pyturbojpeg
 v4l2-python3
 python-prctl
 pyopengl
