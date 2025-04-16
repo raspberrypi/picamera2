@@ -4,7 +4,7 @@
 
 import cv2
 
-from picamera2 import Picamera2, Platform
+from picamera2 import Picamera2, Platform, Preview
 
 # VC4 platforms do not support different crops for the two outputs.
 if Picamera2.platform == Platform.VC4:
@@ -18,7 +18,7 @@ for m, l in [(False, False), (False, True), (True, False), (True, True)]:
                                             lores={"size": (320, 320), "format": 'XRGB8888', "preserve_ar": l},
                                             display="main")
     picam2.configure(cfg)
-    picam2.start(show_preview=True)
+    picam2.start(preview=Preview.auto())
 
     for _ in range(50):
         im = picam2.capture_array("lores")

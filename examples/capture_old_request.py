@@ -5,11 +5,11 @@
 
 import time
 
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
 capture_config = picam2.create_still_configuration()
-picam2.start(show_preview=True)
+picam2.start(preview=Preview.auto())
 
 time.sleep(1)
 

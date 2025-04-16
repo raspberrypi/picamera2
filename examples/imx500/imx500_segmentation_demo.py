@@ -5,7 +5,7 @@ from typing import Dict
 
 import numpy as np
 
-from picamera2 import CompletedRequest, Picamera2
+from picamera2 import CompletedRequest, Picamera2, Preview
 from picamera2.devices import IMX500
 from picamera2.devices.imx500 import NetworkIntrinsics
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     picam2 = Picamera2(imx500.camera_num)
     config = picam2.create_preview_configuration(controls={'FrameRate': intrinsics.inference_rate}, buffer_count=12)
     imx500.show_network_fw_progress_bar()
-    picam2.start(config, show_preview=True)
+    picam2.start(config, preview=Preview.auto())
     picam2.pre_callback = create_and_draw_masks
 
     while True:
