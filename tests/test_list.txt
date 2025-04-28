@@ -51,6 +51,7 @@ examples/tuning_file.py
 examples/video_with_config.py
 examples/window_offset.py
 examples/zoom.py
+tests/aegc.py
 tests/alignment.py
 tests/app_dual.py
 tests/app_full_test.py
