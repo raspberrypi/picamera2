@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
+import libcamera
 import numpy as np
 import piexif
 import simplejpeg
@@ -115,7 +116,25 @@ class CompletedRequest:
                     self.request.reuse()
                     controls = self.picam2.controls.get_libcamera_controls()
                     for id, value in controls.items():
+
+                        # libcamera now has "ExposureTimeMode" and "AnalogueGainMode" which must be set to
+                        # manual for the fixed exposure time or gain to have any effect, and cleared to return
+                        # to "auto " mode. We're going to hide that by supplying them automatically as needed.
+                        if id == libcamera.controls.ExposureTime:
+                            if value:
+                                self.request.set_control(libcamera.controls.ExposureTimeMode, 1)  # manual
+                            else:
+                                self.request.set_control(libcamera.controls.ExposureTimeMode, 0)  # auto
+                                continue  # no need to set the zero value!
+                        elif id == libcamera.controls.AnalogueGain:
+                            if value:
+                                self.request.set_control(libcamera.controls.AnalogueGainMode, 1)  # manual
+                            else:
+                                self.request.set_control(libcamera.controls.AnalogueGainMode, 0)  # auto
+                                continue  # no need to set the zero value!
+
                         self.request.set_control(id, value)
+
                     self.picam2.controls = Controls(self.picam2)
                     self.picam2.camera.queue_request(self.request)
                 [sync.__exit__() for sync in self.syncs]
