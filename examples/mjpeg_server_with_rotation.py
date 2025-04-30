@@ -14,14 +14,15 @@ from picamera2 import Picamera2
 from picamera2.encoders import MJPEGEncoder
 from picamera2.outputs import FileOutput
 
-ROTATION = 270  # Use 0, 90 or 270
+ROTATION = 270  # Use 0, 90, 180 or 270
 WIDTH = 640
 HEIGHT = 480
 
 rotation_header = bytes()
-if ROTATION:
+if ROTATION == 90 or ROTATION == 270:
     WIDTH, HEIGHT = HEIGHT, WIDTH
-    code = 6 if ROTATION == 90 else 8
+if ROTATION:
+    code = 6 if ROTATION == 90 else 8 if ROTATION == 270 else 3
     exif_bytes = piexif.dump({'0th': {piexif.ImageIFD.Orientation: code}})
     exif_len = len(exif_bytes) + 2
     rotation_header = bytes.fromhex('ffe1') + exif_len.to_bytes(2, 'big') + exif_bytes
