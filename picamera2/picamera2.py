@@ -148,13 +148,62 @@ class Picamera2:
     """Welcome to the PiCamera2 class."""
 
     platform = Platform.get_platform()
-
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
-    ERROR = logging.ERROR
-    CRITICAL = logging.CRITICAL
     _cm = CameraManager()
+
+    @property
+    def DEBUG(self):
+        """Now Deprecated
+
+        Use:
+        > import logging
+        > logging.DEBUG
+        """
+        _log.error("DEBUG is deprecated. Returning `import logging; logging.DEBUG` instead")
+        return logging.DEBUG
+
+    @property
+    def INFO(self):
+        """Now Deprecated
+
+        Use:
+        > import logging
+        > logging.INFO
+        """
+        _log.error("INFO is deprecated. Returning `import logging; logging.INFO` instead")
+        return logging.INFO
+
+    @property
+    def WARNING(self):
+        """Now Deprecated
+
+        Use:
+        > import logging
+        > logging.WARNING
+        """
+        _log.error("WARNING is deprecated. Returning `import logging; logging.WARNING` instead")
+        return logging.WARNING
+
+    @property
+    def ERROR(self):
+        """Now Deprecated
+
+        Use:
+        > import logging
+        > logging.ERROR
+        """
+        _log.error("ERROR is deprecated. Returning `import logging; logging.ERROR` instead")
+        return logging.ERROR
+
+    @property
+    def CRITICAL(self):
+        """Now Deprecated
+
+        Use:
+        > import logging
+        > logging.CRITICAL
+        """
+        _log.error("CRITICAL is deprecated. Returning `import logging; logging.CRITICAL` instead")
+        return logging.CRITICAL
 
     @staticmethod
     def set_logging(level=logging.WARN, output=sys.stderr, msg=None) -> None:
