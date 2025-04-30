@@ -6,12 +6,16 @@
 import threading
 import time
 
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
-                             QVBoxLayout, QWidget)
+try:
+    from PyQt6 import QtCore
+    from PyQt6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
+                                 QPushButton, QVBoxLayout, QWidget)
 
-from picamera2 import Picamera2
-from picamera2.previews.qt import QGl6Picamera2 as QGlPicamera2
+    from picamera2 import Picamera2
+    from picamera2.previews.qt import QGl6Picamera2 as QGlPicamera2
+except ImportError:
+    print("SKIPPED (no PyQt6)")
+    quit()
 
 
 def post_callback(request):
