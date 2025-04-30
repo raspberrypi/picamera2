@@ -16,7 +16,7 @@ def pre_callback(request):
 
 
 def copy_image(request):
-    global cam2_request
+    global cam2_request  # noqa
     with lock:
         request_2 = cam2_request
         if request_2 is None:

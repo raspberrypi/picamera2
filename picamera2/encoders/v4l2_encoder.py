@@ -174,10 +174,30 @@ class V4L2Encoder(Encoder):
         fcntl.ioctl(self.vd, VIDIOC_REQBUFS, reqbufs)
         self.vd.close()
 
+    def _check_for_picture(self, buf):
+        """Check whether the encoded buffer actually contains a picture."""
+        # At low bitrates, we can get a buffer with an SPS and a PPS but no picture.
+        # We must avoid writing these to the output. However, an SPS and PPS together
+        # can't be very large, so assume anything larger than this must be OK:
+        if len(buf) > 64:
+            return True
+
+        # Search the start codes to see if there's a picture here. Start codes are
+        # always the four bytes 0 0 0 1, and the low nibble of the subsequent byte tells
+        # us what's we've got.
+        start_code = b'\x00\x00\x00\x01'  # H.264 start code sequence
+        picture_codes = {5, 1}  # IDR and non-IDR pictures
+        pos = 0
+        while (pos := buf.find(start_code, pos)) != -1:
+            pos += 4
+            if pos < len(buf) and buf[pos] & 15 in picture_codes:
+                return True
+        return False
+
     def thread_poll(self, buf_available):
         """Outputs encoded frames"""
         pollit = select.poll()
-        pollit.register(self.vd, select.POLLIN)
+        pollit.register(self.vd, select.POLLIN | select.POLLOUT)
 
         while self._running or self.buf_frame.qsize() > 0:
             events = pollit.poll(400)
@@ -194,8 +214,11 @@ class V4L2Encoder(Encoder):
                     queue_item.release()
                 break
 
-            for _, event in events:
-                if event & select.POLLIN:
+            for fd_event, event in events:
+                if fd_event != self.vd.fileno():
+                    continue
+
+                if event & select.POLLOUT:
                     buf = v4l2_buffer()
                     planes = v4l2_plane * VIDEO_MAX_PLANES
                     planes = planes()
@@ -208,11 +231,17 @@ class V4L2Encoder(Encoder):
                     if ret == 0:
                         buf_available.put(buf.index)
 
+                    # Release frame from camera
+                    queue_item = self.buf_frame.get()
+                    queue_item.release()
+
+                if event & select.POLLIN:
                     buf = v4l2_buffer()
                     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
                     buf.memory = V4L2_MEMORY_MMAP
                     buf.length = 1
-                    ctypes.memset(planes, 0, ctypes.sizeof(v4l2_plane) * VIDEO_MAX_PLANES)
+                    planes = v4l2_plane * VIDEO_MAX_PLANES
+                    planes = planes()
                     buf.m.planes = planes
                     ret = fcntl.ioctl(self.vd, VIDIOC_DQBUF, buf)
                     keyframe = (buf.flags & V4L2_BUF_FLAG_KEYFRAME) != 0
@@ -224,7 +253,8 @@ class V4L2Encoder(Encoder):
                         # Write output to file
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
-                        self.outputframe(b, keyframe, (buf.timestamp.secs * 1000000) + buf.timestamp.usecs)
+                        if self._check_for_picture(b):
+                            self.outputframe(b, keyframe, (buf.timestamp.secs * 1000000) + buf.timestamp.usecs)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
@@ -238,10 +268,6 @@ class V4L2Encoder(Encoder):
                         buf.m.planes[0].bytesused = 0
                         buf.m.planes[0].length = buflen
                         ret = fcntl.ioctl(self.vd, VIDIOC_QBUF, buf)
-
-                        # Release frame from camera
-                        queue_item = self.buf_frame.get()
-                        queue_item.release()
 
     def _encode(self, stream, request):
         """Encodes a frame

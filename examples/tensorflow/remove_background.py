@@ -87,7 +87,7 @@ def main():
         InferenceTensorFlow(grey, args.model)
         base_img = np.zeros((normalSize[1], normalSize[0], 3), dtype=np.uint8)
         base_img = Image.fromarray(base_img)
-        global background_mask
+        global background_mask  # noqa
         overlay = Image.composite(background_img, base_img, background_mask)
         overlay.putalpha(background_mask)
         overlay = np.array(overlay)

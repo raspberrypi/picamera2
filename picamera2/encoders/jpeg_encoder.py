@@ -4,6 +4,7 @@ import simplejpeg
 
 from picamera2.encoders import Quality
 from picamera2.encoders.multi_encoder import MultiEncoder
+from picamera2.request import MappedArray
 
 
 class JpegEncoder(MultiEncoder):
@@ -42,11 +43,19 @@ class JpegEncoder(MultiEncoder):
         :return: Jpeg image
         :rtype: bytes
         """
-        if self.colour_space is None:
-            self.colour_space = self.FORMAT_TABLE[request.config[name]["format"]]
-        array = request.make_array(name)
-        return simplejpeg.encode_jpeg(array, quality=self.q, colorspace=self.colour_space,
-                                      colorsubsampling=self.colour_subsampling)
+        fmt = request.config[name]["format"]
+        with MappedArray(request, name) as m:
+            if fmt == "YUV420":
+                width, height = request.config[name]['size']
+                Y = m.array[:height, :width]
+                reshaped = m.array.reshape((m.array.shape[0] * 2, m.array.strides[0] // 2))
+                U = reshaped[2 * height: 2 * height + height // 2, :width // 2]
+                V = reshaped[2 * height + height // 2:, :width // 2]
+                return simplejpeg.encode_jpeg_yuv_planes(Y, U, V, self.q)
+            if self.colour_space is None:
+                self.colour_space = self.FORMAT_TABLE[request.config[name]["format"]]
+            return simplejpeg.encode_jpeg(m.array, quality=self.q, colorspace=self.colour_space,
+                                          colorsubsampling=self.colour_subsampling)
 
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any q value

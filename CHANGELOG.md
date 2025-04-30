@@ -6,6 +6,20 @@
 
 ### Changed
 
+## 0.3.26 Beta Release 25
+
+### Added
+
+* New SplittableOutput, allows switching between other outputs seamlessly at I frames.
+* Support for PySide2, PySide6 and PyQt6 widgets.
+
+### Changed
+
+* YUV420 format can be encoded directly to JPEG now, which uses less memory and is faster.
+* Support DRM displays when XB24 is not available.
+* Fix V4L2 encoder lock-up when a frame produces no output.
+* Ongoing improvements to type hints.
+
 ## 0.3.25 Beta Release 24
 
 ### Added
