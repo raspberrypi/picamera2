@@ -114,7 +114,7 @@ class CircularOutput2(Output):
         with self._lock:
             if not self.recording:
                 raise RuntimeError("Circular output was not started")
-            self._recording = False
+            self.recording = False
             self._output = None
 
         # At this point the background thread can't be using the circular buffer or the output,
