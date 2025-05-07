@@ -37,3 +37,28 @@ test_control_auto("ExposureTime")
 test_control_fixed("AnalogueGain", 1.5)
 test_control_fixed("AnalogueGain", 3.0)
 test_control_auto("AnalogueGain")
+
+
+# Also test that it works when we start the camera.
+
+def test_control_start(control, value):
+    controls = {control: value}
+    config = picam2.create_preview_configuration(controls=controls)
+    picam2.start(config)
+
+    # The very first frame should have the given values.
+    metadata = picam2.capture_metadata()
+    picam2.stop()
+    check = metadata[control]
+    print(f"Camera started with {control} {check}")
+
+    if abs(value - check) > 0.05 * value:
+        print(f"ERROR: request {control} of {value} but got {check}")
+
+
+picam2.stop()
+
+test_control_start("ExposureTime", 12345)
+test_control_start("ExposureTime", 23456)
+test_control_start("AnalogueGain", 1.5)
+test_control_start("AnalogueGain", 3.0)

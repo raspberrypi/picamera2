@@ -1175,6 +1175,18 @@ class Picamera2:
         if self.started:
             return
         controls = self.controls.get_libcamera_controls()
+
+        # The latest libcamera requires is to set "ExposureTimeMode" to manual if we are setting
+        # a fixed value, or to "auto" if we're going back to auto mode.
+        exposure_time = controls.get(libcamera.controls.ExposureTime, None)
+        if exposure_time is not None:
+            controls[libcamera.controls.ExposureTimeMode] = 0 if exposure_time == 0 else 1
+
+        # Ditto for the analogue gain.
+        analogue_gain = controls.get(libcamera.controls.AnalogueGain, None)
+        if analogue_gain is not None:
+            controls[libcamera.controls.AnalogueGainMode] = 0 if analogue_gain == 0 else 1
+
         self.controls = Controls(self)
         # camera.start() now throws an error if it fails.
         self.camera.start(controls)
