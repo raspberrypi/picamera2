@@ -6,6 +6,15 @@
 
 ### Changed
 
+## 0.3.27 Beta Release 26
+
+### Added
+
+### Changed
+
+* Fixed a couple of bugs in 0.3.26, including failing to set exposure/gain when
+  starting the camera.
+
 ## 0.3.26 Beta Release 25
 
 ### Added
