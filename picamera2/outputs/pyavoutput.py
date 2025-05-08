@@ -30,12 +30,15 @@ class PyavOutput(Output):
     def _add_stream(self, encoder_stream, codec_name, **kwargs):
         # The output container that does the muxing needs to know about the streams for which packets
         # will be sent to it. It literally needs to copy them for the output container.
+        print(encoder_stream)
+        print()
         stream = self._container.add_stream(codec_name, **kwargs)
-
-        if codec_name == "mjpeg":
-            # Well, this is nasty. MJPEG seems to need this.
-            stream.codec_context.color_range = 2  # JPEG (full range)
-
+        print(stream)
+        stream.codec_context.width = encoder_stream.codec_context.width
+        stream.codec_context.height = encoder_stream.codec_context.height
+        stream.codec_context.pix_fmt = encoder_stream.codec_context.pix_fmt
+        print(stream)
+        
         self._streams[encoder_stream] = stream
 
     def start(self):
