@@ -14,7 +14,7 @@ def main():
     preview = picam2.create_preview_configuration()
     picam2.configure(preview)
 
-    picam2.start(show_preview=None)
+    picam2.start(preview=Preview.NO)
 
     qtgl1 = time.monotonic()
     print("QT GL Preview")
