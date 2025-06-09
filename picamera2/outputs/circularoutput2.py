@@ -34,6 +34,8 @@ class CircularOutput2(Output):
         self._circular = collections.deque()
         self._output = None
         self._streams = []
+        self._first_frame = True
+        self._time_offset = 0
 
     @property
     def buffer_duration_ms(self):
@@ -77,7 +79,7 @@ class CircularOutput2(Output):
         # Flush out anything that is time-expired compared to timestamp_now.
         # If timestamp_now is None, flush everything.
         while self._circular and (front := self._circular[0]):
-            _, keyframe, timestamp, _, audio = front
+            frame, keyframe, timestamp, packet, audio = front
 
             if timestamp_now and timestamp_now - timestamp < self.buffer_duration_ms * 1000:
                 break
@@ -86,10 +88,14 @@ class CircularOutput2(Output):
             self._circular.popleft()
 
             if keyframe and not audio:
+                if self._first_frame:
+                    self._time_offset = timestamp
                 self._first_frame = False
 
             if not self._first_frame and output:
-                output.outputframe(*front)
+                new_timestamp = timestamp - self._time_offset
+                if new_timestamp >= 0:
+                    output.outputframe(frame, keyframe, new_timestamp, packet, audio)
 
     def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Write frame to circular buffer"""
