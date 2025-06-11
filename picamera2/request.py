@@ -442,7 +442,8 @@ class Helpers:
             config['stride'] = raw.shape[1]
             config['framesize'] = raw.shape[0] * raw.shape[1]
 
-        camera = Picamera2Camera(config, metadata)
+        model = self.picam2.camera_properties.get('Model') or "Picamera2"
+        camera = Picamera2Camera(config, metadata, model)
         r = PICAM2DNG(camera)
 
         dng_compress_level = self.picam2.options.get("compress_level", 0)
