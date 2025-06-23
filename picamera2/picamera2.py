@@ -1335,6 +1335,9 @@ class Picamera2:
         with self._requestslock:
             requests = self._requests
             self._requests = []
+        # Discard "startup frames", or frames with errors etc.
+        requests = [req for req in requests
+                    if next(iter(req.request.buffers.values())).metadata.status == libcamera.FrameMetadata.Status.Success]
         self.frames += len(requests)
         # It works like this:
         # * We maintain a list of the requests that libcamera has completed (completed_requests).
