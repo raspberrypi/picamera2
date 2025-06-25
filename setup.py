@@ -11,7 +11,7 @@ with open("README.md") as readme:
 
 setup(
     name='picamera2',
-    version='0.3.27',
+    version='0.3.28',
     description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
     long_description=long_description,
     long_description_content_type='text/markdown',
