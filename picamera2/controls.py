@@ -19,7 +19,7 @@ class Controls():
 
     def __init__(self, picam2, controls={}):
         self._picam2 = picam2
-        self._controls = []
+        self._controls = set()
         self._lock = threading.Lock()
         self.set_controls(controls)
 
@@ -31,7 +31,7 @@ class Controls():
                 value = real_field[1](value)
             if name not in self._picam2.camera_ctrl_info.keys():
                 raise RuntimeError(f"Control {name} is not advertised by libcamera")
-            self._controls.append(name)
+            self._controls.add(name)
         self.__dict__[name] = value
 
     def __getattribute__(self, name):

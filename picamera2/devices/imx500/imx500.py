@@ -14,8 +14,8 @@ import numpy as np
 from libarchive.read import fd_reader
 from libcamera import Rectangle, Size
 from tqdm import tqdm
-from v4l2 import (VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS, v4l2_control,
-                  v4l2_ext_control, v4l2_ext_controls)
+from v4l2 import (VIDIOC_G_EXT_CTRLS, VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS,
+                  v4l2_control, v4l2_ext_control, v4l2_ext_controls)
 
 from picamera2 import CompletedRequest, Picamera2
 
@@ -27,6 +27,7 @@ FW_LOADER_STAGE = 0
 FW_MAIN_STAGE = 1
 FW_NETWORK_STAGE = 2
 
+GET_DEVICE_ID_CTRL_ID = 0x00982902
 NETWORK_FW_FD_CTRL_ID = 0x00982901
 ROI_CTRL_ID = 0x00982900
 
@@ -372,6 +373,36 @@ class IMX500:
         out = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
         return out.to_tuple()
 
+    def get_device_id(self) -> str:
+        """Get IMX500 Device ID"""
+        ret = None
+        imx500_device_id = ""
+
+        r = (ctypes.c_uint32 * 4)()
+        r[0] = 0x0
+        r[1] = 0x0
+        r[2] = 0x0
+        r[3] = 0x0
+
+        c = (v4l2_ext_control * 1)()
+        c[0].p_u32 = r
+        c[0].id = GET_DEVICE_ID_CTRL_ID
+        c[0].size = 16
+
+        ctrl = v4l2_ext_controls()
+        ctrl.count = 1
+        ctrl.controls = c
+
+        try:
+            fcntl.ioctl(self.device_fd, VIDIOC_G_EXT_CTRLS, ctrl)
+            for i in range(4):
+                ret = ctrl.controls[0].p_u32[i]
+                imx500_device_id += "%08X" % ret
+        except OSError as err:
+            print(f'IMX500: Unable to get device ID from device driver: {err}')
+
+        return imx500_device_id
+
     def get_fw_upload_progress(self, stage_req) -> tuple:
         """Returns the current progress of the fw upload in the form of (current, total)."""
         progress_block = 0
@@ -621,13 +652,24 @@ class IMX500:
             (magic, size) = struct.unpack('>4sI', fw[:8])
             if not magic == b'9464':
                 break
-            fw = fw[size + 60:]
+
+            # Parse flags
+            fw = fw[8:]
+            flags = struct.unpack('8B', fw[:8])
+            device_lock_flag = flags[6]
+            fw = fw[(size + 60 - 8):]  # jump to footer
+
             # Ensure footer is as expected
             (magic,) = struct.unpack('4s', fw[:4])
             if not magic == b'3695':
                 raise RuntimeError(f'No matching footer found in firmware file {network_filename}')
             fw = fw[4:]
             cpio_offset += size + 64
+
+            if ((device_lock_flag & 0x01) == 1):
+                # skip forward 32 bytes if device_lock_flag.bit0 == 1
+                fw = fw[32:]
+                cpio_offset += 32
 
         cpio_fd = os.open(network_filename, os.O_RDONLY)
         os.lseek(cpio_fd, cpio_offset, os.SEEK_SET)

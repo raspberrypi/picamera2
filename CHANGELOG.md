@@ -6,6 +6,18 @@
 
 ### Changed
 
+## 0.3.28 Beta Release 27
+
+### Added
+
+* Support for encrypted rpks for AI cam.
+* Handling for "startup frames" (once committed to libcamera).
+
+### Changed
+
+* Some audio/video bugs fixed, also relating to CircularOutput2.
+* Sensor name is now saved as the "Model" in DNG files (requires latest PiDNG).
+
 ## 0.3.27 Beta Release 26
 
 ### Added
