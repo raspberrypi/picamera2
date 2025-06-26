@@ -72,6 +72,7 @@ class Encoder:
         # For camera sync.
         self.sync_enable = False
         self.sync = threading.Event()
+        self._first_audio_time = None
 
     @property
     def running(self):
@@ -342,6 +343,12 @@ class Encoder:
         # Write out audio an packet, dealing with timestamp adjustments.
         time_scale_factor = 1000000 * self._audio_output_stream.codec_context.time_base
         delta = int(self.audio_sync / time_scale_factor)  # convert to audio time base
+        # Rebase the first timestamp to zero so that it will align with the video properly - some playback
+        # software is sensitive to this.
+        if self._first_audio_time is None:
+            self._first_audio_time = audio_packet.pts
+        audio_packet.pts -= self._first_audio_time
+        audio_packet.dts -= self._first_audio_time
         audio_packet.pts -= delta
         audio_packet.dts -= delta
         timestamp = int(audio_packet.pts * time_scale_factor)  # want this in us
