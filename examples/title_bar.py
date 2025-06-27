@@ -2,10 +2,10 @@
 
 import time
 
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 
 picam2 = Picamera2()
-picam2.start(show_preview=True)
+picam2.start(preview=Preview.auto())
 time.sleep(0.5)
 
 # Or you could do this before starting the camera.
