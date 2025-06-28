@@ -7,6 +7,7 @@ from .jpeg_encoder import JpegEncoder
 from .libav_h264_encoder import LibavH264Encoder
 from .libav_mjpeg_encoder import LibavMjpegEncoder
 from .multi_encoder import MultiEncoder
+from .no_encoder import NoEncoder
 
 _hw_encoder_available = False
 try:
