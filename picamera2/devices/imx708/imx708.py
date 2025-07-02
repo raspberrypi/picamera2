@@ -1,7 +1,7 @@
 import fcntl
 import os
 
-from v4l2 import VIDIOC_S_CTRL, v4l2_control
+from videodev2 import VIDIOC_S_CTRL, v4l2_control
 
 from picamera2 import Picamera2
 

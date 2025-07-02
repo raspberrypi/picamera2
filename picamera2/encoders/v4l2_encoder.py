@@ -7,7 +7,7 @@ import queue
 import select
 import threading
 
-from v4l2 import *
+from vidoedev2 import *
 
 from picamera2.encoders.encoder import Encoder
 

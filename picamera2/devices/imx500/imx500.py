@@ -14,8 +14,8 @@ import numpy as np
 from libarchive.read import fd_reader
 from libcamera import Rectangle, Size
 from tqdm import tqdm
-from v4l2 import (VIDIOC_G_EXT_CTRLS, VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS,
-                  v4l2_control, v4l2_ext_control, v4l2_ext_controls)
+from videodev2 import (VIDIOC_G_EXT_CTRLS, VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS,
+                       v4l2_control, v4l2_ext_control, v4l2_ext_controls)
 
 from picamera2 import CompletedRequest, Picamera2
 

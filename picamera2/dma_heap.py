@@ -3,7 +3,7 @@ import fcntl
 import logging
 import os
 
-from v4l2 import _IOW, _IOWR
+from videodev2 import _IOW, _IOWR
 
 _log = logging.getLogger("picamera2")
 heapNames = [
