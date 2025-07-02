@@ -1,17 +1,17 @@
 """H264 encoder functionality"""
 
-from v4l2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
-                  V4L2_CID_MPEG_VIDEO_H264_LEVEL,
-                  V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
-                  V4L2_CID_MPEG_VIDEO_H264_MIN_QP,
-                  V4L2_CID_MPEG_VIDEO_H264_PROFILE,
-                  V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER,
-                  V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
-                  V4L2_MPEG_VIDEO_H264_LEVEL_4_2,
-                  V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
-                  V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
-                  V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
-                  V4L2_MPEG_VIDEO_H264_PROFILE_MAIN, V4L2_PIX_FMT_H264)
+from videodev2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
+                       V4L2_CID_MPEG_VIDEO_H264_LEVEL,
+                       V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
+                       V4L2_CID_MPEG_VIDEO_H264_MIN_QP,
+                       V4L2_CID_MPEG_VIDEO_H264_PROFILE,
+                       V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER,
+                       V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
+                       V4L2_MPEG_VIDEO_H264_LEVEL_4_2,
+                       V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+                       V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
+                       V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+                       V4L2_MPEG_VIDEO_H264_PROFILE_MAIN, V4L2_PIX_FMT_H264)
 
 from picamera2.encoders import Quality
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
