@@ -8,7 +8,7 @@ from math import isclose
 
 from libcamera import Transform
 
-from picamera2 import Picamera2
+from picamera2 import Picamera2, Preview
 from picamera2.sensor_format import SensorFormat
 
 Picamera2.set_logging()
@@ -42,7 +42,7 @@ def check(raw_config, fps):
         (set_format.packing == '') == (requested_format.packing == ''), \
         f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
     picam2.set_controls({"FrameRate": fps})
-    picam2.start(show_preview=True)
+    picam2.start(preview=Preview.auto())
     time.sleep(1)
     # Check we got roughly the right framerate
     metadata = picam2.capture_metadata()
