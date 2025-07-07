@@ -6,6 +6,15 @@
 
 ### Changed
 
+## 0.3.29 Beta Release 28
+
+### Added
+
+### Changed
+
+* Fix for startup frames not being recycled.
+* Switch from v4l2-python3 to videodev2 library.
+
 ## 0.3.28 Beta Release 27
 
 ### Added
