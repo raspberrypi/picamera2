@@ -1,3 +1,10 @@
+picamera2 (0.3.29-1) bookworm; urgency=medium
+
+  * New upstream version 0.3.29
+  * Switch from python3-v4l2 to python3-videodev2
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 15 Jul 2025 11:38:47 +0100
+
 picamera2 (0.3.28-1~bookworm) bookworm; urgency=medium
 
   * New upstream version 0.3.28
