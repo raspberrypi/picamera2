@@ -1331,13 +1331,17 @@ class Picamera2:
 
     def process_requests(self, display) -> None:
         # This is the function that the event loop, which runs externally to us, must call.
-        requests = []
+        new_requests = []
         with self._requestslock:
-            requests = self._requests
+            new_requests = self._requests
             self._requests = []
         # Discard "startup frames", or frames with errors etc.
-        requests = [req for req in requests
-                    if next(iter(req.request.buffers.values())).metadata.status == libcamera.FrameMetadata.Status.Success]
+        requests = []
+        for req in new_requests:
+            if next(iter(req.request.buffers.values())).metadata.status == libcamera.FrameMetadata.Status.Success:
+                requests.append(req)
+            else:
+                req.release()
         self.frames += len(requests)
         # It works like this:
         # * We maintain a list of the requests that libcamera has completed (completed_requests).
