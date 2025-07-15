@@ -1,6 +1,6 @@
 import fcntl
 
-import v4l2
+import videodev2
 
 from .encoder import Encoder, Quality
 from .jpeg_encoder import JpegEncoder
@@ -11,8 +11,8 @@ from .multi_encoder import MultiEncoder
 _hw_encoder_available = False
 try:
     with open('/dev/video11', 'rb', buffering=0) as fd:
-        caps = v4l2.v4l2_capability()
-        fcntl.ioctl(fd, v4l2.VIDIOC_QUERYCAP, caps)
+        caps = videodev2.v4l2_capability()
+        fcntl.ioctl(fd, videodev2.VIDIOC_QUERYCAP, caps)
         _hw_encoder_available = (caps.card.decode('utf-8') == "bcm2835-codec-encode")
 except Exception:
     pass

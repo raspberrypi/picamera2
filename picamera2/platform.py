@@ -2,7 +2,7 @@ import fcntl
 import os
 from enum import Enum
 
-import v4l2
+import videodev2
 
 
 class Platform(Enum):
@@ -16,9 +16,9 @@ try:
         device = '/dev/video' + str(num)
         if os.path.exists(device):
             with open(device, 'rb+', buffering=0) as fd:
-                caps = v4l2.v4l2_capability()
-                fcntl.ioctl(fd, v4l2.VIDIOC_QUERYCAP, caps)
-                decoded = caps.card.decode('utf-8')
+                caps = videodev2.v4l2_capability()
+                fcntl.ioctl(fd, videodev2.VIDIOC_QUERYCAP, caps)
+                decoded = videodev2.arr_to_str(caps.card)
                 if decoded == "pispbe":
                     _platform = Platform.PISP
                     break
