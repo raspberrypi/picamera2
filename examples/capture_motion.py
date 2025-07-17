@@ -20,11 +20,13 @@ w, h = lsize
 prev = None
 encoding = False
 ltime = 0
+cnt = 0
 
 while True:
     cur = picam2.capture_buffer("lores")
     cur = cur[:w * h].reshape(h, w)
-    if prev is not None:
+    cnt += 1
+    if prev is not None and cnt >= 20:
         # Measure pixels differences between current and
         # previous frame
         mse = np.square(np.subtract(cur, prev)).mean()
