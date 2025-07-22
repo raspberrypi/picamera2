@@ -11,6 +11,9 @@ picam2 = Picamera2()
 config = picam2.create_preview_configuration()
 picam2.start(config, show_preview=False)
 
+# wait for the device to be streaming
+picam2.capture_metadata()
+
 # get device_id
 device_id = imx500.get_device_id()
 print("IMX500 Device ID =", device_id)
