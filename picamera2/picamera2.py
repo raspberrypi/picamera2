@@ -14,8 +14,8 @@ import time
 from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import (Any, Literal, Optional, TypedDict, TypeVar, Union, cast,
-                    overload)
+from typing import (Any, Generic, Literal, Optional, TypedDict, TypeVar, Union,
+                    cast, overload)
 
 import libcamera
 import numpy as np
@@ -144,13 +144,24 @@ class CameraManager:
                 os.write(self.cameras[c].notifyme_w, b"\x00")
 
 
+class classproperty(property, Generic[T]):
+    def __init__(self, fget: Callable[[type], T]) -> None:
+        super().__init__(fget)
+
+    def __get__(self, obj, cls=None) -> T:
+        if cls is None:
+            cls = type(obj)
+        assert self.fget is not None
+        return self.fget(cls)
+
+
 class Picamera2:
     """Welcome to the PiCamera2 class."""
 
     platform = Platform.get_platform()
     _cm = CameraManager()
 
-    @property
+    @classproperty
     def DEBUG(self):
         """Now Deprecated
 
@@ -161,7 +172,7 @@ class Picamera2:
         _log.error("DEBUG is deprecated. Returning `import logging; logging.DEBUG` instead")
         return logging.DEBUG
 
-    @property
+    @classproperty
     def INFO(self):
         """Now Deprecated
 
@@ -172,7 +183,7 @@ class Picamera2:
         _log.error("INFO is deprecated. Returning `import logging; logging.INFO` instead")
         return logging.INFO
 
-    @property
+    @classproperty
     def WARNING(self):
         """Now Deprecated
 
@@ -183,7 +194,7 @@ class Picamera2:
         _log.error("WARNING is deprecated. Returning `import logging; logging.WARNING` instead")
         return logging.WARNING
 
-    @property
+    @classproperty
     def ERROR(self):
         """Now Deprecated
 
@@ -194,7 +205,7 @@ class Picamera2:
         _log.error("ERROR is deprecated. Returning `import logging; logging.ERROR` instead")
         return logging.ERROR
 
-    @property
+    @classproperty
     def CRITICAL(self):
         """Now Deprecated
 
