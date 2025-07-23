@@ -47,7 +47,7 @@ class LibavMjpegEncoder(Encoder):
 
         self._stream.width = self.width
         self._stream.height = self.height
-        self._stream.pix_fmt = "yuv420p"
+        self._stream.pix_fmt = "yuvj420p"
 
         for out in self._output:
             out._add_stream(self._stream, self._codec, rate=self.framerate)
@@ -64,7 +64,7 @@ class LibavMjpegEncoder(Encoder):
 
         self._stream.codec_context.qmin = self.qp
         self._stream.codec_context.qmax = self.qp
-        self._stream.codec_context.color_range = 2  # JPEG (full range)
+        
         try:
             # "qscale" is now correct, but some older versions used "QSCALE"
             self._stream.codec_context.flags |= av.codec.context.Flags.qscale  # noqa
@@ -73,7 +73,7 @@ class LibavMjpegEncoder(Encoder):
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)
 
-        FORMAT_TABLE = {"YUV420": "yuv420p",
+        FORMAT_TABLE = {"YUV420": "yuvj420p",
                         "BGR888": "rgb24",
                         "RGB888": "bgr24",
                         "XBGR8888": "rgba",
