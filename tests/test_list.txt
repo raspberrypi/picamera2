@@ -74,6 +74,7 @@ tests/display_transform_null.py
 tests/display_transform_qt.py
 tests/easy_video2.py
 tests/egl_leak.py
+tests/encoder_import.py
 tests/encoder_start_stop.py
 tests/ffmpeg_abort.py
 tests/grey_world.py

@@ -19,6 +19,10 @@ if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
 
 
 def _set_configuration_file(filename):
+    oldval = os.environ.get('LIBCAMERA_RPI_CONFIG_FILE')
+    if oldval is not None and os.path.isfile(oldval):
+        return
+
     platform_dir = "vc4" if get_platform() == Platform.VC4 else "pisp"
     dirs = [
         os.path.expanduser(

@@ -32,10 +32,12 @@ picam2.start()
 
 test_control_fixed("ExposureTime", 5000)
 test_control_fixed("ExposureTime", 10000)
+test_control_fixed("ExposureTime", 1000)
 test_control_auto("ExposureTime")
 
 test_control_fixed("AnalogueGain", 1.5)
 test_control_fixed("AnalogueGain", 3.0)
+test_control_fixed("AnalogueGain", 5.8)
 test_control_auto("AnalogueGain")
 
 
