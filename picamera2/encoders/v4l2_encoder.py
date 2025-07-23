@@ -254,7 +254,7 @@ class V4L2Encoder(Encoder):
                         b = self.bufs[buf.index][0].read(buf.m.planes[0].bytesused)
                         self.bufs[buf.index][0].seek(0)
                         if self._check_for_picture(b):
-                            self.outputframe(b, keyframe, (buf.timestamp.secs * 1000000) + buf.timestamp.usecs)
+                            self.outputframe(b, keyframe, (buf.timestamp.tv_sec * 1000000) + buf.timestamp.tv_usec)
 
                         # Requeue encoded buffer
                         buf = v4l2_buffer()
@@ -299,8 +299,8 @@ class V4L2Encoder(Encoder):
         buf.field = V4L2_FIELD_NONE
         buf.memory = V4L2_MEMORY_DMABUF
         buf.length = 1
-        buf.timestamp.secs = timestamp_us // 1000000
-        buf.timestamp.usecs = timestamp_us % 1000000
+        buf.timestamp.tv_sec = timestamp_us // 1000000
+        buf.timestamp.tv_usec = timestamp_us % 1000000
         buf.m.planes = planes
         buf.m.planes[0].m.fd = fd
         buf.m.planes[0].bytesused = cfg.frame_size
