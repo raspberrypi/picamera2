@@ -6,6 +6,19 @@
 
 ### Changed
 
+## 0.3.30 Beta Release 29
+
+### Added
+
+* Test for v4l2 encoder import.
+* Make the deprecated logging properties work for classes and instances.
+* Don't override LIBCAMERA_RPI_CONFIG_FILE env variable if present.
+
+### Changed
+
+* Fixups when using the new videodev2 packages.
+* Fix aegc test to reduce the change of false positives.
+
 ## 0.3.29 Beta Release 28
 
 ### Added
