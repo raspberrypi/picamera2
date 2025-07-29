@@ -78,7 +78,7 @@ class LibavH264Encoder(Encoder):
         self._stream.pix_fmt = "yuv420p"
 
         for out in self._output:
-            out._add_stream(self._stream, self._codec, rate=self.framerate)
+            out._add_stream(self._stream, self._codec, rate=self.framerate, width=self.width, height=self.height)
 
         preset = "ultrafast"
         if self.profile is not None:

@@ -38,6 +38,7 @@ class MJPEGEncoder(V4L2Encoder):
     def _start(self):
         # The output objects may need to know what kind of stream this is.
         for out in self._output:
-            out._add_stream("video", "mjpeg", rate=30)  # seem to need a rate to prevent timestamp warnings
+            # Seem to need a rate to prevent timestamp warnings.
+            out._add_stream("video", "mjpeg", rate=30, width=self.width, height=self.height)
 
         super()._start()
