@@ -225,7 +225,7 @@ class CompletedRequest:
         if (config['format'] == 'YUV420' or (self.FASTER_JPEG and config['format'] != "MJPEG")) and \
            self.picam2.helpers._get_format_str(file_output, format) in ('jpg', 'jpeg'):
             quality = self.picam2.options.get("quality", 90)
-            with MappedArray(self, 'main') as m:
+            with MappedArray(self, name) as m:
                 format = self.config[name]["format"]
                 if format == 'YUV420':
                     width, height = self.config[name]['size']
