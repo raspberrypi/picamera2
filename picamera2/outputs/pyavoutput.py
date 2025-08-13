@@ -18,12 +18,13 @@ class PyavOutput(Output):
     back in.
     """
 
-    def __init__(self, output_name, format=None, pts=None):
+    def __init__(self, output_name, format=None, pts=None, options=None):
         super().__init__(pts=pts)
         self._output_name = output_name
         self._format = format
         self._streams = {}
         self._container = None
+        self._options = options
         # A user can set this to get notifications of failures.
         self.error_callback = None
 
@@ -40,7 +41,7 @@ class PyavOutput(Output):
 
     def start(self):
         """Start the PyavOutput."""
-        self._container = av.open(self._output_name, "w", format=self._format)
+        self._container = av.open(self._output_name, "w", format=self._format, options=self._options)
         super().start()
 
     def stop(self):
@@ -64,6 +65,7 @@ class PyavOutput(Output):
                 packet.dts = timestamp
                 packet.pts = timestamp
                 packet.time_base = Fraction(1, 1000000)
+                packet.is_keyframe = keyframe
                 packet.stream = self._streams["video"]
             else:
                 # We can copy the packet we are given, updating the stream to be our version, and amending
@@ -75,6 +77,7 @@ class PyavOutput(Output):
                 new_packet.dts = timestamp
                 new_packet.pts = timestamp
                 new_packet.time_base = Fraction(1, 1000000)
+                new_packet.is_keyframe = keyframe
                 packet = new_packet
 
             try:
