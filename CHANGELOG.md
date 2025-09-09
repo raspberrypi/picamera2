@@ -6,6 +6,19 @@
 
 ### Changed
 
+## 0.3.31 Beta Release 30
+
+### Added
+
+* Support for writing uncompressed images using PyavOutput (for example, for v4l2 loopback).
+* Support for writing HLS and other formats directly using PyavOutput.
+
+### Changed
+
+* Fix saving low resolution stream image in JPEG format.
+* Fix incorrect reference counting for Hailo devices.
+* Fix video resolution in mp4 file avc1 box.
+
 ## 0.3.30 Beta Release 29
 
 ### Added
