@@ -86,7 +86,7 @@ class H264Encoder(V4L2Encoder):
 
         # The output objects may need to know what kind of stream this is.
         for out in self._output:
-            out._add_stream("video", "h264")
+            out._add_stream("video", "h264", width=self._width, height=self._height)
 
         super()._start()
 

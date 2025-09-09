@@ -2,6 +2,7 @@
 
 import threading
 from enum import Enum
+from fractions import Fraction
 
 import av
 from libcamera import controls
@@ -46,7 +47,7 @@ class Encoder:
     understands.
     """
 
-    def __init__(self):
+    def __init__(self, framerate=30):
         """Initialises encoder"""
         self._width = 0
         self._height = 0
@@ -55,6 +56,9 @@ class Encoder:
         self._output = []
         self._running = False
         self._name = None
+        # The framerate can matter if you're writing to a device that whose framerate you
+        # need to match, such as v4l2loopback devices.
+        self._framerate = framerate
         self._lock = threading.Lock()
         self.firsttimestamp = None
         self.frame_skip_count = 1
@@ -295,7 +299,16 @@ class Encoder:
                 self._audio_thread.start()  # audio thread will wait for the _audio_start event.
 
     def _start(self):
-        pass
+        FORMAT_TABLE = {"YUV420": "yuv420p",
+                        "BGR888": "rgb24",
+                        "RGB888": "bgr24",
+                        "XBGR8888": "rgba",
+                        "XRGB8888": "bgra"}
+        pix_fmt = FORMAT_TABLE[self._format]
+        rate = Fraction(1000000, self._framerate)
+        for out in self._output:
+            out._add_stream("video", "rawvideo", pix_fmt=pix_fmt, rate=rate,
+                            width=self.width, height=self.height)
 
     def stop(self):
         with self._lock:

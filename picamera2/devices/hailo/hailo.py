@@ -25,7 +25,8 @@ class Hailo:
         self.hef = HEF(hef_path)
         if Hailo.TARGET is None:
             Hailo.TARGET = VDevice(params)
-            Hailo.TARGET_REF_COUNT += 1
+        # increment `TARGET_REF_COUNT` every time a model is loaded
+        Hailo.TARGET_REF_COUNT += 1
         self.target = Hailo.TARGET
         self.infer_model = self.target.create_infer_model(hef_path)
         self.infer_model.set_batch_size(1 if batch_size is None else batch_size)
@@ -184,3 +185,6 @@ class Hailo:
         Hailo.TARGET_REF_COUNT -= 1
         if Hailo.TARGET_REF_COUNT == 0:
             self.target.release()
+            # Reset `TARGET` to None so that subsequent __init__ calls can create
+            # a new VDevice, since this one has been released
+            Hailo.TARGET = None
