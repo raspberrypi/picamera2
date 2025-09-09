@@ -1,3 +1,10 @@
+picamera2 (0.3.31-1) trixie; urgency=medium
+
+  * New upstream version 0.3.31
+  * d/gbp.conf: fix debian-branch
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 09 Sep 2025 15:50:25 +0100
+
 picamera2 (0.3.30-1) trixie; urgency=medium
 
   * New upstream version 0.3.30
