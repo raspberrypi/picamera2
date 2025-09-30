@@ -33,14 +33,16 @@ class _MappedBuffer:
             stream = request.stream_map[stream]
         assert request.request is not None
         self.__fb = request.request.buffers[stream]
-        self.__sync = request.picam2.allocator.sync(request.picam2.allocator, self.__fb, write)
+        self.__allocator = request.picam2.allocator
 
     def __enter__(self) -> Any:
-        self.__mm = self.__sync.__enter__()
+        self.__mm = self.__allocator.mapped_buffers.get(self.__fb, None)
+        if self.__mm is None:
+            raise RuntimeError("failed to find buffer")
         return self.__mm
 
     def __exit__(self, exc_type: Any, exc_value: Any, exc_traceback: Any) -> None:
-        self.__sync.__exit__(exc_type, exc_value, exc_traceback)
+        pass
 
 
 class MappedArray:
@@ -90,7 +92,7 @@ class CompletedRequest:
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
         with self.lock:
-            self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False)
+            self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, True)
                           for buffer in self.request.buffers.values()]
             self.picam2.allocator.acquire(self.request.buffers)
             [sync.__enter__() for sync in self.syncs]

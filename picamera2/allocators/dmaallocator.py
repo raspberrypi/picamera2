@@ -129,3 +129,9 @@ class DmaAllocator(Allocator):
             ret = fcntl.ioctl(self.__fb.planes[0].fd, DMA_BUF_IOCTL_SYNC, dma_sync)
             if ret:
                 logging.error("failed to unlock-sync-write dma buf")
+
+        def get_buffer(self):
+            it = self.allocator.mapped_buffers.get(self.__fb, None)
+            if it is None:
+                raise RuntimeError("failed to find buffer in DmaSync")
+            return it
