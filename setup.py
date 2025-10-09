@@ -37,5 +37,5 @@ setup(
     licence='BSD 2-Clause License',
     install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'videodev2',
                       'python-prctl', 'av', 'libarchive-c', 'tqdm',
-                      'jsonschema'],
+                      'jsonschema', 'OpenEXR'],
     extras_require={"gui": ['pyopengl', 'PyQt5']})

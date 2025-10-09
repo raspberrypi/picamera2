@@ -9,13 +9,16 @@ import sys
 import time
 from typing import List, Optional
 
+import Imath
 import jsonschema
 import numpy as np
+import OpenEXR
 from libarchive.read import fd_reader
 from libcamera import Rectangle, Size
 from tqdm import tqdm
-from videodev2 import (VIDIOC_G_EXT_CTRLS, VIDIOC_S_CTRL, VIDIOC_S_EXT_CTRLS,
-                       v4l2_control, v4l2_ext_control, v4l2_ext_controls)
+from videodev2 import (VIDIOC_G_CTRL, VIDIOC_G_EXT_CTRLS, VIDIOC_S_CTRL,
+                       VIDIOC_S_EXT_CTRLS, v4l2_control, v4l2_ext_control,
+                       v4l2_ext_controls)
 
 from picamera2 import CompletedRequest, Picamera2
 
@@ -27,6 +30,9 @@ FW_LOADER_STAGE = 0
 FW_MAIN_STAGE = 1
 FW_NETWORK_STAGE = 2
 
+INJECTION_CMP_FRM_CTRL_ID = 0x00982905
+INPUT_TENSOR_FD_CTRL_ID = 0x00982904
+ENABLE_INJECTION_CTRL_ID = 0x00982903
 GET_DEVICE_ID_CTRL_ID = 0x00982902
 NETWORK_FW_FD_CTRL_ID = 0x00982901
 ROI_CTRL_ID = 0x00982900
@@ -46,7 +52,8 @@ class CnnOutputTensorInfoExported(ctypes.LittleEndianStructure):
     _fields_ = [
         ('network_name', ctypes.c_char * NETWORK_NAME_LEN),
         ('num_tensors', ctypes.c_uint32),
-        ('info', OutputTensorInfo * MAX_NUM_TENSORS)
+        ('info', OutputTensorInfo * MAX_NUM_TENSORS),
+        ('frameCount', ctypes.c_uint8),
     ]
 
 
@@ -286,7 +293,7 @@ class NetworkIntrinsics:
 
 
 class IMX500:
-    def __init__(self, network_file: str, camera_id: str = ''):
+    def __init__(self, network_file: str, camera_id: str = '', tensor_injection: bool = False):
         self.device_fd = None
         self.fw_progress = None
         self.fw_progress_chunk = None
@@ -319,6 +326,8 @@ class IMX500:
             self.fw_progress_chunk = open(f'/sys/kernel/debug/rp2040-spi:{spi_device_id}/transfer_progress', 'r')
 
         if self.config['network_file'] != '':
+            if tensor_injection:
+                self.__enable_injection()
             self.__set_network_firmware(os.path.abspath(self.config['network_file']))
             self.__ni_from_network(os.path.abspath(self.config['network_file']))
 
@@ -402,6 +411,20 @@ class IMX500:
             print(f'IMX500: Unable to get device ID from device driver: {err}')
 
         return imx500_device_id
+
+    def get_injection_cmp_frm(self) -> int:
+        """Get IMX500 Injection Comparison Frame"""
+        ctrl = v4l2_control()
+        ctrl.id = INJECTION_CMP_FRM_CTRL_ID
+        ctrl.value = 0
+
+        try:
+            fcntl.ioctl(self.device_fd, VIDIOC_G_CTRL, ctrl)
+            return ctrl.value
+        except OSError as err:
+            print(f'IMX500: Unable to get injection comparison frame from device driver: {err}')
+
+        return 0
 
     def get_fw_upload_progress(self, stage_req) -> tuple:
         """Returns the current progress of the fw upload in the form of (current, total)."""
@@ -495,6 +518,75 @@ class IMX500:
 
         return np.transpose(r1, (1, 2, 0)).astype(np.uint8)
 
+    def prepare_tensor_for_injection(self, exr_input: OpenEXR.InputFile) -> bytes:
+        if not isinstance(exr_input, OpenEXR.InputFile):
+            raise ValueError("exr_input must be an OpenEXR.InputFile")
+
+        header = exr_input.header()
+
+        dw = header['dataWindow']
+        tensor_size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+        if tensor_size != self.config['input_tensor_size']:
+            raise ValueError(f"Tensor size {tensor_size} does not match expected size {self.config['input_tensor_size']}")
+
+        Imath_FLOAT_Type = Imath.PixelType(Imath.PixelType.FLOAT)
+        Imath_FLOAT_Channel = Imath.Channel(Imath_FLOAT_Type)
+        channels = header['channels']
+        for ch in ['R', 'G', 'B']:
+            try:
+                if channels[ch] != Imath_FLOAT_Channel:
+                    raise ValueError(f"Channel '{ch}' is not of type FLOAT (found: {channels[ch]})")
+            except KeyError:
+                raise ValueError(f"EXR input missing required channel '{ch}'")
+
+        np_float_channels = {
+            'R': np.frombuffer(
+                exr_input.channel('R', Imath_FLOAT_Type), dtype=np.float32
+            ).reshape(tuple(reversed(tensor_size))),
+            'G': np.frombuffer(
+                exr_input.channel('G', Imath_FLOAT_Type), dtype=np.float32
+            ).reshape(tuple(reversed(tensor_size))),
+            'B': np.frombuffer(
+                exr_input.channel('B', Imath_FLOAT_Type), dtype=np.float32
+            ).reshape(tuple(reversed(tensor_size))),
+        }
+
+        # Verify that all channels are in the range 0.0 to 1.0
+        for ch_name, arr in np_float_channels.items():
+            min_val = np.min(arr)
+            max_val = np.max(arr)
+            if min_val < 0.0 or max_val > 1.0:
+                raise ValueError(
+                    f"Channel '{ch_name}' values not normalised to 0-1 range (min: {min_val:.3f}, max: {max_val:.3f})"
+                )
+
+        # Convert from [0.0, 1.0] float32 to quantized integer format
+        def convert_channel_quantized(channel):
+            # QI = clip(round(RI/scale), QMIN, QMAX) + shift
+            # For [0,1] -> [-128,127]: QI = clip(round(RI * 255), 0, 255) - 128
+
+            # Scale [0,1] to [0,255] and round
+            scaled = np.round(channel * 255.0)
+
+            # Clip to [0,255] range
+            clipped = np.clip(scaled, 0, 255)
+
+            # Shift to [-128,127] range for signed int8
+            quantized = clipped - 128
+
+            # Ensure int8 range
+            return np.clip(quantized, -128, 127).astype(np.int8)
+
+        # Convert each channel using standard quantization
+        r_tensor = convert_channel_quantized(np_float_channels['R'])
+        g_tensor = convert_channel_quantized(np_float_channels['G'])
+        b_tensor = convert_channel_quantized(np_float_channels['B'])
+
+        # Convert to planar format: RRRRR...GGGGG...BBBBB
+        planar_data = np.concatenate([r_tensor.flatten(), g_tensor.flatten(), b_tensor.flatten()])
+
+        return planar_data.tobytes()
+
     def get_outputs(self, metadata: dict, add_batch=False) -> Optional[list[np.ndarray]]:
         """Get the model outputs."""
         output_tensor = metadata.get('CnnOutputTensor')
@@ -585,6 +677,7 @@ class IMX500:
         result = {
             'network_name': parsed.network_name.decode('utf-8').strip('\x00'),
             'num_tensors': parsed.num_tensors,
+            'frameCount': parsed.frameCount,
             'info': []
         }
 
@@ -618,6 +711,26 @@ class IMX500:
             return None
         dnn_runtime, dsp_runtime = kpi_info[0], kpi_info[1]
         return dnn_runtime / 1000, dsp_runtime / 1000
+
+    def __enable_injection(self):
+        ctrl = v4l2_control()
+        ctrl.id = ENABLE_INJECTION_CTRL_ID
+        ctrl.value = 1
+
+        try:
+            fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
+        except OSError as err:
+            raise RuntimeError(f'IMX500: Unable to enable input tensor injection: {err}')
+
+    def __set_input_tensor(self, input_tensor_fd: int):
+        ctrl = v4l2_control()
+        ctrl.id = INPUT_TENSOR_FD_CTRL_ID
+        ctrl.value = input_tensor_fd
+
+        try:
+            fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
+        except OSError as err:
+            raise RuntimeError(f'IMX500: Unable to set input tensor fd: {err}')
 
     def __set_network_firmware(self, network_filename: str):
         """Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is configured."""
