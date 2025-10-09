@@ -33,7 +33,7 @@ setup(
     packages=['picamera2', 'picamera2.devices', 'picamera2.devices.hailo', 'picamera2.devices.imx500',
               'picamera2.devices.imx708', 'picamera2.encoders', 'picamera2.outputs', 'picamera2.previews',
               'picamera2.allocators'],
-    package_data = {
+    package_data={
         'picamera2': ['py.typed'],
     },
     python_requires='>=3.9',
