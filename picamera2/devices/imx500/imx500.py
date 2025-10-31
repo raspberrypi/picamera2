@@ -507,8 +507,16 @@ class IMX500:
         """Convert input tensor in planar format to interleaved RGB."""
         width = self.config['input_tensor']['width']
         height = self.config['input_tensor']['height']
+        input_format = self.config['input_tensor'].get('input_format', 'RGB')
+
         r1 = np.array(input_tensor, dtype=np.uint8).astype(np.int32).reshape((3,) + (height, width))
-        r1 = r1[(2, 1, 0), :, :]
+
+        # Handle channel reordering based on input format
+        if input_format == 'BGR':
+            pass
+        else:
+            r1 = r1[(2, 1, 0), :, :]
+
         norm_val = self.config['input_tensor']['norm_val']
         norm_shift = self.config['input_tensor']['norm_shift']
         div_val = self.config['input_tensor']['div_val']
@@ -572,18 +580,41 @@ class IMX500:
             clipped = np.clip(scaled, 0, 255)
 
             # Shift to [-128,127] range for signed int8
-            quantized = clipped - 128
+            if self.config['input_tensor']['dtype'] == 'signed':
+                quantized = clipped - 128
+                quantized = np.clip(quantized, -128, 127).astype(np.int8)
+            if self.config['input_tensor']['dtype'] == 'unsigned':
+                quantized = np.clip(clipped, 0, 255).astype(np.uint8)
 
-            # Ensure int8 range
-            return np.clip(quantized, -128, 127).astype(np.int8)
+            return quantized
 
         # Convert each channel using standard quantization
         r_tensor = convert_channel_quantized(np_float_channels['R'])
         g_tensor = convert_channel_quantized(np_float_channels['G'])
         b_tensor = convert_channel_quantized(np_float_channels['B'])
 
-        # Convert to planar format: RRRRR...GGGGG...BBBBB
-        planar_data = np.concatenate([r_tensor.flatten(), g_tensor.flatten(), b_tensor.flatten()])
+        # Pad the width and height. width:32 byte aligned, height:2 line aligned
+        def pad_tensor(tensor, padded_width, padded_height):
+            height, width = tensor.shape
+            padded_tensor = np.zeros((padded_height, padded_width), tensor.dtype)
+            padded_tensor[:height, :width] = tensor
+            return padded_tensor
+
+        # Pad tensor
+        padded_width = (self.config['input_tensor']['width'] + 31) // 32 * 32
+        padded_height = (self.config['input_tensor']['height'] + 1) // 2 * 2
+
+        r_padded = pad_tensor(r_tensor, padded_width, padded_height)
+        g_padded = pad_tensor(g_tensor, padded_width, padded_height)
+        b_padded = pad_tensor(b_tensor, padded_width, padded_height)
+
+        # Convert to planar format: RRRRR...GGGGG...BBBBB or BBBBB...GGGGG...RRRRR
+        input_format = self.config['input_tensor']['input_format']
+
+        if input_format == 'RGB':
+            planar_data = np.concatenate([r_padded.flatten(), g_padded.flatten(), b_padded.flatten()])
+        if input_format == 'BGR':
+            planar_data = np.concatenate([b_padded.flatten(), g_padded.flatten(), r_padded.flatten()])
 
         return planar_data.tobytes()
 
@@ -858,6 +889,8 @@ class IMX500:
             self.__cfg['input_tensor']['norm_val'] = norm_val
             norm_shift = [4, 4, 4]
             self.__cfg['input_tensor']['norm_shift'] = norm_shift
+            dtype = 'unsigned' if ((inputTensorNorm_K03 >> 12) & 1) == 0 else 'signed'
+            self.__cfg['input_tensor']['dtype'] = dtype
             if input_format == 'RGB':
                 div_val_0 = \
                     inputTensorNorm_K00 if ((inputTensorNorm_K00 >> 11) & 1) == 0 else -((~inputTensorNorm_K00 + 1) & 0x0fff)
