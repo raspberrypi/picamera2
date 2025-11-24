@@ -1,6 +1,9 @@
 class Allocator:
     """Base class for allocators"""
 
+    # Most allocators shouldn't need to "sync" buffers every time you access them.
+    needs_sync = False
+
     def __init__(self):
         self.sync = Sync
 
