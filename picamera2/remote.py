@@ -76,7 +76,7 @@ class Process:
             future.set_result(result)
             request.release()
 
-    def send(self, request: picamera2.request.CompletedRequest):
+    def send(self, request: picamera2.request.CompletedRequest, **kwargs):
         """
         Sends a request to the child process.
 
@@ -85,7 +85,7 @@ class Process:
         """
         future = Future()
         request.acquire()
-        remote = RemoteRequest(request)
+        remote = RemoteRequest(request, **kwargs)
         self._send_queue.put(remote)
         self._requests_sent.append((request, future))
         return future
@@ -141,7 +141,7 @@ class _RemoteProcess(mp.Process):
         """Main loop of the child process."""
         self._child_init()
         while (request := self._capture_request()) is not None:
-            value = self._run(request)
+            value = self._run(request, **request._kwargs)
             self._return_request(value)
 
     def _map_fd(self, picam2_fd: int):
@@ -222,7 +222,7 @@ class RemoteRequest:
         request: The CompletedRequest object
     """
 
-    def __init__(self, request: picamera2.request.CompletedRequest):
+    def __init__(self, request: picamera2.request.CompletedRequest, **kwargs):
         """Initializes and serializes the request."""
         self.request = request
         self._metadata = request.get_metadata()
@@ -239,6 +239,8 @@ class RemoteRequest:
                 self._buffers_fd[name] = None
             else:
                 self._buffers_fd[name] = self._serialize_stream(name)
+
+        self._kwargs = kwargs
 
         del self.request
 
@@ -410,7 +412,7 @@ class Pool:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.close()
 
-    def send(self, request: picamera2.request.CompletedRequest):
+    def send(self, request: picamera2.request.CompletedRequest, **kwargs):
         """Sends a request to the child process."""
         process = min(
             enumerate(self._processes),
@@ -421,7 +423,7 @@ class Pool:
         )[1]
         self._process_index = (self._process_index + 1) % self._process_count
 
-        return process.send(request)
+        return process.send(request, **kwargs)
 
     def close(self):
         """Closes the Pool."""
