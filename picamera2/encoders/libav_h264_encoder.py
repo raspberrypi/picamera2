@@ -33,6 +33,8 @@ class LibavH264Encoder(Encoder):
         self._use_hw = False
         self._request_release_delay = 1
         self._request_release_queue = None
+        self._key_frames_requested = 0
+        self._key_frames_generated = 0
 
     @property
     def use_hw(self):
@@ -99,7 +101,8 @@ class LibavH264Encoder(Encoder):
 
         if self.bitrate is not None:
             self._stream.codec_context.bit_rate = self.bitrate
-        self._stream.codec_context.gop_size = self.iperiod
+        # Treat gop_size 0 as meaning no I-frames at all (apart from the very first).
+        self._stream.codec_context.gop_size = self.iperiod or (1 << 31) - 1
 
         # For those who know what they're doing, let them override the "preset".
         if self.preset:
@@ -150,8 +153,15 @@ class LibavH264Encoder(Encoder):
         with MappedArray(request, stream) as m:
             frame = av.VideoFrame.from_numpy_buffer(m.array, format=self._av_input_format, width=self.width)
             frame.pts = timestamp_us
+            if self._key_frames_requested > self._key_frames_generated:
+                self._key_frames_generated += 1
+                frame.pict_type = "I"
             for packet in self._stream.encode(frame):
                 self._lasttimestamp = (time.monotonic_ns(), packet.pts)
                 self.outputframe(bytes(packet), packet.is_keyframe, timestamp=packet.pts, packet=packet)
         while len(self._request_release_queue) > self._request_release_delay:
             self._request_release_queue.popleft().release()
+
+    def force_key_frame(self):
+        """Force a key frame to be encoded in the video stream as soon as possible."""
+        self._key_frames_requested += 1

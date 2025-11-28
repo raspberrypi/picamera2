@@ -9,13 +9,10 @@
 # Install necessary dependences before starting,
 #
 # $ sudo apt update
-# $ sudo apt install build-essential
-# $ sudo apt install libatlas-base-dev
 # $ sudo apt install python3-pip
-# $ pip3 install tflite-runtime
-# $ pip3 install opencv-python==4.4.0.46
+# $ sudo apt install python3-opencv
+# $ pip3 install ai-edge-litert
 # $ pip3 install pillow
-# $ pip3 install numpy
 #
 # and run from the command line,
 #
@@ -25,7 +22,7 @@ import argparse
 
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+from ai_edge_litert.interpreter import Interpreter
 
 from picamera2 import MappedArray, Picamera2, Preview
 
@@ -61,7 +58,7 @@ def InferenceTensorFlow(image, model, output, label=None):
     else:
         labels = None
 
-    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = Interpreter(model_path=model, num_threads=4)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()

@@ -11,7 +11,7 @@ with open("README.md") as readme:
 
 setup(
     name='picamera2',
-    version='0.3.31',
+    version='0.3.32',
     description='The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -37,5 +37,5 @@ setup(
     licence='BSD 2-Clause License',
     install_requires=['numpy', 'PiDNG', 'piexif', 'pillow', 'simplejpeg', 'videodev2',
                       'python-prctl', 'av', 'libarchive-c', 'tqdm',
-                      'jsonschema'],
+                      'jsonschema', 'OpenEXR'],
     extras_require={"gui": ['pyopengl', 'PyQt5']})

@@ -6,6 +6,19 @@
 
 ### Changed
 
+## 0.3.32 Beta Release 31
+
+### Added
+
+* force_key_frame() added to Encoder class, so applications can force a key frame in the encoded bitstream.
+* New RemoteRequest class enables sending CompletedRequest objects to child processes.
+* IMX500 input tensor injection now supported. Example added.
+
+### Changed
+
+* Base Encoder class fixed to make it accept raw and other stream types.
+* Legacy tflite_runtime import in examples replaces by the new ai_edge_litert.
+
 ## 0.3.31 Beta Release 30
 
 ### Added

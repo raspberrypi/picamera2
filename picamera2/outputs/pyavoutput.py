@@ -27,6 +27,7 @@ class PyavOutput(Output):
         self._options = options
         # A user can set this to get notifications of failures.
         self.error_callback = None
+        self.needs_add_stream = True
 
     def _add_stream(self, encoder_stream, codec_name, **kwargs):
         # The output container that does the muxing needs to know about the streams for which packets

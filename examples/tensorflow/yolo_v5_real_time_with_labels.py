@@ -15,7 +15,7 @@
 
 # Use system python or if you prefer not to mess with system python:
 # install a version manager (like pyenv) and use 'pyenv virtualenv --system-site-packages ENV_NAME'
-# $ pip3 install tflite-runtime
+# $ pip3 install ai-edge-litert
 # $ pip3 install opencv-python-headless (if using system python: sudo apt install python3-opencv)
 #
 # and run from the command line,
@@ -26,7 +26,7 @@ import argparse
 
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+from ai_edge_litert.interpreter import Interpreter
 
 from picamera2 import MappedArray, Picamera2, Platform, Preview
 
@@ -103,7 +103,7 @@ def main():
     picam2.post_callback = DrawRectangles
 
     picam2.start()
-    interpreter = tflite.Interpreter(model_path=args.model, num_threads=4)
+    interpreter = Interpreter(model_path=args.model, num_threads=4)
     interpreter.allocate_tensors()
 
     while True:

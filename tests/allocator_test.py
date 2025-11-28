@@ -4,7 +4,7 @@
 
 import time
 
-from picamera2 import Picamera2, Preview
+from picamera2 import MappedArray, Picamera2, Preview
 from picamera2.allocators import LibcameraAllocator
 
 picam2 = Picamera2()
@@ -16,6 +16,11 @@ picam2.configure(preview_config)
 
 picam2.start()
 time.sleep(2)
+
+# Check that MappedArray still works!
+with picam2.captured_request() as request:
+    with MappedArray(request, 'main') as m:
+        pass
 
 size = picam2.sensor_resolution
 # GPU won't digest images wider than 4096 on a Pi 4.
