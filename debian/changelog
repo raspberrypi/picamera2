@@ -1,3 +1,9 @@
+picamera2 (0.3.32-1) trixie; urgency=medium
+
+  * New upstream version 0.3.32
+
+ -- Serge Schneider <serge@raspberrypi.com>  Fri, 28 Nov 2025 16:49:16 +0000
+
 picamera2 (0.3.31-1) trixie; urgency=medium
 
   * New upstream version 0.3.31
