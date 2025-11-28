@@ -10,6 +10,9 @@ _log = logging.getLogger("picamera2")
 class LibcameraAllocator(Allocator):
     """Uses the libcamera FrameBufferAllocator"""
 
+    # This legacy allocator does require a sync, but of course you shouldn't be using it.
+    needs_sync = True
+
     def __init__(self, camera):
         super().__init__()
         self.camera = camera

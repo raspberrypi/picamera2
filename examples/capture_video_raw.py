@@ -9,28 +9,34 @@ from PIL import Image
 from picamera2 import Picamera2
 from picamera2.encoders import Encoder
 
-size = (2592, 1944)
+size = (640, 360)
 picam2 = Picamera2()
-video_config = picam2.create_video_configuration(raw={"format": 'SGBRG10', 'size': size})
+raw = {"format": 'SGBRG10', 'size': size}
+controls = {'FrameRate': 15}
+video_config = picam2.create_video_configuration(raw=raw, controls=controls)
 picam2.configure(video_config)
+size = video_config['raw']['size']
+stride = video_config['raw']['stride']
+print("Size after config:", size, "stride", stride)
 picam2.encode_stream_name = "raw"
 encoder = Encoder()
 
-picam2.start_recording(encoder, 'test.raw', pts='timestamp.txt')
-time.sleep(5)
+picam2.start_recording(encoder, '/dev/shm/test.raw', pts='/dev/shm/timestamp.txt')
+time.sleep(3)
 picam2.stop_recording()
 
-buf = open("test.raw", "rb").read(size[0] * size[1] * 2)
-arr = np.frombuffer(buf, dtype=np.uint16).reshape((size[1], size[0]))
+buf = open("/dev/shm/test.raw", "rb").read(stride * size[1])
+arr = np.frombuffer(buf, dtype=np.uint8).reshape((size[1], stride))
+arr = arr[:, :2 * size[0]].view(np.uint16)
 
 # Scale 10 bit / channel to 8 bit per channel
 im = Image.fromarray((arr * ((2**8 - 1) / (2**10 - 1))).astype(np.uint8))
-im.save("test-8bit.tif")
+im.save("/dev/shm/test-8bit.tif")
 
 # Note - this will look very dark, because it's 10 bit colour depth of image, in
 # a 16 bit / channel tiff
 im2 = Image.fromarray(arr)
-im2.save("test-16bit.tif")
+im2.save("/dev/shm/test-16bit.tif")
 
 # Create DNG file from frame, based on https://github.com/schoolpost/PiDNG/blob/master/examples/raw2dng.py
 # Tested loading of DNG in darktable
@@ -50,4 +56,4 @@ t.set(Tag.CFAPattern, CFAPattern.GBRG)
 t.set(Tag.DNGVersion, DNGVersion.V1_4)
 t.set(Tag.DNGBackwardVersion, DNGVersion.V1_2)
 r.options(t, path="", compress=False)
-r.convert(arr, filename="test")
+r.convert(arr, filename="/dev/shm/test")

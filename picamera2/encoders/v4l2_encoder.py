@@ -32,6 +32,8 @@ class V4L2Encoder(Encoder):
         self.vd = None
         self.framerate = None
         self._enable_framerate = False
+        self._key_frames_requested = 0
+        self._key_frames_generated = 0
 
     @property
     def _v4l2_format(self):
@@ -286,6 +288,17 @@ class V4L2Encoder(Encoder):
         cfg = stream.configuration
         fb = request.request.buffers[stream]
         fd = fb.planes[0].fd
+
+        # Force a key frame, if requested. Though we handle this generically here,
+        # for any codec, the specific derived codec has to add the force_key_frame()
+        # method when it supports this feature.
+        if self._key_frames_requested > self._key_frames_generated:
+            self._key_frames_generated += 1
+            ctrl = v4l2_control()
+            ctrl.id = V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME
+            ctrl.value = 1
+            fcntl.ioctl(self.vd, VIDIOC_S_CTRL, ctrl)
+
         request.acquire()
 
         buf = v4l2_buffer()

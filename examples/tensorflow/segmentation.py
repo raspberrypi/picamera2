@@ -9,7 +9,7 @@ import time
 
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+from ai_edge_litert.interpreter import Interpreter
 from PIL import Image
 
 from picamera2 import Picamera2, Preview
@@ -40,7 +40,7 @@ def InferenceTensorFlow(image, model, colours, label=None):
     else:
         labels = None
 
-    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = Interpreter(model_path=model, num_threads=4)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()

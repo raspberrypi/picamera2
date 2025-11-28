@@ -10,6 +10,7 @@ from .job import CancelledError
 from .metadata import Metadata
 from .picamera2 import Picamera2, Preview
 from .platform import Platform, get_platform
+from .remote import Pool, Process, RemoteMappedArray, RemoteRequest
 from .request import CompletedRequest, MappedArray
 from .sensor_format import SensorFormat
 

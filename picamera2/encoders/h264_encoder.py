@@ -106,3 +106,7 @@ class H264Encoder(V4L2Encoder):
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
             self.bitrate = int(reference_bitrate * actual_complexity / reference_complexity)
+
+    def force_key_frame(self):
+        """Force a key frame to be encoded in the video stream as soon as possible."""
+        self._key_frames_requested += 1

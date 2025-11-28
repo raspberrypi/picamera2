@@ -12,6 +12,7 @@ examples/capture_to_buffer.py
 examples/capture_video.py
 examples/capture_video_multiple.py
 examples/capture_video_multiple_2.py
+examples/capture_video_raw.py
 examples/controls.py
 examples/controls_2.py
 examples/display_transform_qtgl.py
@@ -36,6 +37,9 @@ examples/preview_x_forwarding.py
 examples/pyav_capture.py
 examples/pyav_circular_capture.py
 examples/raw.py
+examples/remote_processing_pool.py
+examples/remote_processing_example.py
+examples/remote_save_image.py
 examples/request_context_manager.py
 examples/rotation.py
 examples/still_capture_with_config.py
@@ -91,6 +95,7 @@ tests/preview_location_test.py
 tests/preview_start_stop.py
 tests/quality_check.py
 tests/qt_gl_preview_test.py
+tests/remote_array.py
 tests/sync_test.py
 tests/stop_slow_framerate.py
 tests/allocator_test.py

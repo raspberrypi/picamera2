@@ -19,6 +19,7 @@ class SplittableOutput(Output):
         self._new_output = None
         self._split_done = Event()
         self._streams = []
+        self.needs_add_stream = True
 
     def split_output(self, new_output, wait_for_keyframe=True):
         """

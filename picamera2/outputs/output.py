@@ -13,6 +13,7 @@ class Output:
         self.recording = False
         self.ptsoutput = pts
         self.needs_pacing = False
+        self.needs_add_stream = False
 
     def start(self):
         """Start recording"""

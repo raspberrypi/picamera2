@@ -6,7 +6,7 @@ import argparse
 
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+from ai_edge_litert.interpreter import Interpreter
 from PIL import Image
 
 from picamera2 import Picamera2, Preview
@@ -21,7 +21,7 @@ background_img = None
 def InferenceTensorFlow(image, model):
     global background_mask
 
-    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = Interpreter(model_path=model, num_threads=4)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()

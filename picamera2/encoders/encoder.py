@@ -304,9 +304,11 @@ class Encoder:
                         "RGB888": "bgr24",
                         "XBGR8888": "rgba",
                         "XRGB8888": "bgra"}
-        pix_fmt = FORMAT_TABLE[self._format]
+        pix_fmt = FORMAT_TABLE.get(self._format)
         rate = Fraction(1000000, self._framerate)
         for out in self._output:
+            if pix_fmt is None and out.needs_add_stream:
+                raise RuntimeError(f"Output does not support {self._format}")
             out._add_stream("video", "rawvideo", pix_fmt=pix_fmt, rate=rate,
                             width=self.width, height=self.height)
 
