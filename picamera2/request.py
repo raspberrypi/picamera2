@@ -34,10 +34,7 @@ class _MappedBuffer:
         assert request.request is not None
         self.__fb = request.request.buffers[stream]
         self.__allocator = request.picam2.allocator
-        self.__sync = None
-        if self.__allocator.needs_sync:
-            # This is just for legacy LibcameraAllocator, which you shouldn't really use.
-            self.__sync = self.__allocator.sync(self.__allocator, self.__fb, write)
+        self.__sync = self.__allocator.sync(self.__allocator, self.__fb, write)
 
     def __enter__(self) -> Any:
         if self.__sync:
@@ -50,9 +47,7 @@ class _MappedBuffer:
         return self.__mm
 
     def __exit__(self, exc_type: Any, exc_value: Any, exc_traceback: Any) -> None:
-        if self.__sync:
-            # For legacy LibcameraAllocator, which you shouldn't be using.
-            self.__sync.__exit__(exc_type, exc_value, exc_traceback)
+        self.__sync.__exit__(exc_type, exc_value, exc_traceback)
 
 
 class MappedArray:
@@ -102,7 +97,7 @@ class CompletedRequest:
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
         with self.lock:
-            self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, True)
+            self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False)
                           for buffer in self.request.buffers.values()]
             self.picam2.allocator.acquire(self.request.buffers)
             [sync.__enter__() for sync in self.syncs]

@@ -6,6 +6,14 @@
 
 ### Changed
 
+## 0.3.33 Beta Release 32
+
+### Added
+
+### Changed
+
+* Fix cache flushing problem that was causing GPU to read incorrect values.
+
 ## 0.3.32 Beta Release 31
 
 ### Added
