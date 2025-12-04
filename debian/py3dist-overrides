@@ -1,5 +1,6 @@
-pyqt5 python3-pyqt5
+openexr python3-openexr
 pidng python3-pidng
-python3_tqdm python3-tqdm
-python3_libarchive_c python3-libarchive-c
+pyqt5 python3-pyqt5
 python3_jsonschema python3-jsonschema
+python3_libarchive_c python3-libarchive-c
+python3_tqdm python3-tqdm
