@@ -1,3 +1,10 @@
+picamera2 (0.3.33-1) trixie; urgency=medium
+
+  * d/py3dist-overrides: Sort and add python3-openexr
+  * New upstream version 0.3.33
+
+ -- Serge Schneider <serge@raspberrypi.com>  Thu, 04 Dec 2025 14:57:31 +0000
+
 picamera2 (0.3.32-1) trixie; urgency=medium
 
   * New upstream version 0.3.32
