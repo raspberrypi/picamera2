@@ -438,7 +438,7 @@ class Helpers:
     def save_dng(self, buffer: np.ndarray, metadata: Dict[str, Any], config: Dict[str, Any], file_output: Any) -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
         start_time = time.monotonic()
-        raw = self.make_array(buffer, config)
+        raw = self._make_array_shared(buffer, config)
         config = config.copy()
 
         fmt = SensorFormat(config['format'])
@@ -456,12 +456,11 @@ class Helpers:
         dng_compress_level = self.picam2.options.get("compress_level", 0)
 
         r.options(compress=dng_compress_level)
-        # PiDNG doesn't accpet a BytesIO, but returns a byte array if the filename is empty.
         if isinstance(file_output, io.BytesIO):
-            buf = r.convert(raw, "")
-            file_output.write(buf)
+            r.convert(raw, file=file_output)
         else:
-            r.convert(raw, str(file_output))
+            with open(str(file_output), 'wb') as file:
+                r.convert(raw, file=file)
 
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {file_output}.")
