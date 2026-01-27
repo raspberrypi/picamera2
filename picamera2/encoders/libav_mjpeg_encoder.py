@@ -38,6 +38,10 @@ class LibavMjpegEncoder(Encoder):
                         Quality.VERY_HIGH: 3}
             self.qp = QP_TABLE[quality]
 
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        output._add_stream(self._stream, self._codec, rate=self.framerate)
+
     def _start(self):
         self._container = av.open("/dev/null", "w", format="null")
         self._stream = self._container.add_stream(self._codec, rate=self.framerate)
@@ -50,7 +54,7 @@ class LibavMjpegEncoder(Encoder):
         self._stream.pix_fmt = "yuv420p"
 
         for out in self._output:
-            out._add_stream(self._stream, self._codec, rate=self.framerate)
+            self._send_streams(out)
 
         # This is all rather arbitrary but comes out with a vaguely plausible a quantiser. I
         # found that the sqrt of the quantiser times the bitrate was approximately constant with

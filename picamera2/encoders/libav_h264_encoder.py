@@ -68,6 +68,10 @@ class LibavH264Encoder(Encoder):
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
             self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
 
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        output._add_stream(self._stream, self._codec, rate=self.framerate, width=self.width, height=self.height)
+
     def _start(self):
         self._container = av.open("/dev/null", "w", format="null")
         self._stream = self._container.add_stream(self._codec, rate=self.framerate)
@@ -80,7 +84,7 @@ class LibavH264Encoder(Encoder):
         self._stream.pix_fmt = "yuv420p"
 
         for out in self._output:
-            out._add_stream(self._stream, self._codec, rate=self.framerate, width=self.width, height=self.height)
+            self._send_streams(out)
 
         preset = "ultrafast"
         if self.profile is not None:
