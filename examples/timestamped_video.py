@@ -24,7 +24,7 @@ def apply_timestamp(request):
 
 picam2.pre_callback = apply_timestamp
 
-encoder = H264Encoder(10000000)
+encoder = H264Encoder(bitrate=10000000)
 
 picam2.start_recording(encoder, "test.h264")
 time.sleep(5)
