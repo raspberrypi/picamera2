@@ -3,8 +3,6 @@
 import collections
 from fractions import Fraction
 
-import av
-
 from picamera2.encoders.encoder import Encoder, Quality
 
 from ..request import MappedArray
@@ -15,6 +13,9 @@ class LibavMjpegEncoder(Encoder):
 
     def __init__(self, bitrate=None, repeat=True, iperiod=30, framerate=30, qp=None):
         """Initialise"""
+        # Save low-powered Pis from importing av unless it is needed.
+        global av
+        import av
         super().__init__()
         self._codec = "mjpeg"
         self.repeat = repeat

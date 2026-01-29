@@ -4,7 +4,6 @@ import threading
 from enum import Enum
 from fractions import Fraction
 
-import av
 from libcamera import controls
 
 import picamera2.formats as formats
@@ -316,6 +315,9 @@ class Encoder:
 
             # Start the audio, if that's been requested.
             if self.audio:
+                # Save low-powered Pis from importing av unless it is needed.
+                global av
+                import av
                 self._audio_input_container = av.open(**self.audio_input)
                 self._audio_input_stream = self._audio_input_container.streams.get(audio=0)[0]
                 self._audio_output_container = av.open("/dev/null", 'w', format="null")

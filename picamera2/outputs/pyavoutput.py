@@ -1,7 +1,5 @@
 from fractions import Fraction
 
-import av
-
 from .output import Output
 
 
@@ -19,6 +17,9 @@ class PyavOutput(Output):
     """
 
     def __init__(self, output_name, format=None, pts=None, options=None):
+        # Save low-powered Pis from importing av unless it is needed.
+        global av
+        import av
         super().__init__(pts=pts)
         self._output_name = output_name
         self._format = format
