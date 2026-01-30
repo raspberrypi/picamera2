@@ -1,16 +1,12 @@
 #!/usr/bin/python3
 
-# This example writes unformatted H.264 bitstream using the FileOutput. Mostly
-# we would now recommend using the PyavOutput to write mp4 files directly. See
-# capture_motion_improved.py.
-
 import time
 
 import numpy as np
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
-from picamera2.outputs import FileOutput
+from picamera2.outputs import PyavOutput
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -34,7 +30,7 @@ while True:
         mse = np.square(np.subtract(cur, prev)).mean()
         if mse > 7:
             if not encoding:
-                encoder.output = FileOutput(f"{int(time.time())}.h264")
+                encoder.output = PyavOutput(f"{int(time.time())}.mp4")
                 picam2.start_encoder(encoder)
                 encoding = True
                 print("New Motion", mse)

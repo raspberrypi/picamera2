@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# Capture a DNG to a BytesIO.
+
 import io
 import time
 

@@ -4,6 +4,9 @@
 # Run this script, then point a web browser at http:<this-ip-address>:8000
 # Note: needs simplejpeg to be installed (pip3 install simplejpeg).
 
+# This version uses the software JPEG encoder, so on Pi 4 or earlier devices,
+# mjpeg_server_2.py, which will use the hardware encoder, is probably better.
+
 import io
 import logging
 import socketserver

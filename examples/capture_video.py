@@ -4,6 +4,10 @@ import time
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 
+# This example saves an unformatted H.264 file. Mostly we would recommend
+# using the PyavOutput so that an mp4 file could be saved directly instead.
+
+
 picam2 = Picamera2()
 video_config = picam2.create_video_configuration()
 picam2.configure(video_config)
