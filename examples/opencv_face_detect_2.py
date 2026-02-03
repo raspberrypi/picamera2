@@ -37,6 +37,5 @@ picam2.start()
 start_time = time.monotonic()
 # Run for 10 seconds so that we can include this example in the test suite.
 while time.monotonic() - start_time < 10:
-    buffer = picam2.capture_buffer("lores")
-    grey = buffer[:s1 * h1].reshape((h1, s1))
+    grey = picam2.capture_array("lores")[:h1, :w1]
     faces = face_detector.detectMultiScale(grey, 1.1, 3)

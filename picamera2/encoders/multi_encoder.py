@@ -28,6 +28,12 @@ class MultiEncoder(Encoder):
         self.threads = ThreadPoolExecutor(num_threads)
         self.tasks = queue.Queue()
 
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        # It's possible that in future some derived classes may want to send something,
+        # but for now no one does.
+        pass
+
     def _start(self):
         self.thread = threading.Thread(target=self.output_thread, daemon=True)
         self.thread.start()

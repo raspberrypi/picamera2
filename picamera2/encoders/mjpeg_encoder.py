@@ -19,6 +19,10 @@ class MJPEGEncoder(V4L2Encoder):
             raise RuntimeError("Hardware MJPEG not available on this platform")
         super().__init__(bitrate, V4L2_PIX_FMT_MJPEG)
 
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        output._add_stream("video", "mjpeg", rate=30, width=self.width, height=self.height)
+
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate
         # the user may have set for themselves.
@@ -39,6 +43,6 @@ class MJPEGEncoder(V4L2Encoder):
         # The output objects may need to know what kind of stream this is.
         for out in self._output:
             # Seem to need a rate to prevent timestamp warnings.
-            out._add_stream("video", "mjpeg", rate=30, width=self.width, height=self.height)
+            self._send_streams(out)
 
         super()._start()

@@ -3,8 +3,6 @@
 import collections
 from fractions import Fraction
 
-import av
-
 from picamera2.encoders.encoder import Encoder, Quality
 
 from ..request import MappedArray
@@ -15,6 +13,9 @@ class LibavMjpegEncoder(Encoder):
 
     def __init__(self, bitrate=None, repeat=True, iperiod=30, framerate=30, qp=None):
         """Initialise"""
+        # Save low-powered Pis from importing av unless it is needed.
+        global av
+        import av
         super().__init__()
         self._codec = "mjpeg"
         self.repeat = repeat
@@ -38,6 +39,10 @@ class LibavMjpegEncoder(Encoder):
                         Quality.VERY_HIGH: 3}
             self.qp = QP_TABLE[quality]
 
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        output._add_stream(self._stream, self._codec, rate=self.framerate)
+
     def _start(self):
         self._container = av.open("/dev/null", "w", format="null")
         self._stream = self._container.add_stream(self._codec, rate=self.framerate)
@@ -50,7 +55,7 @@ class LibavMjpegEncoder(Encoder):
         self._stream.pix_fmt = "yuv420p"
 
         for out in self._output:
-            out._add_stream(self._stream, self._codec, rate=self.framerate)
+            self._send_streams(out)
 
         # This is all rather arbitrary but comes out with a vaguely plausible a quantiser. I
         # found that the sqrt of the quantiser times the bitrate was approximately constant with

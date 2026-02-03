@@ -33,14 +33,13 @@ s1 = picam2.stream_configuration("lores")["stride"]
 faces = []
 picam2.post_callback = draw_faces
 
-encoder = H264Encoder(10000000)
+encoder = H264Encoder(bitrate=10000000)
 picam2.start_recording(encoder, "test.h264")
 
 start_time = time.monotonic()
 # Run for 10 seconds.
 while time.monotonic() - start_time < 10:
-    buffer = picam2.capture_buffer("lores")
-    grey = buffer[:s1 * h1].reshape((h1, s1))
+    grey = picam2.capture_array("lores")[:h1, :w1]
     faces = face_detector.detectMultiScale(grey, 1.1, 3)
 
 picam2.stop_recording()

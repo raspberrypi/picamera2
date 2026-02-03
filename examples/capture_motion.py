@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+# This example writes unformatted H.264 bitstream using the FileOutput. Mostly
+# we would now recommend using the PyavOutput to write mp4 files directly. See
+# capture_motion_improved.py.
+
 import time
 
 import numpy as np
@@ -10,10 +14,11 @@ from picamera2.outputs import FileOutput
 
 lsize = (320, 240)
 picam2 = Picamera2()
-video_config = picam2.create_video_configuration(main={"size": (1280, 720), "format": "RGB888"},
-                                                 lores={"size": lsize, "format": "YUV420"})
+main = {"size": (1280, 720), "format": "RGB888"}
+lores = {"size": lsize, "format": "YUV420"}
+video_config = picam2.create_video_configuration(main, lores=lores)
 picam2.configure(video_config)
-encoder = H264Encoder(1000000)
+encoder = H264Encoder(bitrate=1000000)
 picam2.start()
 
 w, h = lsize
@@ -22,8 +27,7 @@ encoding = False
 ltime = 0
 
 while True:
-    cur = picam2.capture_buffer("lores")
-    cur = cur[:w * h].reshape(h, w)
+    cur = picam2.capture_array("lores")[:h, :w]
     if prev is not None:
         # Measure pixels differences between current and
         # previous frame

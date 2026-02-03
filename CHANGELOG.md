@@ -6,6 +6,21 @@
 
 ### Changed
 
+## 0.3.34 Beta Release 33
+
+### Added
+
+### Changed
+
+* Performance improvements when writing DNG files.
+* Fix IMX500 examples for numpy 2.4.1.
+* Remove some unnecessary IMX500 related warnings.
+* PyavOutput won't output frames until it's seen a keyframe.
+* PyavOutput objects can be attached to an encoder after it's been started.
+* Hailo device architecture can be tested easily at runtime.
+* av module (PyAV) is only imported when necessary.
+* Some general improvements to many of the examples.
+
 ## 0.3.33 Beta Release 32
 
 ### Added

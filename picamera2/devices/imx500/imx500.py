@@ -5,7 +5,6 @@ import json
 import multiprocessing
 import os
 import struct
-import sys
 import time
 from typing import List, Optional
 
@@ -776,9 +775,6 @@ class IMX500:
 
             try:
                 fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
-                print('\n------------------------------------------------------------------------------------------------------------------\n'  # noqa
-                      'NOTE: Loading network firmware onto the IMX500 can take several minutes, please do not close down the application.'  # noqa
-                      '\n------------------------------------------------------------------------------------------------------------------\n', file=sys.stderr)  # noqa
             except OSError as err:
                 raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
             finally:

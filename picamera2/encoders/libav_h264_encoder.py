@@ -5,8 +5,6 @@ import time
 from fractions import Fraction
 from math import sqrt
 
-import av
-
 import picamera2.platform as Platform
 from picamera2.encoders.encoder import Encoder, Quality
 
@@ -18,6 +16,9 @@ class LibavH264Encoder(Encoder):
 
     def __init__(self, bitrate=None, repeat=True, iperiod=30, framerate=30, qp=None, profile=None):
         """Initialise"""
+        # Save low-powered Pis from importing av unless it is needed.
+        global av
+        import av
         super().__init__()
         self._codec = "h264"  # for now only support h264
         self.repeat = repeat
@@ -68,6 +69,10 @@ class LibavH264Encoder(Encoder):
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
             self.bitrate = int(reference_bitrate * sqrt(actual_complexity / reference_complexity))
 
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        output._add_stream(self._stream, self._codec, rate=self.framerate, width=self.width, height=self.height)
+
     def _start(self):
         self._container = av.open("/dev/null", "w", format="null")
         self._stream = self._container.add_stream(self._codec, rate=self.framerate)
@@ -80,7 +85,7 @@ class LibavH264Encoder(Encoder):
         self._stream.pix_fmt = "yuv420p"
 
         for out in self._output:
-            out._add_stream(self._stream, self._codec, rate=self.framerate, width=self.width, height=self.height)
+            self._send_streams(out)
 
         preset = "ultrafast"
         if self.profile is not None:
