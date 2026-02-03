@@ -16,10 +16,10 @@ picam2.configure(preview_config)
 picam2.start()
 time.sleep(2)
 
-request = picam2.capture_request()
-image = request.make_image("main")  # image from the "main" stream
-metadata = request.get_metadata()
-request.release()  # requests must always be returned to libcamera
+# THe "with" block will release the request when it exits
+with picam2.captured_request() as request:
+    image = request.make_image("main")  # image from the "main" stream
+    metadata = request.get_metadata()
 
 image.show()
 print(metadata)

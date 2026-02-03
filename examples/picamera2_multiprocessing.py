@@ -3,6 +3,9 @@
 # A demonstration of how to pass image buffers to other Python processes, using the
 # dmabuf file descriptors so as to avoid copying all the pixel data.
 
+# Note that this example is deprecated now, and the "remote requests" method is
+# recommended. See the remote_*.py examples.
+
 import mmap
 import multiprocessing as mp
 import os

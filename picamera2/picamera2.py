@@ -28,7 +28,7 @@ import picamera2.platform as Platform
 import picamera2.utils as utils
 from picamera2.allocators import DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
-from picamera2.outputs import FfmpegOutput, FileOutput
+from picamera2.outputs import FileOutput, PyavOutput
 from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
 
 from .configuration import CameraConfiguration
@@ -2596,8 +2596,7 @@ class Picamera2:
             example by calling stop_recording).
 
         audio - whether to record audio. This is only effective when recording to an "mp4" or "ts"
-            file, and there is a microphone installed and working as the default input device
-            through Pulseaudio.
+            file, and there is a microphone installed and working as the default input device.
         """
         if self.started:
             self.stop()
@@ -2605,17 +2604,28 @@ class Picamera2:
             config = "video"
         if config is not None:
             self.configure(config)
+
         if isinstance(output, str):
-            if encoder is None:
-                extension = output.split('.')[-1].lower()
-                if extension in ("mjpg", "mjpeg"):
+            extension = output.split('.')[-1].lower()
+            if extension in ("mjpg", "mjpeg"):
+                if audio:
+                    raise ValueError("Audio not supported in MJPEG flies")
+                if encoder is None:
                     encoder = MJPEGEncoder()
-                if extension in ("mp4", "ts"):
-                    output = FfmpegOutput(output, audio=audio)
-                else:
-                    output = FileOutput(output)
+                output = PyavOutput(output)
+            elif extension in ("mp4", "ts"):
+                if encoder is None:
+                    encoder = H264Encoder()
+                output = PyavOutput(output)
+            else:
+                if audio:
+                    raise ValueError("Audio not supported in output " + output)
+                output = FileOutput(output)
+
         if encoder is None:
             encoder = H264Encoder()
+        encoder.audio = audio
+
         self.start_encoder(encoder=encoder, output=output, quality=quality)
         self.start(show_preview=show_preview)
         if duration:

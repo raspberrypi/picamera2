@@ -1,4 +1,14 @@
 #!/usr/bin/python3
+
+# A simple demo script that monitors a scene and starts recording when
+# motion is detected. Additionally, client can connect over the network
+# and view a live image stream.
+#
+# This version of the script records and sends unencapsulated raw H.264
+# bitstreams, which are not always well-supported in other applications.
+# We would recommend looking at the capture_circular_stream_improved.py
+# script instead.
+
 import socket
 import threading
 import time
@@ -11,16 +21,16 @@ from picamera2.outputs import CircularOutput, FileOutput
 
 lsize = (320, 240)
 picam2 = Picamera2()
-video_config = picam2.create_video_configuration(main={"size": (1280, 720), "format": "RGB888"},
-                                                 lores={"size": lsize, "format": "YUV420"})
+main = {"size": (1280, 720), "format": "RGB888"}
+lores = {"size": lsize, "format": "YUV420"}
+video_config = picam2.create_video_configuration(main, lores=lores)
 picam2.configure(video_config)
 picam2.start_preview()
-encoder = H264Encoder(1000000, repeat=True)
+encoder = H264Encoder(bitrate=1000000, repeat=True)
 circ = CircularOutput()
 encoder.output = [circ]
-picam2.encoders = encoder
 picam2.start()
-picam2.start_encoder()
+picam2.start_encoder(encoder)
 
 w, h = lsize
 prev = None
@@ -45,13 +55,11 @@ def server():
             event.wait()
 
 
-t = threading.Thread(target=server)
-t.setDaemon(True)
+t = threading.Thread(target=server, daemon=True)
 t.start()
 
 while True:
-    cur = picam2.capture_buffer("lores")
-    cur = cur[:w * h].reshape(h, w)
+    cur = picam2.capture_array("lores")[:h, :w]
     if prev is not None:
         # Measure pixels differences between current and
         # previous frame

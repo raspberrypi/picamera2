@@ -1,7 +1,5 @@
 from fractions import Fraction
 
-import av
-
 from .output import Output
 
 
@@ -19,6 +17,9 @@ class PyavOutput(Output):
     """
 
     def __init__(self, output_name, format=None, pts=None, options=None):
+        # Save low-powered Pis from importing av unless it is needed.
+        global av
+        import av
         super().__init__(pts=pts)
         self._output_name = output_name
         self._format = format
@@ -28,6 +29,7 @@ class PyavOutput(Output):
         # A user can set this to get notifications of failures.
         self.error_callback = None
         self.needs_add_stream = True
+        self._seen_keyframe = {}
 
     def _add_stream(self, encoder_stream, codec_name, **kwargs):
         # The output container that does the muxing needs to know about the streams for which packets
@@ -55,6 +57,7 @@ class PyavOutput(Output):
                 pass
             self._container = None
             self._streams = {}
+            self._seen_keyframe = {}
 
     def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         """Output an encoded frame using PyAv."""
@@ -80,6 +83,13 @@ class PyavOutput(Output):
                 new_packet.time_base = Fraction(1, 1000000)
                 new_packet.is_keyframe = keyframe
                 packet = new_packet
+
+                # Don't send out packets for this stream until we've seen a keyframe.
+                seen_keyframe = self._seen_keyframe.get(packet.stream, False)
+                seen_keyframe |= keyframe
+                self._seen_keyframe[packet.stream] = seen_keyframe
+                if not seen_keyframe:
+                    return
 
             try:
                 self._container.mux(packet)

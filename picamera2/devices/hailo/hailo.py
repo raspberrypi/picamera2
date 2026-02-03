@@ -1,8 +1,29 @@
+import subprocess
 from concurrent.futures import Future
 from functools import partial
 
 import numpy as np
 from hailo_platform import HEF, FormatType, HailoSchedulingAlgorithm, VDevice
+
+
+def hailo_architecture():
+    """
+    Executes the hailortcli command and extracts the Device Architecture.
+
+    Returns the architecture string if found, otherwise returns None.
+    """
+    command = ["hailortcli", "fw-control", "identify"]
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True).stdout
+        for line in result.splitlines():
+            if "Device Architecture:" in line:
+                return line.split(":")[-1].strip()
+    except Exception as e:
+        print(f"Error identifying Hailo device: {e}")
+        return None
+
+    return None
 
 
 class Hailo:

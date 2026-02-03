@@ -6,7 +6,6 @@ import threading
 from functools import lru_cache
 
 import cv2
-import numpy as np
 
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
@@ -43,9 +42,6 @@ def parse_detections(metadata: dict):
         boxes, scores, classes = np_outputs[0][0], np_outputs[1][0], np_outputs[2][0]
         if bbox_normalization:
             boxes = boxes / input_h
-
-        boxes = np.array_split(boxes, 4, axis=1)
-        boxes = zip(*boxes)
 
     detections = [
         Detection(box, category, score, metadata)

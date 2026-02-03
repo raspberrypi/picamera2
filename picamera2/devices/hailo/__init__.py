@@ -1,1 +1,1 @@
-from .hailo import Hailo
+from .hailo import Hailo, hailo_architecture

@@ -3,7 +3,6 @@ import sys
 from functools import lru_cache
 
 import cv2
-import numpy as np
 
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
@@ -47,8 +46,6 @@ def parse_detections(metadata: dict):
 
         if bbox_order == "xy":
             boxes = boxes[:, [1, 0, 3, 2]]
-        boxes = np.array_split(boxes, 4, axis=1)
-        boxes = zip(*boxes)
 
     last_detections = [
         Detection(box, category, score, metadata)

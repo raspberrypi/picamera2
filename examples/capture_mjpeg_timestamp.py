@@ -4,6 +4,11 @@ import time
 from picamera2 import Picamera2
 from picamera2.encoders import JpegEncoder
 
+# This is using the software JPEG encoder. On lower powered devices, the
+# MJPEGEncoder would be better as it uses the hardware encoder. See
+# capture_mjpeg_v4l2.py.
+
+
 picam2 = Picamera2()
 video_config = picam2.create_video_configuration(main={"size": (1920, 1080)})
 picam2.configure(video_config)

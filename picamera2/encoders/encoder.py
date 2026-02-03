@@ -4,7 +4,6 @@ import threading
 from enum import Enum
 from fractions import Fraction
 
-import av
 from libcamera import controls
 
 import picamera2.formats as formats
@@ -214,6 +213,12 @@ class Encoder:
             value = [value]
         else:
             raise RuntimeError("Must pass Output")
+        for output in value:
+            # We tell outputs about the streams when the encoder starts, but if
+            # adding a stream once the encoder is already running then we must do
+            # so explicitly again.
+            if self._running and output not in self._output:
+                self.send_streams(output)
         self._output = value
 
     @property
@@ -273,6 +278,29 @@ class Encoder:
         with _MappedBuffer(request, stream) as b:
             self.outputframe(b, keyframe=True, timestamp=timestamp_us)
 
+    def _send_audio_stream(self, output):
+        output._add_stream(self._audio_output_stream, **self.audio_output)
+
+    def send_streams(self, output):
+        # Send information about all the encoder's streams to the output.
+        self._send_streams(output)
+        if self.audio:
+            self._send_audio_stream(output)
+
+    def _send_streams(self, output):
+        # Send video stream information to the output.
+        FORMAT_TABLE = {"YUV420": "yuv420p",
+                        "BGR888": "rgb24",
+                        "RGB888": "bgr24",
+                        "XBGR8888": "rgba",
+                        "XRGB8888": "bgra"}
+        pix_fmt = FORMAT_TABLE.get(self._format)
+        rate = Fraction(1000000, self._framerate)
+        if pix_fmt is None and output.needs_add_stream:
+            raise RuntimeError(f"Output does not support {self._format}")
+        output._add_stream("video", "rawvideo", pix_fmt=pix_fmt, rate=rate,
+                           width=self.width, height=self.height)
+
     def start(self, quality=None):
         with self._lock:
             if self._running:
@@ -287,30 +315,23 @@ class Encoder:
 
             # Start the audio, if that's been requested.
             if self.audio:
+                # Save low-powered Pis from importing av unless it is needed.
+                global av
+                import av
                 self._audio_input_container = av.open(**self.audio_input)
                 self._audio_input_stream = self._audio_input_container.streams.get(audio=0)[0]
                 self._audio_output_container = av.open("/dev/null", 'w', format="null")
                 self._audio_output_stream = self._audio_output_container.add_stream(**self.audio_output)
                 # Outputs that can handle audio need to be told about its existence.
                 for out in self._output:
-                    out._add_stream(self._audio_output_stream, **self.audio_output)
+                    self._send_audio_stream(out)
                 self._audio_thread = threading.Thread(target=self._audio_thread_func, daemon=True)
                 self._audio_start.clear()
                 self._audio_thread.start()  # audio thread will wait for the _audio_start event.
 
     def _start(self):
-        FORMAT_TABLE = {"YUV420": "yuv420p",
-                        "BGR888": "rgb24",
-                        "RGB888": "bgr24",
-                        "XBGR8888": "rgba",
-                        "XRGB8888": "bgra"}
-        pix_fmt = FORMAT_TABLE.get(self._format)
-        rate = Fraction(1000000, self._framerate)
         for out in self._output:
-            if pix_fmt is None and out.needs_add_stream:
-                raise RuntimeError(f"Output does not support {self._format}")
-            out._add_stream("video", "rawvideo", pix_fmt=pix_fmt, rate=rate,
-                            width=self.width, height=self.height)
+            self._send_streams(out)
 
     def stop(self):
         with self._lock:

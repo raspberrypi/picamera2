@@ -7,7 +7,7 @@ import argparse
 import cv2
 
 from picamera2 import MappedArray, Picamera2, Preview
-from picamera2.devices import Hailo
+from picamera2.devices import Hailo, hailo_architecture
 
 
 def extract_detections(hailo_output, w, h, class_names, threshold=0.5):
@@ -38,13 +38,21 @@ def draw_objects(request):
 if __name__ == "__main__":
     # Parse command-line arguments.
     parser = argparse.ArgumentParser(description="Detection Example")
-    parser.add_argument("-m", "--model", help="Path for the HEF model.",
-                        default="/usr/share/hailo-models/yolov8s_h8l.hef")
+    parser.add_argument("-m", "--model", help="Path for the HEF model. "
+                                              "Defaults to /usr/share/hailo-models/yolov8s_h8l.hef for H8 devices, "
+                                              "and /usr/share/hailo-models/yolov8m_h10.hef for H10 devices.",
+                        default=None)
     parser.add_argument("-l", "--labels", default="coco.txt",
                         help="Path to a text file containing labels.")
     parser.add_argument("-s", "--score_thresh", type=float, default=0.5,
                         help="Score threshold, must be a float between 0 and 1.")
     args = parser.parse_args()
+
+    if args.model is None:
+        if hailo_architecture() == 'HAILO10H':
+            args.model = '/usr/share/hailo-models/yolov8m_h10.hef'
+        else:
+            args.model = '/usr/share/hailo-models/yolov8s_h8l.hef'
 
     # Get the Hailo model, the input size it wants, and the size of our preview stream.
     with Hailo(args.model) as hailo:

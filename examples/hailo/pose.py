@@ -6,11 +6,20 @@ import cv2
 from pose_utils import postproc_yolov8_pose
 
 from picamera2 import MappedArray, Picamera2, Preview
-from picamera2.devices import Hailo
+from picamera2.devices import Hailo, hailo_architecture
 
 parser = argparse.ArgumentParser(description='Pose estimation using Hailo')
-parser.add_argument('-m', '--model', help="HEF file path", default="/usr/share/hailo-models/yolov8s_pose_h8l_pi.hef")
+parser.add_argument('-m', '--model', help="HEF file path"
+                                          "Defaults to /usr/share/hailo-models/yolov8s_pose_h8l_pi.hef for H8 devices, "
+                                          "and /usr/share/hailo-models/yolov8s_pose_h10.hef for H10 devices.",
+                    default=None)
 args = parser.parse_args()
+
+if args.model is None:
+    if hailo_architecture() == 'HAILO10H':
+        args.model = '/usr/share/hailo-models/yolov8s_pose_h10.hef'
+    else:
+        args.model = '/usr/share/hailo-models/yolov8s_pose_h8l_pi.hef'
 
 NOSE, L_EYE, R_EYE, L_EAR, R_EAR, L_SHOULDER, R_SHOULDER, L_ELBOW, R_ELBOW, \
     L_WRIST, R_WRIST, L_HIP, R_HIP, L_KNEE, R_KNEE, L_ANKLE, R_ANKLE = range(17)

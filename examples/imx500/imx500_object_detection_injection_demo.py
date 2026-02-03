@@ -295,8 +295,6 @@ def parse_detections(metadata: dict):
 
         if bbox_order == "xy":
             boxes = boxes[:, [1, 0, 3, 2]]
-        boxes = np.array_split(boxes, 4, axis=1)
-        boxes = zip(*boxes)
 
     detections = []
     for box, score, category in zip(boxes, scores, classes):

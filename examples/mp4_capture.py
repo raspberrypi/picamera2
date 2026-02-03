@@ -1,4 +1,9 @@
 #!/usr/bin/python3
+
+# This example script uses the FfmpegOutput to create an mp4 file, which
+# is no longer the recommended method. Please see pyav_capture.py which
+# uses the PyavOutput.
+
 import time
 
 from picamera2 import Picamera2
