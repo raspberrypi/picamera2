@@ -16,9 +16,19 @@ Depends: ${python3:Depends}, ${misc:Depends}, python3-kms++,
  python3-libcamera (>= 0~git20230302+923f5d70), python3-videodev2,
  python3-av,
 Recommends: python3-pyqt5, python3-opengl,
-Description: Libcamera based python library 
+Description: Libcamera based python library
  Libcamera-based replacement for Picamera which was a Python interface to the
  Raspberry Pi's legacy camera stack. Picamera2 also presents an easy to use
  Python API.
  .
  This package installs the library for Python 3.
+
+Package: python3-picamera2-doc
+Architecture: all
+Depends: ${misc:Depends}
+Description: Libcamera based python library - examples
+ Libcamera-based replacement for Picamera which was a Python interface to the
+ Raspberry Pi's legacy camera stack. Picamera2 also presents an easy to use
+ Python API.
+ .
+ This package contains example scripts for picamera2.
