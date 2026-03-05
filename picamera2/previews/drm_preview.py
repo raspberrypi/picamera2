@@ -7,8 +7,10 @@ import numpy as np
 try:
     # If available, use pure python kms package
     import kms as pykms
+    from kms import PixelFormats as PixelFormat
 except ImportError:
     import pykms
+    from pykms import PixelFormat
 
 from libcamera import Transform
 
@@ -47,15 +49,15 @@ class DrmManager():
 
 class DrmPreview(NullPreview):
     FMT_MAP = {
-        "RGB888": pykms.PixelFormat.RGB888,
-        "BGR888": pykms.PixelFormat.BGR888,
-        # doesn't work "YUYV": pykms.PixelFormat.YUYV,
-        # doesn't work "YVYU": pykms.PixelFormat.YVYU,
-        "XRGB8888": pykms.PixelFormat.XRGB8888,
-        "XBGR8888": pykms.PixelFormat.XBGR8888,
-        "YUV420": pykms.PixelFormat.YUV420,
-        "YVU420": pykms.PixelFormat.YVU420,
-        "MJPEG": pykms.PixelFormat.BGR888,
+        "RGB888": PixelFormat.RGB888,
+        "BGR888": PixelFormat.BGR888,
+        # doesn't work "YUYV": PixelFormat.YUYV,
+        # doesn't work "YVYU": PixelFormat.YVYU,
+        "XRGB8888": PixelFormat.XRGB8888,
+        "XBGR8888": PixelFormat.XBGR8888,
+        "YUV420": PixelFormat.YUV420,
+        "YVU420": PixelFormat.YVU420,
+        "MJPEG": PixelFormat.BGR888,
     }
 
     _manager = DrmManager()
@@ -180,7 +182,7 @@ class DrmPreview(NullPreview):
             except RuntimeError:
                 pass
             # The second plane we ask for will go on top of the first.
-            self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, format=pykms.PixelFormat.ABGR8888)
+            self.overlay_plane = self.resman.reserve_overlay_plane(self.crtc, format=PixelFormat.ABGR8888)
             if self.overlay_plane is not None:
                 # Want "coverage" mode, not pre-multiplied alpha. fkms doesn't seem to have this
                 # property so we suppress the error, but it seems to have the right behaviour anyway.
