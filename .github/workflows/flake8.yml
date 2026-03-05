@@ -15,7 +15,7 @@ jobs:
     - name: Update
       run: sudo apt update
     - name: Install apt dependencies
-      run: sudo apt install -y build-essential qtbase5-dev libqt5core5a libqt5gui5 libqt5widgets5 libgnutls28-dev openssl libtiff5-dev libcap-dev libfmt-dev libdrm-dev git python3-sphinx libyaml-dev python3-yaml python3-ply python3-jinja2 libgnutls28-dev openssl libboost-dev
+      run: sudo apt install -y build-essential qtbase5-dev libqt5core5a libqt5gui5 libqt5widgets5 libgnutls28-dev openssl libtiff5-dev libcap-dev libfmt-dev libdrm-dev git python3-sphinx libyaml-dev python3-yaml python3-ply python3-jinja2 libgnutls28-dev openssl libboost-dev libgles2-mesa-dev libegl1-mesa-dev
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
