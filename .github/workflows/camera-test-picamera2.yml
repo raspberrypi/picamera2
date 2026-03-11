@@ -1,0 +1,50 @@
+name: Camera Tests
+
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions:
+  statuses: write
+
+jobs:
+  trigger-camera-tests:
+    runs-on: [self-hosted, camera-test-bridge]
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 120
+    steps:
+      - name: Checkout camera_tester
+        env:
+          CAMERA_TESTER_URL: ${{ secrets.CAMERA_TESTER_URL }}
+          CAMERA_TESTER_PROJECT_ID: ${{ vars.CAMERA_TESTER_PROJECT_ID }}
+          CAMERA_TESTER_API_TOKEN: ${{ secrets.CAMERA_TESTER_API_TOKEN }}
+        run: |
+          CLONE_URL=$(curl -sf -H "PRIVATE-TOKEN: ${CAMERA_TESTER_API_TOKEN}" \
+            "${CAMERA_TESTER_URL}/api/v4/projects/${CAMERA_TESTER_PROJECT_ID}" \
+            | python3 -c "import sys, json; print(json.load(sys.stdin)['http_url_to_repo'])")
+          AUTH_URL="${CLONE_URL/https:\/\//https://oauth2:${CAMERA_TESTER_API_TOKEN}@}"
+          find . -mindepth 1 -delete 2>/dev/null || true
+          git clone --depth 1 "$AUTH_URL" .
+
+      - name: Install camera_tester
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -e .
+
+      - name: Run bridge
+        env:
+          LIBRARY: picamera2
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          CAMERA_TESTER_URL: ${{ secrets.CAMERA_TESTER_URL }}
+          CAMERA_TESTER_PROJECT_ID: ${{ vars.CAMERA_TESTER_PROJECT_ID }}
+          CAMERA_TESTER_TRIGGER_TOKEN: ${{ secrets.CAMERA_TESTER_TRIGGER_TOKEN }}
+          CAMERA_TESTER_API_TOKEN: ${{ secrets.CAMERA_TESTER_API_TOKEN }}
+        run: |
+          . .venv/bin/activate
+          python -m camera_tester.bridge
