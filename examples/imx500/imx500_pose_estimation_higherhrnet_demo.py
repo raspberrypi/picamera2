@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 
-from picamera2 import CompletedRequest, MappedArray, Picamera2
+from picamera2 import CompletedRequest, MappedArray, Picamera2, Preview
 from picamera2.devices.imx500 import IMX500, NetworkIntrinsics
 from picamera2.devices.imx500.postprocess import COCODrawer
 from picamera2.devices.imx500.postprocess_highernet import \
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     config = picam2.create_preview_configuration(controls={'FrameRate': intrinsics.inference_rate}, buffer_count=12)
 
     imx500.show_network_fw_progress_bar()
-    picam2.start(config, show_preview=True)
+    picam2.start(config, preview=Preview.auto())
     imx500.set_auto_aspect_ratio()
     picam2.pre_callback = picamera2_pre_callback
 

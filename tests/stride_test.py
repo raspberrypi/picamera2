@@ -2,7 +2,7 @@
 
 import time
 
-from picamera2 import MappedArray, Picamera2, libcamera
+from picamera2 import MappedArray, Picamera2, Preview, libcamera
 
 
 def pre_callback(request):
@@ -35,7 +35,7 @@ main_config = picam2.create_preview_configuration(
     main={"size": half_size, "stride": stride}
 )
 picam2.configure(main_config)
-picam2.start_preview(True)
+picam2.start_preview(Preview.auto())
 
 picam2.start()
 time.sleep(2)
