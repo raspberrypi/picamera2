@@ -25,21 +25,26 @@ class DrmManager():
             if self.use_count == 0:
                 self.card = pykms.Card()
                 self.resman = pykms.ResourceManager(self.card)
-                conn = self.resman.reserve_connector()
+                conn = self.resman.reserve_connector('HDMI-A-2')
                 self.crtc = self.resman.reserve_crtc(conn)
+                conn2 = self.resman.reserve_connector('HDMI-A-1')
+                self.crtc2 = self.resman.reserve_crtc(conn2)
             self.use_count += 1
         drm_preview.card = self.card
         drm_preview.resman = self.resman
         drm_preview.crtc = self.crtc
+        drm_preview.crtc2 = self.crtc2
 
     def remove(self, drm_preview):
         drm_preview.card = None
         drm_preview.resman = None
         drm_preview.crtc = None
+        drm_preview.crtc2 = None
         with self.lock:
             self.use_count -= 1
             if self.use_count == 0:
                 self.crtc = None
+                self.crtc2 = None
                 self.resman = None
                 self.card = None
                 gc.collect()
@@ -100,6 +105,7 @@ class DrmPreview(NullPreview):
         DrmPreview._manager.add(self)
 
         self.plane = None
+        self.plane2 = None
         self.drmfbs = {}
         self.current = None
         self.own_current = False
@@ -165,9 +171,11 @@ class DrmPreview(NullPreview):
             fmt = self.FMT_MAP[pixel_format]
 
             self.plane = self.resman.reserve_overlay_plane(self.crtc, format=fmt)
+            self.plane2 = self.resman.reserve_overlay_plane(self.crtc2, format=fmt)
             if self.plane is None:
                 # Some display devices may not support "alpha".
                 self.plane = self.resman.reserve_plane(self.crtc, type=pykms.PlaneType.Primary, format=fmt)
+                self.plane2 = self.resman.reserve_plane(self.crtc2, type=pykms.PlaneType.Primary, format=fmt)
                 if self.plane is None:
                     raise RuntimeError("Failed to reserve DRM plane")
             drm_rotation = 1
@@ -228,6 +236,7 @@ class DrmPreview(NullPreview):
 
             drmfb = self.drmfbs[fb]
             ctx.add_plane(self.plane, drmfb, self.crtc, (0, 0, width, height), (x, y, w, h))
+            ctx.add_plane(self.plane2, drmfb, self.crtc2, (0, 0, width, height), (x, y, w, h))
 
         overlay_new_fb = self.overlay_new_fb
         if overlay_new_fb != self.overlay_fb:
@@ -258,3 +267,4 @@ class DrmPreview(NullPreview):
         self.mem = None
         self.fb = None
         DrmPreview._manager.remove(self)
+
