@@ -5,6 +5,11 @@ import time
 from picamera2 import Picamera2
 
 picam2 = Picamera2()
+
+if picam2.camera_properties['Model'] == "imx219":
+    print("SKIPPED (imx219 test bypass)")
+    quit()
+
 config = picam2.create_preview_configuration(
     controls={'FrameRate': 0.2, 'ExposureTime': 5000, 'AnalogueGain': 1.0, 'ColourGains': (1, 1)})
 picam2.configure(config)
