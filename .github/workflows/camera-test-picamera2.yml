@@ -2,7 +2,7 @@ name: Camera Tests
 
 on:
   pull_request_target:
-    branches: [main]
+    branches: [main, next]
 
 permissions:
   statuses: write
