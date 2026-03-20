@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Usage: ./segmentation.py --model deeplapv3.tflite --label deeplab_labels.txt
+# Usage: ./segmentation.py --model deeplabv3.tflite --label deeplab_labels.txt
 
 import argparse
 import select
@@ -12,17 +12,12 @@ import numpy as np
 from ai_edge_litert.interpreter import Interpreter
 from PIL import Image
 
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Platform
 
-normalSize = (640, 480)
-lowresSize = (320, 240)
-
-masks = {}
-captured = []
-segmenter = None
+NORMAL_SIZE = (640, 480)
 
 
-def ReadLabelFile(file_path):
+def read_label_file(file_path):
     with open(file_path, 'r') as f:
         lines = f.readlines()
     ret = {}
@@ -32,85 +27,72 @@ def ReadLabelFile(file_path):
     return ret
 
 
-def InferenceTensorFlow(image, model, colours, label=None):
-    global masks
+class Model:
+    def __init__(self, model_path, label_file, colour_file):
+        self.interpreter = Interpreter(model_path=model_path, num_threads=4)
+        self.interpreter.allocate_tensors()
 
-    if label:
-        labels = ReadLabelFile(label)
-    else:
-        labels = None
+        input_details = self.interpreter.get_input_details()
+        output_details = self.interpreter.get_output_details()
+        self.height = input_details[0]['shape'][1]
+        self.width = input_details[0]['shape'][2]
+        self.o_height = output_details[0]['shape'][1]
+        self.o_width = output_details[0]['shape'][2]
+        self.floating_model = input_details[0]['dtype'] == np.float32
+        self.input_index = input_details[0]['index']
+        self.output_index = output_details[0]['index']
 
-    interpreter = Interpreter(model_path=model, num_threads=4)
-    interpreter.allocate_tensors()
+        self.labels = read_label_file(label_file) if label_file else None
+        self.colours = np.loadtxt(colour_file)
 
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
-    o_height = output_details[0]['shape'][1]
-    o_width = output_details[0]['shape'][2]
-    floating_model = False
-    if input_details[0]['dtype'] == np.float32:
-        floating_model = True
+    def run_inference(self, image):
+        """Ensure image is RGB, run segmentation, return masks dict."""
+        if len(image.shape) == 2:
+            # Image is YUV420. Must convert and trim off any padding.
+            image = cv2.cvtColor(image, cv2.COLOR_YUV420p2RGB)
+        image = image[:self.height, :self.width]
+        input_data = np.expand_dims(image, axis=0)
+        if self.floating_model:
+            input_data = np.float32(input_data / 255)
 
-    rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        self.interpreter.set_tensor(self.input_index, input_data)
+        self.interpreter.invoke()
+        output = self.interpreter.get_tensor(self.output_index)[0]
 
-    picture = cv2.resize(rgb, (width, height))
-
-    input_data = np.expand_dims(picture, axis=0)
-    if floating_model:
-        input_data = np.float32(input_data / 255)
-
-    interpreter.set_tensor(input_details[0]['index'], input_data)
-
-    interpreter.invoke()
-
-    output = interpreter.get_tensor(output_details[0]['index'])[0]
-
-    mask = np.argmax(output, axis=-1)
-    found_indices = np.unique(mask)
-    colours = np.loadtxt(colours)
-    new_masks = {}
-    for i in found_indices:
-        if i == 0:
-            continue
-        output_shape = [o_width, o_height, 4]
-        colour = [(0, 0, 0, 0), colours[i]]
-        overlay = (mask == i).astype(np.uint8)
-        overlay = np.array(colour)[overlay].reshape(
-            output_shape).astype(np.uint8)
-        overlay = cv2.resize(overlay, normalSize)
-        if labels is not None:
-            new_masks[labels[i]] = overlay
-        else:
-            new_masks[i] = overlay
-    masks = new_masks
-    print("Found", masks.keys())
+        seg_mask = np.argmax(output, axis=-1)
+        found_indices = np.unique(seg_mask)
+        masks = {}
+        for i in found_indices:
+            if i == 0:
+                continue
+            output_shape = [self.o_width, self.o_height, 4]
+            colour = [(0, 0, 0, 0), self.colours[i]]
+            overlay = (seg_mask == i).astype(np.uint8)
+            overlay = np.array(colour)[overlay].reshape(output_shape).astype(np.uint8)
+            overlay = cv2.resize(overlay, NORMAL_SIZE)
+            key = self.labels[i] if self.labels is not None else i
+            masks[key] = overlay
+        print("Found", list(masks.keys()))
+        return masks
 
 
-def capture_image_and_masks(picam2: Picamera2, model, colour_file, label_file):
-    global masks  # noqa
+def capture_image_and_masks(picam2: Picamera2, model: Model, captured: list):
     # Disable Aec and Awb so all images have the same exposure and colour gains
     picam2.set_controls({"AeEnable": False, "AwbEnable": False})
     time.sleep(1.0)
-    request = picam2.capture_request()
-    image = request.make_image("main")
-    lores = request.make_buffer("lores")
-    stride = picam2.stream_configuration("lores")["stride"]
-    grey = lores[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+    with picam2.captured_request() as request:
+        image = request.make_array("main")
+        lores = request.make_array("lores")
 
-    InferenceTensorFlow(grey, model, colour_file, label_file)
+    masks = model.run_inference(lores)
     for k, v in masks.items():
-        comp = np.array([0, 0, 0, 0]).reshape(1, 1, 4)
-        mask = (~((v == comp).all(axis=-1)) * 255).astype(np.uint8)
-        label = k
-        label = label.replace(" ", "_")
+        mask = (v[..., 3] != 0).astype(np.uint8) * 255
+        label = str(k).replace(" ", "_")
         if label in captured:
             label = f"{label}{sum(label in x for x in captured)}"
         cv2.imwrite(f"mask_{label}.png", mask)
-        image.save(f"img_{label}.png")
+        cv2.imwrite(f"img_{label}.png", image)
         captured.append(label)
-    print(masks.keys())
 
 
 def main():
@@ -121,48 +103,40 @@ def main():
     parser.add_argument('--output', help='File path of the output image.')
     args = parser.parse_args()
 
-    if args.output:
-        output_file = args.output
-    else:
-        output_file = 'out.png'
+    output_file = args.output if args.output else 'out.png'
+    label_file = args.label
+    colour_file = args.colours if args.colours else "colours.txt"
 
-    if args.label:
-        label_file = args.label
-    else:
-        label_file = None
-
-    if args.colours:
-        colour_file = args.colours
-    else:
-        colour_file = "colours.txt"
+    model = Model(args.model, label_file, colour_file)
+    lowres_format = 'YUV420'
+    if Picamera2.platform == Platform.PISP:
+        # Could try setting the format to BGR888 or RGB888 here which would save a colour conversion
+        pass
+    LOWRES_SIZE = ((model.width + 1) & ~1, (model.height + 1) & ~1)
+    captured = []
 
     picam2 = Picamera2()
-    picam2.start_preview(Preview.QTGL)
-    config = picam2.create_preview_configuration(main={"size": normalSize},
-                                                 lores={"size": lowresSize, "format": "YUV420"})
+    config = picam2.create_preview_configuration(main={"size": NORMAL_SIZE},
+                                                 lores={"size": LOWRES_SIZE, "format": lowres_format})
     picam2.configure(config)
 
-    stride = picam2.stream_configuration("lores")["stride"]
-
-    picam2.start()
+    picam2.start(show_preview=True)
 
     try:
         while True:
-            buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            InferenceTensorFlow(grey, args.model, colour_file, label_file)
-            overlay = np.zeros((normalSize[1], normalSize[0], 4), dtype=np.uint8)
-            global masks  # noqa
+            image = picam2.capture_array("lores")
+            masks = model.run_inference(image)
+            overlay = np.zeros((NORMAL_SIZE[1], NORMAL_SIZE[0], 4), dtype=np.uint8)
             for v in masks.values():
                 overlay += v
             # Set Alphas and overlay
             overlay[:, :, -1][overlay[:, :, -1] == 255] = 150
             picam2.set_overlay(overlay)
             # Check if enter has been pressed
-            i, o, e = select.select([sys.stdin], [], [], 0.1)
+            i, _, _ = select.select([sys.stdin], [], [], 0.1)
             if i:
                 input()
-                capture_image_and_masks(picam2, args.model, colour_file, label_file)
+                capture_image_and_masks(picam2, model, captured)
                 picam2.stop()
                 if input("Continue (y/n)?").lower() == "n":
                     raise KeyboardInterrupt
@@ -171,19 +145,15 @@ def main():
         print(f"Have captured {captured}")
         todo = input("What to composite?")
         bg = input("Which image to use as background (empty for none)?")
-        todo = todo.split()
-        images = []
-        masks = []
         if bg:
             base_image = Image.open(f"img_{bg}.png")
         else:
-            base_image = np.zeros((normalSize[1], normalSize[0], 3), dtype=np.uint8)
+            base_image = np.zeros((NORMAL_SIZE[1], NORMAL_SIZE[0], 3), dtype=np.uint8)
             base_image = Image.fromarray(base_image)
-        for item in todo:
-            images.append(Image.open(f"img_{item}.png"))
-            masks.append(Image.open(f"mask_{item}.png"))
-        for i in range(len(masks)):
-            base_image = Image.composite(images[i], base_image, masks[i])
+        for item in todo.split():
+            image = Image.open(f"img_{item}.png")
+            mask = Image.open(f"mask_{item}.png")
+            base_image = Image.composite(image, base_image, mask)
         base_image.save(output_file)
 
 
