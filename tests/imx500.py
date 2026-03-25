@@ -20,17 +20,21 @@ if not os.path.exists(model_path):
 
 imx500 = IMX500(model_path)
 
-# Test getting the device ID.
-device_id = imx500.get_device_id()
-print("Device ID:", device_id)
-if not device_id:
-    print("ERROR: empty device ID")
-
 # Start the camera and capture some frames with output tensors.
 picam2 = Picamera2(imx500.camera_num)
 config = picam2.create_preview_configuration(buffer_count=12)
 picam2.configure(config)
 picam2.start()
+
+# wait for the device to be streaming before reading id.
+picam2.capture_metadata()
+device_id = imx500.get_device_id()
+print("Device ID:", device_id)
+if not device_id:
+    print("ERROR: empty device ID")
+    picam2.stop()
+    picam2.close()
+    exit()
 
 NUM_FRAMES = 30
 
