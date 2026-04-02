@@ -3,6 +3,7 @@ Section: video
 Priority: optional
 Maintainer: Serge Schneider <serge@raspberrypi.com>
 Build-Depends: debhelper-compat (= 13), dh-python, python3-setuptools,
+ pybuild-plugin-pyproject,
  python3-all, python3-simplejpeg, python3-libcamera, python3-av, python3-pil,
  python3-videodev2, python3-prctl, python3-piexif, python3-kms++
 Standards-Version: 4.5.1
