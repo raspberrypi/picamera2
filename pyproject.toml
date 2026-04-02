@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "picamera2"
+version = "0.3.34"
+description = "The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library"
+readme = "README.md"
+license = "BSD-2-Clause"
+requires-python = ">=3.9"
+authors = [
+    { name = "Raspberry Pi & Raspberry Pi Foundation", email = "picamera2@raspberrypi.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Multimedia :: Graphics :: Capture :: Digital Camera",
+]
+dependencies = [
+    "numpy",
+    "PiDNG",
+    "piexif",
+    "pillow",
+    "simplejpeg",
+    "videodev2",
+    "python-prctl",
+    "av",
+    "libarchive-c",
+    "tqdm",
+    "jsonschema",
+    "OpenEXR",
+]
+
+[project.optional-dependencies]
+gui = ["pyopengl", "PyQt5"]
+
+[project.urls]
+Homepage = "https://github.com/RaspberryPi/picamera2"
+"Bug Tracker" = "https://github.com/RaspberryPi/picamera2/issues"
+
+[tool.setuptools.packages.find]
+include = ["picamera2*"]
+
+[tool.ruff]
+line-length = 127
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "T10",    # flake8-debugger
+    "I",      # isort
+]
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"**/qt.py" = ["F401"]
+"**/gl_helpers.py" = ["F401", "F403", "F405"]
+"**/q_gl_picamera2.py" = ["E402", "F403", "F405"]
+"**/v4l2_encoder.py" = ["F403", "F405"]
+"**/encoder.py" = ["F403", "F405"]
+"**/drm_preview.py" = ["F403", "F405"]
+"**/capture_video_raw.py" = ["F403", "F405"]
+"**/picamera2.py" = ["B006", "B008"]
+"**/configuration.py" = ["B006"]
+"**/metadata.py" = ["B006"]
+"**/controls.py" = ["B006"]
+
+[tool.ruff.format]
+quote-style = "preserve"
+skip-magic-trailing-comma = true
