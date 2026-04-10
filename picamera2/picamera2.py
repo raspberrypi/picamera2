@@ -2368,6 +2368,8 @@ class Picamera2:
                 output = FileOutput(output, pts=pts)
             _encoder.output = output
         streams = self.camera_configuration()
+        if not streams:
+            raise RuntimeError("Camera has not been configured")
         if name is None:
             name = self.encode_stream_name
         if streams.get(name, None) is None:
