@@ -3,7 +3,7 @@
 import time
 from threading import Lock
 
-from picamera2 import MappedArray, Picamera2, libcamera
+from picamera2 import MappedArray, Picamera2, Preview, libcamera
 
 cam2_request = None
 lock = Lock()
@@ -57,7 +57,7 @@ main_config = picam2a.create_preview_configuration(
     controls={"ScalerCrop": (0, 0, picam2a.sensor_resolution[0], picam2a.sensor_resolution[1])}
 )
 picam2a.configure(main_config)
-picam2a.start_preview(True)
+picam2a.start_preview(Preview.auto())
 
 # Configure as half frame normally
 picam2b = Picamera2(1)
