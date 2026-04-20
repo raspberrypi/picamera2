@@ -47,7 +47,7 @@ for _ in range(NUM_FRAMES):
 
 print("Got output tensors on", tensor_count, "of", NUM_FRAMES, "frames")
 if tensor_count < NUM_FRAMES // 2:
-    print("ERROR: expected at least", NUM_FRAMES // 2, "frames with output tensors")
+    print("ERROR: expected at least", NUM_FRAMES // 2, "frames with output tensors, got", tensor_count)
 
 picam2.stop()
 picam2.close()
