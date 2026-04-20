@@ -318,11 +318,20 @@ class IMX500:
         if self.device_fd is None:
             raise RuntimeError('IMX500: Requested camera dev-node not found')
 
-        # Progress status specific debugfs entries.
+        # Progress status specific debugfs entries. These are cosmetic (they only feed the
+        # firmware upload progress bar), so a PermissionError here must not break IMX500.
         if imx500_device_id:
-            self.fw_progress = open(f'/sys/kernel/debug/imx500-fw:{imx500_device_id}/fw_progress', 'r')
+            path = f'/sys/kernel/debug/imx500-fw:{imx500_device_id}/fw_progress'
+            try:
+                self.fw_progress = open(path, 'r')
+            except (PermissionError, FileNotFoundError) as err:
+                print(f'IMX500: Unable to open {path} ({err}). Firmware upload progress bar will not be displayed')
         if spi_device_id:
-            self.fw_progress_chunk = open(f'/sys/kernel/debug/rp2040-spi:{spi_device_id}/transfer_progress', 'r')
+            path = f'/sys/kernel/debug/rp2040-spi:{spi_device_id}/transfer_progress'
+            try:
+                self.fw_progress_chunk = open(path, 'r')
+            except (PermissionError, FileNotFoundError) as err:
+                print(f'IMX500: Unable to open {path} ({err}). Firmware upload progress bar will not be displayed')
 
         if self.config['network_file'] != '':
             if tensor_injection:
@@ -449,6 +458,9 @@ class IMX500:
             return (0, 0)
 
     def show_network_fw_progress_bar(self):
+        if not self.fw_progress and not self.fw_progress_chunk:
+            # No readable progress source: skip the bar so the worker does not spin on (0, 0).
+            return
         p = multiprocessing.Process(target=self.__do_progress_bar,
                                     args=(FW_NETWORK_STAGE, 'Network Firmware Upload'))
         p.start()
