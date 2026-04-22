@@ -16,8 +16,7 @@ from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
 
 from picamera2 import Picamera2
 from picamera2.devices import IMX500
-from picamera2.devices.imx500 import (NetworkIntrinsics,
-                                      postprocess_nanodet_detection)
+from picamera2.devices.imx500 import NetworkIntrinsics, postprocess_nanodet_detection
 
 tensor_files = []
 current_tensor_index = 0
@@ -40,11 +39,7 @@ def process_and_display_tensor(input_tensor, frame_count, metadata):
     scale_factor = window.scale_factor
 
     # Scale up the image using OpenCV for better quality
-    scaled_image = cv2.resize(
-        tensor_image,
-        (w * scale_factor, h * scale_factor),
-        interpolation=cv2.INTER_LINEAR,
-    )
+    scaled_image = cv2.resize(tensor_image, (w * scale_factor, h * scale_factor), interpolation=cv2.INTER_LINEAR)
 
     # Draw detections on the scaled image at the proper scale
     draw_detections(scaled_image, detections, scale_factor=scale_factor)
@@ -99,9 +94,7 @@ def load_specific_tensor(target_index):
         return False
 
     exr_path = tensor_files[target_index]
-    print(
-        f"Loading tensor {target_index + 1}/{len(tensor_files)}: {os.path.basename(exr_path)}"
-    )
+    print(f"Loading tensor {target_index + 1}/{len(tensor_files)}: {os.path.basename(exr_path)}")
 
     try:
         injection_cmp_frm = convert_and_inject_tensor(exr_path)
@@ -195,9 +188,7 @@ class InputTensorWindow(QMainWindow):
         self.label = QLabel()
         self.setCentralWidget(self.label)
         self.scale_factor = scale_factor
-        self.resize(
-            320 * scale_factor, 320 * scale_factor
-        )  # Default size, will be updated based on tensor size
+        self.resize(320 * scale_factor, 320 * scale_factor)  # Default size, will be updated based on tensor size
 
         # Set up timer for tensor cycling with configurable interval
         self.tensor_timer = QTimer()
@@ -219,9 +210,7 @@ class InputTensorWindow(QMainWindow):
         bytes_per_line = ch * scaled_w
 
         # Create QImage (only remaining operation)
-        qt_image = QImage(
-            rgb_image.data, scaled_w, scaled_h, bytes_per_line, QImage.Format_RGB888
-        )
+        qt_image = QImage(rgb_image.data, scaled_w, scaled_h, bytes_per_line, QImage.Format_RGB888)
 
         # Convert to QPixmap
         pixmap = QPixmap.fromImage(qt_image)
@@ -258,12 +247,7 @@ class Detection:
         scale_x = input_w / isp_w
         scale_y = input_h / isp_h
 
-        self.box = (
-            int(x * scale_x),
-            int(y * scale_y),
-            int(w * scale_x),
-            int(h * scale_y),
-        )
+        self.box = (int(x * scale_x), int(y * scale_y), int(w * scale_x), int(h * scale_y))
 
 
 def parse_detections(metadata: dict):
@@ -280,10 +264,7 @@ def parse_detections(metadata: dict):
         return []
     if intrinsics.postprocess == "nanodet":
         boxes, scores, classes = postprocess_nanodet_detection(
-            outputs=np_outputs[0],
-            conf=threshold,
-            iou_thres=iou,
-            max_out_dets=max_detections,
+            outputs=np_outputs[0], conf=threshold, iou_thres=iou, max_out_dets=max_detections
         )[0]
         from picamera2.devices.imx500.postprocess import scale_boxes
 
@@ -334,9 +315,7 @@ def draw_detections(image, detections, scale_factor=1):
         # Calculate text size and position (scale font size with scale_factor)
         font_scale = 0.5 * scale_factor
         thickness = max(1, int(scale_factor))
-        (text_width, text_height), baseline = cv2.getTextSize(
-            label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness
-        )
+        (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
         text_x = x + int(5 * scale_factor)
         text_y = y + int(15 * scale_factor)
 
@@ -356,24 +335,10 @@ def draw_detections(image, detections, scale_factor=1):
         cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
 
         # Draw text on top of the background
-        cv2.putText(
-            image,
-            label,
-            (text_x, text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            font_scale,
-            (0, 0, 255),
-            thickness,
-        )
+        cv2.putText(image, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255), thickness)
 
         # Draw detection box
-        cv2.rectangle(
-            image,
-            (x, y),
-            (x + w, y + h),
-            (0, 255, 0, 0),
-            thickness=max(2, int(2 * scale_factor)),
-        )
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0, 0), thickness=max(2, int(2 * scale_factor)))
 
 
 def get_args():
@@ -385,35 +350,15 @@ def get_args():
         default="/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk",
     )
     parser.add_argument("--fps", type=int, help="Frames per second")
+    parser.add_argument("--bbox-normalization", action=argparse.BooleanOptionalAction, help="Normalize bbox")
     parser.add_argument(
-        "--bbox-normalization",
-        action=argparse.BooleanOptionalAction,
-        help="Normalize bbox",
+        "--bbox-order", choices=["yx", "xy"], default="yx", help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)"
     )
-    parser.add_argument(
-        "--bbox-order",
-        choices=["yx", "xy"],
-        default="yx",
-        help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)",
-    )
-    parser.add_argument(
-        "--threshold", type=float, default=0.55, help="Detection threshold"
-    )
+    parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
-    parser.add_argument(
-        "--max-detections", type=int, default=10, help="Set max detections"
-    )
-    parser.add_argument(
-        "--ignore-dash-labels",
-        action=argparse.BooleanOptionalAction,
-        help="Remove '-' labels ",
-    )
-    parser.add_argument(
-        "--postprocess",
-        choices=["", "nanodet"],
-        default=None,
-        help="Run post process of type",
-    )
+    parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")
+    parser.add_argument("--ignore-dash-labels", action=argparse.BooleanOptionalAction, help="Remove '-' labels ")
+    parser.add_argument("--postprocess", choices=["", "nanodet"], default=None, help="Run post process of type")
     parser.add_argument(
         "-r",
         "--preserve-aspect-ratio",
@@ -421,17 +366,8 @@ def get_args():
         help="preserve the pixel aspect ratio of the input tensor",
     )
     parser.add_argument("--labels", type=str, help="Path to the labels file")
-    parser.add_argument(
-        "--print-intrinsics",
-        action="store_true",
-        help="Print JSON network_intrinsics then exit",
-    )
-    parser.add_argument(
-        "--tensor-dir",
-        type=str,
-        required=True,
-        help="Directory containing EXR tensor files to step through",
-    )
+    parser.add_argument("--print-intrinsics", action="store_true", help="Print JSON network_intrinsics then exit")
+    parser.add_argument("--tensor-dir", type=str, required=True, help="Directory containing EXR tensor files to step through")
     return parser.parse_args()
 
 
@@ -467,9 +403,7 @@ if __name__ == "__main__":
         exit()
 
     picam2 = Picamera2(imx500.camera_num)
-    config = picam2.create_preview_configuration(
-        controls={"FrameRate": 12, "CnnEnableInputTensor": True}, buffer_count=30
-    )
+    config = picam2.create_preview_configuration(controls={"FrameRate": 12, "CnnEnableInputTensor": True}, buffer_count=30)
 
     imx500.show_network_fw_progress_bar()
     picam2.start(config, show_preview=False)

@@ -171,8 +171,9 @@ class Hailo:
             bindings = self._create_bindings()
             bindings.input().set_buffer(frame)
             self.configured_infer_model.wait_for_async_ready(timeout_ms=10000)
-            self.configured_infer_model.run_async([bindings],
-                                                  partial(self.callback, bindings=bindings, future=future, last=last))
+            self.configured_infer_model.run_async(
+                [bindings], partial(self.callback, bindings=bindings, future=future, last=last)
+            )
 
         return future
 
@@ -196,8 +197,9 @@ class Hailo:
         Returns:
             bindings: Bindings object with input and output buffers.
         """
-        output_buffers = {name: np.empty(self.infer_model.output(name).shape, dtype=np.float32)
-                          for name in self.infer_model.output_names}
+        output_buffers = {
+            name: np.empty(self.infer_model.output(name).shape, dtype=np.float32) for name in self.infer_model.output_names
+        }
         return self.configured_infer_model.create_bindings(output_buffers=output_buffers)
 
     def close(self):

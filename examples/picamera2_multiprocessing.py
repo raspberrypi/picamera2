@@ -82,9 +82,9 @@ class Process(mp.Process):
             return array.reshape((height + height // 2, stride))
         array = array.reshape((height, stride))
         if format in ('RGB888', 'BGR888'):
-            return array[:, :width * 3].reshape((height, width, 3))
+            return array[:, : width * 3].reshape((height, width, 3))
         elif format in ("XBGR8888", "XRGB8888"):
-            return array[:, :width * 4].reshape((height, width, 4))
+            return array[:, : width * 4].reshape((height, width, 4))
         return array
 
     def _map_fd(self, picam2_fd):
@@ -150,6 +150,7 @@ class Process(mp.Process):
 # The multi-processing module has a Pool class, though I can't see how to make it run my
 # own derived Process instances. Maybe I've missed something. Anyhow, here follows a
 # simple-minded implementation thereof.
+
 
 class Pool:
     """A pool of Picamera2 child processes to which tasks can be sent."""

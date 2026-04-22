@@ -9,10 +9,14 @@ from picamera2 import MappedArray, Picamera2, Preview
 from picamera2.devices import Hailo, hailo_architecture
 
 parser = argparse.ArgumentParser(description='Pose estimation using Hailo')
-parser.add_argument('-m', '--model', help="HEF file path"
-                                          "Defaults to /usr/share/hailo-models/yolov8s_pose_h8l_pi.hef for H8 devices, "
-                                          "and /usr/share/hailo-models/yolov8s_pose_h10.hef for H10 devices.",
-                    default=None)
+parser.add_argument(
+    '-m',
+    '--model',
+    help="HEF file path"
+    "Defaults to /usr/share/hailo-models/yolov8s_pose_h8l_pi.hef for H8 devices, "
+    "and /usr/share/hailo-models/yolov8s_pose_h10.hef for H10 devices.",
+    default=None,
+)
 args = parser.parse_args()
 
 if args.model is None:
@@ -21,14 +25,44 @@ if args.model is None:
     else:
         args.model = '/usr/share/hailo-models/yolov8s_pose_h8l_pi.hef'
 
-NOSE, L_EYE, R_EYE, L_EAR, R_EAR, L_SHOULDER, R_SHOULDER, L_ELBOW, R_ELBOW, \
-    L_WRIST, R_WRIST, L_HIP, R_HIP, L_KNEE, R_KNEE, L_ANKLE, R_ANKLE = range(17)
+(
+    NOSE,
+    L_EYE,
+    R_EYE,
+    L_EAR,
+    R_EAR,
+    L_SHOULDER,
+    R_SHOULDER,
+    L_ELBOW,
+    R_ELBOW,
+    L_WRIST,
+    R_WRIST,
+    L_HIP,
+    R_HIP,
+    L_KNEE,
+    R_KNEE,
+    L_ANKLE,
+    R_ANKLE,
+) = range(17)
 
-JOINT_PAIRS = [[NOSE, L_EYE], [L_EYE, L_EAR], [NOSE, R_EYE], [R_EYE, R_EAR],
-               [L_SHOULDER, R_SHOULDER],
-               [L_SHOULDER, L_ELBOW], [L_ELBOW, L_WRIST], [R_SHOULDER, R_ELBOW], [R_ELBOW, R_WRIST],
-               [L_SHOULDER, L_HIP], [R_SHOULDER, R_HIP], [L_HIP, R_HIP],
-               [L_HIP, L_KNEE], [R_HIP, R_KNEE], [L_KNEE, L_ANKLE], [R_KNEE, R_ANKLE]]
+JOINT_PAIRS = [
+    [NOSE, L_EYE],
+    [L_EYE, L_EAR],
+    [NOSE, R_EYE],
+    [R_EYE, R_EAR],
+    [L_SHOULDER, R_SHOULDER],
+    [L_SHOULDER, L_ELBOW],
+    [L_ELBOW, L_WRIST],
+    [R_SHOULDER, R_ELBOW],
+    [R_ELBOW, R_WRIST],
+    [L_SHOULDER, L_HIP],
+    [R_SHOULDER, R_HIP],
+    [L_HIP, R_HIP],
+    [L_HIP, L_KNEE],
+    [R_HIP, R_KNEE],
+    [L_KNEE, L_ANKLE],
+    [R_KNEE, R_ANKLE],
+]
 
 
 def visualize_pose_estimation_result(results, image, model_size, detection_threshold=0.5, joint_threshold=0.5):
@@ -38,11 +72,16 @@ def visualize_pose_estimation_result(results, image, model_size, detection_thres
         return tuple([int(c * t / f) for c, f, t in zip(coord, model_size, image_size)])
 
     bboxes, scores, keypoints, joint_scores = (
-        results['bboxes'], results['scores'], results['keypoints'], results['joint_scores'])
+        results['bboxes'],
+        results['scores'],
+        results['keypoints'],
+        results['joint_scores'],
+    )
     box, score, keypoint, keypoint_score = bboxes[0], scores[0], keypoints[0], joint_scores[0]
 
-    for detection_box, detection_score, detection_keypoints, detection_keypoints_score in (
-            zip(box, score, keypoint, keypoint_score)):
+    for detection_box, detection_score, detection_keypoints, detection_keypoints_score in zip(
+        box, score, keypoint, keypoint_score
+    ):
         if detection_score < detection_threshold:
             continue
 
@@ -60,8 +99,9 @@ def visualize_pose_estimation_result(results, image, model_size, detection_thres
 
         for joint0, joint1 in JOINT_PAIRS:
             if joint_visible[joint0] and joint_visible[joint1]:
-                cv2.line(image, scale_coord(detection_keypoints[joint0]),
-                         scale_coord(detection_keypoints[joint1]), (255, 0, 255), 3)
+                cv2.line(
+                    image, scale_coord(detection_keypoints[joint0]), scale_coord(detection_keypoints[joint1]), (255, 0, 255), 3
+                )
 
 
 def draw_predictions(request):

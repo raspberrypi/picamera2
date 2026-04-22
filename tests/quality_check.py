@@ -64,17 +64,17 @@ time_seconds = 5
 low_quality = do_encode(MJPEGEncoder(), Quality.VERY_LOW)
 high_quality = do_encode(MJPEGEncoder(), Quality.VERY_HIGH)
 print("MJPEGEncoder: low quality", low_quality, "high quality", high_quality)
-if (1.5 * low_quality > high_quality):
+if 1.5 * low_quality > high_quality:
     print("Error: MJPEGEncoder file sizes not as expected")
 
 low_quality = do_encode(H264Encoder(), Quality.VERY_LOW)
 high_quality = do_encode(H264Encoder(), Quality.VERY_HIGH)
 print("H264Encoder: low quality", low_quality, "high quality", high_quality)
-if (1.5 * low_quality > high_quality):
+if 1.5 * low_quality > high_quality:
     print("Error: H264Encoder file sizes not as expected")
 
 low_quality = do_encode(JpegEncoder(), Quality.VERY_LOW)
 high_quality = do_encode(JpegEncoder(), Quality.VERY_HIGH)
 print("JpegEncoder: low quality", low_quality, "high quality", high_quality)
-if (1.5 * low_quality > high_quality):
+if 1.5 * low_quality > high_quality:
     print("Error: JpegEncoder file sizes not as expected")

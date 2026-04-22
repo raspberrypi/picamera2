@@ -48,6 +48,7 @@ class EglState:
 
         eglBindAPI(EGL_OPENGL_ES_API)
 
+        # fmt: off
         config_attribs = [
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
             EGL_RED_SIZE, 8,
@@ -57,6 +58,7 @@ class EglState:
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_NONE,
         ]
+        # fmt: on
 
         n = EGLint()
         configs = (EGLConfig * 1)()
@@ -64,10 +66,7 @@ class EglState:
         self.config = configs[0]
 
     def create_context(self):
-        context_attribs = [
-            EGL_CONTEXT_CLIENT_VERSION, 2,
-            EGL_NONE,
-        ]
+        context_attribs = [EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE]
 
         self.context = eglCreateContext(self.display, self.config, EGL_NO_CONTEXT, context_attribs)
         eglMakeCurrent(self.display, EGL_NO_SURFACE, EGL_NO_SURFACE, self.context)
@@ -75,23 +74,29 @@ class EglState:
 
 @lru_cache(maxsize=None, typed=False)
 def _get_qglpicamera2(qt_module: _QT_BINDING):
-
     # Get Qt modules
     QtCore, QtGui, QtWidgets = _get_qt_modules(qt_module)
 
     # Get from QtCore
-    QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter(
-        'QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
+    QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter('QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
 
     # Get from QtWidgets
-    QWidget = attrgetter(
-        'QWidget')(QtWidgets)
+    QWidget = attrgetter('QWidget')(QtWidgets)
 
     class QGlPicamera2(QWidget):
         done_signal = pyqtSignal(object)
 
-        def __init__(self, picam2, parent=None, width=640, height=480, bg_colour=(20, 20, 20),
-                     keep_ar=True, transform=None, preview_window=None):
+        def __init__(
+            self,
+            picam2,
+            parent=None,
+            width=640,
+            height=480,
+            bg_colour=(20, 20, 20),
+            keep_ar=True,
+            transform=None,
+            preview_window=None,
+        ):
             super().__init__(parent=parent)
             self.resize(width, height)
 
@@ -112,8 +117,10 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             self.title_function = None
             self.egl = EglState()
             if picam2.verbose_console:
-                print(f"EGL {eglQueryString(self.egl.display, EGL_VENDOR).decode()} "
-                      f"{eglQueryString(self.egl.display, EGL_VERSION).decode()}")
+                print(
+                    f"EGL {eglQueryString(self.egl.display, EGL_VENDOR).decode()} "
+                    f"{eglQueryString(self.egl.display, EGL_VERSION).decode()}"
+                )
             self.init_gl()
 
             # set_overlay could be called before the first frame arrives, hence:
@@ -123,8 +130,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             picam2.attach_preview(preview_window)
             self.preview_window = preview_window
 
-            self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r,
-                                                   QSocketNotifier.Type.Read, self)
+            self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r, QSocketNotifier.Type.Read, self)
             self.camera_notifier.activated.connect(self.handle_requests)
             # Must always run cleanup when this widget goes away.
             self.destroyed.connect(lambda: self.cleanup())
@@ -148,7 +154,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 self.preview_window.qpicamera2 = None
 
             # Some extra EGL cleanup seems to be required.
-            for (_, buffer) in self.buffers.items():
+            for _, buffer in self.buffers.items():
                 glDeleteTextures(1, [buffer.texture])
             self.buffers = {}
             eglDestroyContext(self.egl.display, self.egl.context)
@@ -165,8 +171,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
         def create_surface(self):
             native_surface = c_void_p(self.winId().__int__())
-            surface = eglCreateWindowSurface(self.egl.display, self.egl.config,
-                                             native_surface, None)
+            surface = eglCreateWindowSurface(self.egl.display, self.egl.config, native_surface, None)
 
             self.surface = surface
 
@@ -223,7 +228,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 }
             """
 
-            vertex_shader = shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
+            vertex_shader = (shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),)
             # For some reason I seem to be getting a 1 element tuple back. Absolutely no clue why.
             if isinstance(vertex_shader, tuple):
                 vertex_shader = vertex_shader[0]
@@ -232,15 +237,17 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
             self.program_overlay = shaders.compileProgram(
                 shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
-                shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER)
+                shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER),
             )
 
+            # fmt: off
             vertPositions = [
                 0.0, 0.0,
                 1.0, 0.0,
                 1.0, 1.0,
-                0.0, 1.0
+                0.0, 1.0,
             ]
+            # fmt: on
 
             inputAttrib = glGetAttribLocation(self.program_image, "aPosition")
             glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
@@ -282,6 +289,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 if pixel_format in ("YUV420", "YVU420"):
                     h2 = h // 2
                     stride2 = cfg.stride // 2
+                    # fmt: off
                     attribs = [
                         EGL_WIDTH, w,
                         EGL_HEIGHT, h,
@@ -297,7 +305,9 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                         EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
                         EGL_NONE,
                     ]
+                    # fmt: on
                 else:
+                    # fmt: off
                     attribs = [
                         EGL_WIDTH, w,
                         EGL_HEIGHT, h,
@@ -307,12 +317,9 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                         EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
                         EGL_NONE,
                     ]
+                    # fmt: on
 
-                image = eglCreateImageKHR(display,
-                                          EGL_NO_CONTEXT,
-                                          EGL_LINUX_DMA_BUF_EXT,
-                                          None,
-                                          attribs)
+                image = eglCreateImageKHR(display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, None, attribs)
 
                 self.texture = glGenTextures(1)
                 glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.texture)
@@ -358,7 +365,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 if self.stop_count != self.picamera2.stop_count:
                     if self.picamera2.verbose_console:
                         print("Garbage collect", len(self.buffers), "textures")
-                    for (_, buffer) in self.buffers.items():
+                    for _, buffer in self.buffers.items():
                         glDeleteTextures(1, [buffer.texture])
                     self.buffers = {}
                     self.stop_count = self.picamera2.stop_count
@@ -366,7 +373,8 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 if self.picamera2.verbose_console:
                     print("Make buffer for request", completed_request.request)
                 self.buffers[completed_request.request] = self.Buffer(
-                    self.egl.display, completed_request, self.egl.max_texture_size)
+                    self.egl.display, completed_request, self.egl.max_texture_size
+                )
 
                 # New buffers mean the image size may change so update the viewport just in case.
                 update_viewport = True
@@ -408,7 +416,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 if self.current_request and self.own_current:
                     self.current_request.release()
                 self.current_request = completed_request
-                self.own_current = (completed_request.config['buffer_count'] > 1)
+                self.own_current = completed_request.config['buffer_count'] > 1
                 if self.own_current:
                     self.current_request.acquire()
 
@@ -428,8 +436,10 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             if not self.keep_ar or not camera_config or camera_config['display'] is None:
                 return 0, 0, window_w, window_h
 
-            image_w, image_h = (stream_map[camera_config['display']].configuration.size.width,
-                                stream_map[camera_config['display']].configuration.size.height)
+            image_w, image_h = (
+                stream_map[camera_config['display']].configuration.size.width,
+                stream_map[camera_config['display']].configuration.size.height,
+            )
             if image_w * window_h > window_w * image_h:
                 w = window_w
                 h = w * image_h // image_w

@@ -15,11 +15,7 @@ encoder = H264Encoder(10000000)
 
 # or add audio delay on left channel like this: audio_filter="pan=stereo|adelay=1500|0"
 # source for more examples: https://ffmpeg.org/ffmpeg-filters.html#Examples-2
-output = FfmpegOutput(
-    'ffmpeg_audio_filter_test.mp4',
-    audio=True,
-    audio_filter="pan=stereo|c0=c0|c1=c0"
-)
+output = FfmpegOutput('ffmpeg_audio_filter_test.mp4', audio=True, audio_filter="pan=stereo|c0=c0|c1=c0")
 
 picam2.start_recording(encoder, output)
 time.sleep(10)

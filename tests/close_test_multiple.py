@@ -17,7 +17,6 @@ def run_camera(idx):
 
 
 if __name__ == '__main__':
-
     if len(Picamera2.global_camera_info()) <= 1:
         print("SKIPPED (one camera)")
         quit()

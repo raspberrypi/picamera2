@@ -4,20 +4,25 @@ Yolov5 postprocessing
 This code is based on:
 https://github.com/ultralytics/ultralytics
 """
+
 from typing import Tuple
 
 import cv2
 import numpy as np
 
 from picamera2.devices.imx500.postprocess import (
-    BoxFormat, combined_nms, combined_nms_seg,
-    convert_to_ymin_xmin_ymax_xmax_format, crop_mask, nms)
+    BoxFormat,
+    combined_nms,
+    combined_nms_seg,
+    convert_to_ymin_xmin_ymax_xmax_format,
+    crop_mask,
+    nms,
+)
 
 
-def postprocess_yolov8_detection(outputs: Tuple[np.ndarray, np.ndarray],
-                                 conf: float = 0.3,
-                                 iou_thres: float = 0.7,
-                                 max_out_dets: int = 50) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def postprocess_yolov8_detection(
+    outputs: Tuple[np.ndarray, np.ndarray], conf: float = 0.3, iou_thres: float = 0.7, max_out_dets: int = 50
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Postprocess the outputs of a YOLOv8 model for object detection
 
@@ -44,10 +49,9 @@ def postprocess_yolov8_detection(outputs: Tuple[np.ndarray, np.ndarray],
     return combined_nms(xd[..., :4], xd[..., 4:84], iou_thres, conf, max_out_dets)
 
 
-def postprocess_yolov8_keypoints(outputs: Tuple[np.ndarray, np.ndarray, np.ndarray],
-                                 conf: float = 0.3,
-                                 iou_thres: float = 0.7,
-                                 max_out_dets: int = 300) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def postprocess_yolov8_keypoints(
+    outputs: Tuple[np.ndarray, np.ndarray, np.ndarray], conf: float = 0.3, iou_thres: float = 0.7, max_out_dets: int = 300
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Postprocess the outputs of a YOLOv8 model for object detection and pose estimation.
 
@@ -96,10 +100,9 @@ def postprocess_yolov8_keypoints(outputs: Tuple[np.ndarray, np.ndarray, np.ndarr
     return nms_bbox, nms_scores, nms_kpts
 
 
-def postprocess_yolov8_inst_seg(outputs: Tuple[np.ndarray, np.ndarray, np.ndarray],
-                                conf: float = 0.001,
-                                iou_thres: float = 0.7,
-                                max_out_dets: int = 300) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def postprocess_yolov8_inst_seg(
+    outputs: Tuple[np.ndarray, np.ndarray, np.ndarray], conf: float = 0.001, iou_thres: float = 0.7, max_out_dets: int = 300
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     feat_sizes = np.array([80, 40, 20])
     stride_sizes = np.array([8, 16, 32])
     a, s = (x.transpose() for x in make_anchors_yolo_v8(feat_sizes, stride_sizes, 0.5))
@@ -109,8 +112,9 @@ def postprocess_yolov8_inst_seg(outputs: Tuple[np.ndarray, np.ndarray, np.ndarra
     detect_out = np.concatenate((dbox, y_cls), 1)
 
     xd = detect_out.transpose([0, 2, 1])
-    nms_bbox, nms_scores, nms_classes, ymask_weights = combined_nms_seg(xd[..., :4], xd[..., 4:84],
-                                                                        ymask_weights, iou_thres, conf, max_out_dets)[0]
+    nms_bbox, nms_scores, nms_classes, ymask_weights = combined_nms_seg(
+        xd[..., :4], xd[..., 4:84], ymask_weights, iou_thres, conf, max_out_dets
+    )[0]
     if len(nms_scores) == 0:
         final_masks = y_masks
     else:
@@ -150,7 +154,7 @@ def dist2bbox_yolo_v8(distance, anchor_points, xywh=True, dim=-1):
 def pad_with_zeros(mask, roi, isp_output_size):
     new_shape = (isp_output_size.width, isp_output_size.height, mask.shape[2])
     padded_mask = np.zeros(new_shape, dtype=mask.dtype)
-    padded_mask[roi.x:roi.x + mask.shape[0], roi.y:roi.y + mask.shape[1], :] = mask
+    padded_mask[roi.x : roi.x + mask.shape[0], roi.y : roi.y + mask.shape[1], :] = mask
     return padded_mask
 
 

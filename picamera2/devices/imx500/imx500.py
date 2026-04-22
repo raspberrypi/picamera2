@@ -15,9 +15,15 @@ import OpenEXR
 from libarchive.read import fd_reader
 from libcamera import Rectangle, Size
 from tqdm import tqdm
-from videodev2 import (VIDIOC_G_CTRL, VIDIOC_G_EXT_CTRLS, VIDIOC_S_CTRL,
-                       VIDIOC_S_EXT_CTRLS, v4l2_control, v4l2_ext_control,
-                       v4l2_ext_controls)
+from videodev2 import (
+    VIDIOC_G_CTRL,
+    VIDIOC_G_EXT_CTRLS,
+    VIDIOC_S_CTRL,
+    VIDIOC_S_EXT_CTRLS,
+    v4l2_control,
+    v4l2_ext_control,
+    v4l2_ext_controls,
+)
 
 from picamera2 import CompletedRequest, Picamera2
 
@@ -304,15 +310,20 @@ class IMX500:
             test_dir = f'/sys/class/video4linux/v4l-subdev{i}/device'
             module_dir = f'{test_dir}/driver/module'
             id_dir = f'{test_dir}/of_node'
-            if os.path.exists(module_dir) and os.path.islink(module_dir) and os.path.islink(id_dir) \
-                    and 'imx500' in os.readlink(module_dir):
+            if (
+                os.path.exists(module_dir)
+                and os.path.islink(module_dir)
+                and os.path.islink(id_dir)
+                and 'imx500' in os.readlink(module_dir)
+            ):
                 if camera_id == '' or (camera_id in os.readlink(id_dir)):
                     self.device_fd = open(f'/dev/v4l-subdev{i}', 'rb+', buffering=0)
                     imx500_device_id = os.readlink(test_dir).split('/')[-1]
                     spi_device_id = imx500_device_id.replace('001a', '0040')
                     camera_info = Picamera2.global_camera_info()
-                    self.__camera_num = next((c['Num'] for c in camera_info if c['Model'] == 'imx500'
-                                              and c['Id'] in os.readlink(id_dir)))
+                    self.__camera_num = next(
+                        (c['Num'] for c in camera_info if c['Model'] == 'imx500' and c['Id'] in os.readlink(id_dir))
+                    )
                     break
 
         if self.device_fd is None:
@@ -382,10 +393,7 @@ class IMX500:
         full_sensor = self.__get_full_sensor_resolution()
         width, height = full_sensor.size.to_tuple()
         obj = Rectangle(
-            *np.maximum(
-                np.array([x0 * width, y0 * height, (x1 - x0) * width, (y1 - y0) * height]),
-                0,
-            ).astype(np.int32)
+            *np.maximum(np.array([x0 * width, y0 * height, (x1 - x0) * width, (y1 - y0) * height]), 0).astype(np.int32)
         )
         out = self.__get_obj_scaled(obj, isp_output_size, scaler_crop, sensor_output_size)
         return out.to_tuple()
@@ -461,8 +469,7 @@ class IMX500:
         if not self.fw_progress and not self.fw_progress_chunk:
             # No readable progress source: skip the bar so the worker does not spin on (0, 0).
             return
-        p = multiprocessing.Process(target=self.__do_progress_bar,
-                                    args=(FW_NETWORK_STAGE, 'Network Firmware Upload'))
+        p = multiprocessing.Process(target=self.__do_progress_bar, args=(FW_NETWORK_STAGE, 'Network Firmware Upload'))
         p.start()
         p.join(0)
 
@@ -533,7 +540,7 @@ class IMX500:
         div_val = self.config['input_tensor']['div_val']
         div_shift = self.config['input_tensor']['div_shift']
         for i in [0, 1, 2]:
-            r1[i] = ((((r1[i] << norm_shift[i]) - norm_val[i]) << div_shift) // div_val[i]) & 0xff
+            r1[i] = ((((r1[i] << norm_shift[i]) - norm_val[i]) << div_shift) // div_val[i]) & 0xFF
 
         return np.transpose(r1, (1, 2, 0)).astype(np.uint8)
 
@@ -555,19 +562,19 @@ class IMX500:
             try:
                 if channels[ch] != Imath_FLOAT_Channel:
                     raise ValueError(f"Channel '{ch}' is not of type FLOAT (found: {channels[ch]})")
-            except KeyError:
-                raise ValueError(f"EXR input missing required channel '{ch}'")
+            except KeyError as e:
+                raise ValueError(f"EXR input missing required channel '{ch}'") from e
 
         np_float_channels = {
-            'R': np.frombuffer(
-                exr_input.channel('R', Imath_FLOAT_Type), dtype=np.float32
-            ).reshape(tuple(reversed(tensor_size))),
-            'G': np.frombuffer(
-                exr_input.channel('G', Imath_FLOAT_Type), dtype=np.float32
-            ).reshape(tuple(reversed(tensor_size))),
-            'B': np.frombuffer(
-                exr_input.channel('B', Imath_FLOAT_Type), dtype=np.float32
-            ).reshape(tuple(reversed(tensor_size))),
+            'R': np.frombuffer(exr_input.channel('R', Imath_FLOAT_Type), dtype=np.float32).reshape(
+                tuple(reversed(tensor_size))
+            ),
+            'G': np.frombuffer(exr_input.channel('G', Imath_FLOAT_Type), dtype=np.float32).reshape(
+                tuple(reversed(tensor_size))
+            ),
+            'B': np.frombuffer(exr_input.channel('B', Imath_FLOAT_Type), dtype=np.float32).reshape(
+                tuple(reversed(tensor_size))
+            ),
         }
 
         # Verify that all channels are in the range 0.0 to 1.0
@@ -641,7 +648,7 @@ class IMX500:
         outputs = []
         for tensor_shape in output_shapes:
             size = np.prod(tensor_shape)
-            reshaped_tensor = np_output[offset:offset + size].reshape(tensor_shape, order='F')
+            reshaped_tensor = np_output[offset : offset + size].reshape(tensor_shape, order='F')
             if add_batch:
                 reshaped_tensor = np.expand_dims(reshaped_tensor, 0)
             outputs.append(reshaped_tensor)
@@ -720,14 +727,14 @@ class IMX500:
             'network_name': parsed.network_name.decode('utf-8').strip('\x00'),
             'num_tensors': parsed.num_tensors,
             'frameCount': parsed.frameCount,
-            'info': []
+            'info': [],
         }
 
-        for t in parsed.info[0:parsed.num_tensors]:
+        for t in parsed.info[0 : parsed.num_tensors]:
             info = {
                 'tensor_data_num': t.tensor_data_num,
                 'num_dimensions': t.num_dimensions,
-                'size': list(t.size)[0:t.num_dimensions],
+                'size': list(t.size)[0 : t.num_dimensions],
             }
             result['info'].append(info)
 
@@ -762,7 +769,7 @@ class IMX500:
         try:
             fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
         except OSError as err:
-            raise RuntimeError(f'IMX500: Unable to enable input tensor injection: {err}')
+            raise RuntimeError(f'IMX500: Unable to enable input tensor injection: {err}') from err
 
     def __set_input_tensor(self, input_tensor_fd: int):
         ctrl = v4l2_control()
@@ -772,7 +779,7 @@ class IMX500:
         try:
             fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
         except OSError as err:
-            raise RuntimeError(f'IMX500: Unable to set input tensor fd: {err}')
+            raise RuntimeError(f'IMX500: Unable to set input tensor fd: {err}') from err
 
     def __set_network_firmware(self, network_filename: str):
         """Provides a firmware rpk file to upload to the IMX500. This must be called before Picamera2 is configured."""
@@ -788,7 +795,7 @@ class IMX500:
             try:
                 fcntl.ioctl(self.device_fd, VIDIOC_S_CTRL, ctrl)
             except OSError as err:
-                raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}')
+                raise RuntimeError(f'IMX500: Unable to set network firmware {network_filename}: {err}') from err
             finally:
                 os.close(fd)
 
@@ -809,7 +816,7 @@ class IMX500:
             fw = fw[8:]
             flags = struct.unpack('8B', fw[:8])
             device_lock_flag = flags[6]
-            fw = fw[(size + 60 - 8):]  # jump to footer
+            fw = fw[(size + 60 - 8) :]  # jump to footer
 
             # Ensure footer is as expected
             (magic,) = struct.unpack('4s', fw[:4])
@@ -818,7 +825,7 @@ class IMX500:
             fw = fw[4:]
             cpio_offset += size + 64
 
-            if ((device_lock_flag & 0x01) == 1):
+            if (device_lock_flag & 0x01) == 1:
                 # skip forward 32 bytes if device_lock_flag.bit0 == 1
                 fw = fw[32:]
                 cpio_offset += 32
@@ -871,8 +878,7 @@ class IMX500:
         # Extract some input tensor config params
         self.__cfg['input_tensor']['width'] = int(res['network'][0]['inputTensorWidth'])
         self.__cfg['input_tensor']['height'] = int(res['network'][0]['inputTensorHeight'])
-        self.__cfg['input_tensor_size'] = (self.config['input_tensor']['width'],
-                                           self.config['input_tensor']['height'])
+        self.__cfg['input_tensor_size'] = (self.config['input_tensor']['width'], self.config['input_tensor']['height'])
 
         input_format = self.__cfg['network_info']['network'][0]['inputTensorFormat']
         inputTensorNorm_K03 = int(self.__cfg['network_info']['network'][0]['inputTensorNorm_K03'], 0)
@@ -887,12 +893,15 @@ class IMX500:
         self.__cfg['input_tensor']['input_format'] = input_format
 
         if input_format == 'RGB' or input_format == 'BGR':
-            norm_val_0 = \
-                inputTensorNorm_K03 if ((inputTensorNorm_K03 >> 12) & 1) == 0 else -((~inputTensorNorm_K03 + 1) & 0x1fff)
-            norm_val_1 = \
-                inputTensorNorm_K13 if ((inputTensorNorm_K13 >> 12) & 1) == 0 else -((~inputTensorNorm_K13 + 1) & 0x1fff)
-            norm_val_2 = \
-                inputTensorNorm_K23 if ((inputTensorNorm_K23 >> 12) & 1) == 0 else -((~inputTensorNorm_K23 + 1) & 0x1fff)
+            norm_val_0 = (
+                inputTensorNorm_K03 if ((inputTensorNorm_K03 >> 12) & 1) == 0 else -((~inputTensorNorm_K03 + 1) & 0x1FFF)
+            )
+            norm_val_1 = (
+                inputTensorNorm_K13 if ((inputTensorNorm_K13 >> 12) & 1) == 0 else -((~inputTensorNorm_K13 + 1) & 0x1FFF)
+            )
+            norm_val_2 = (
+                inputTensorNorm_K23 if ((inputTensorNorm_K23 >> 12) & 1) == 0 else -((~inputTensorNorm_K23 + 1) & 0x1FFF)
+            )
             norm_val = [norm_val_0, norm_val_1, norm_val_2]
             self.__cfg['input_tensor']['norm_val'] = norm_val
             norm_shift = [4, 4, 4]
@@ -900,16 +909,21 @@ class IMX500:
             dtype = 'unsigned' if ((inputTensorNorm_K03 >> 12) & 1) == 0 else 'signed'
             self.__cfg['input_tensor']['dtype'] = dtype
             if input_format == 'RGB':
-                div_val_0 = \
-                    inputTensorNorm_K00 if ((inputTensorNorm_K00 >> 11) & 1) == 0 else -((~inputTensorNorm_K00 + 1) & 0x0fff)
-                div_val_2 =\
-                    inputTensorNorm_K22 if ((inputTensorNorm_K22 >> 11) & 1) == 0 else -((~inputTensorNorm_K22 + 1) & 0x0fff)
+                div_val_0 = (
+                    inputTensorNorm_K00 if ((inputTensorNorm_K00 >> 11) & 1) == 0 else -((~inputTensorNorm_K00 + 1) & 0x0FFF)
+                )
+                div_val_2 = (
+                    inputTensorNorm_K22 if ((inputTensorNorm_K22 >> 11) & 1) == 0 else -((~inputTensorNorm_K22 + 1) & 0x0FFF)
+                )
             else:
-                div_val_0 = \
-                    inputTensorNorm_K02 if ((inputTensorNorm_K02 >> 11) & 1) == 0 else -((~inputTensorNorm_K02 + 1) & 0x0fff)
-                div_val_2 = \
-                    inputTensorNorm_K20 if ((inputTensorNorm_K20 >> 11) & 1) == 0 else -((~inputTensorNorm_K20 + 1) & 0x0fff)
-            div_val_1 = \
-                inputTensorNorm_K11 if ((inputTensorNorm_K11 >> 11) & 1) == 0 else -((~inputTensorNorm_K11 + 1) & 0x0fff)
+                div_val_0 = (
+                    inputTensorNorm_K02 if ((inputTensorNorm_K02 >> 11) & 1) == 0 else -((~inputTensorNorm_K02 + 1) & 0x0FFF)
+                )
+                div_val_2 = (
+                    inputTensorNorm_K20 if ((inputTensorNorm_K20 >> 11) & 1) == 0 else -((~inputTensorNorm_K20 + 1) & 0x0FFF)
+                )
+            div_val_1 = (
+                inputTensorNorm_K11 if ((inputTensorNorm_K11 >> 11) & 1) == 0 else -((~inputTensorNorm_K11 + 1) & 0x0FFF)
+            )
             self.__cfg['input_tensor']['div_val'] = [div_val_0, div_val_1, div_val_2]
             self.__cfg['input_tensor']['div_shift'] = 6

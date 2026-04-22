@@ -6,24 +6,19 @@ import os
 from videodev2 import _IOW, _IOWR
 
 _log = logging.getLogger("picamera2")
-heapNames = [
-    "/dev/dma_heap/vidbuf_cached",
-    "/dev/dma_heap/linux,cma"
-]
+heapNames = ["/dev/dma_heap/vidbuf_cached", "/dev/dma_heap/linux,cma"]
 
 
 # Kernel stuff from linux/dma-buf.h
 class dma_buf_sync(ctypes.Structure):
-    _fields_ = [
-        ('flags', ctypes.c_uint64),
-    ]
+    _fields_ = [('flags', ctypes.c_uint64)]
 
 
-DMA_BUF_SYNC_READ = (1 << 0)
-DMA_BUF_SYNC_WRITE = (2 << 0)
-DMA_BUF_SYNC_RW = (DMA_BUF_SYNC_READ | DMA_BUF_SYNC_WRITE)
-DMA_BUF_SYNC_START = (0 << 2)
-DMA_BUF_SYNC_END = (1 << 2)
+DMA_BUF_SYNC_READ = 1 << 0
+DMA_BUF_SYNC_WRITE = 2 << 0
+DMA_BUF_SYNC_RW = DMA_BUF_SYNC_READ | DMA_BUF_SYNC_WRITE
+DMA_BUF_SYNC_START = 0 << 2
+DMA_BUF_SYNC_END = 1 << 2
 
 DMA_BUF_BASE = 'b'
 DMA_BUF_IOCTL_SYNC = _IOW(DMA_BUF_BASE, 0, dma_buf_sync)

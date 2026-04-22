@@ -4,29 +4,29 @@ Yolov5 postprocessing
 This code is based on:
 https://github.com/ultralytics/ultralytics
 """
+
 from typing import List
 
 import cv2
 import numpy as np
 
-from picamera2.devices.imx500.postprocess import (
-    BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms)
+from picamera2.devices.imx500.postprocess import BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms
 
-default_anchors = [[10, 13, 16, 30, 33, 23],
-                   [30, 61, 62, 45, 59, 119],
-                   [116, 90, 156, 198, 373, 326]]
+default_anchors = [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]]
 default_strides = [8, 16, 32]
 
 
-def postprocess_yolov5_detection(outputs: List[np.ndarray],
-                                 model_input_shape=(640, 640),
-                                 num_categories=80,
-                                 min_wh=2,
-                                 max_wh=7680,
-                                 conf_thres: float = 0.001,
-                                 iou_thres: float = 0.65,
-                                 max_nms_dets: int = 5000,
-                                 max_out_dets: int = 1000):
+def postprocess_yolov5_detection(
+    outputs: List[np.ndarray],
+    model_input_shape=(640, 640),
+    num_categories=80,
+    min_wh=2,
+    max_wh=7680,
+    conf_thres: float = 0.001,
+    iou_thres: float = 0.65,
+    max_nms_dets: int = 5000,
+    max_out_dets: int = 1000,
+):
     H, W = model_input_shape
     ############################################################
     # Box decoding
@@ -86,12 +86,7 @@ def postprocess_yolov5_detection(outputs: List[np.ndarray],
     return post_processed_outputs[0]['boxes'], post_processed_outputs[0]['scores'], post_processed_outputs[0]['classes']
 
 
-def box_decoding_yolov5n(tensors,
-                         num_categories=80,
-                         H=640,
-                         W=640,
-                         anchors=default_anchors,
-                         strides=default_strides):
+def box_decoding_yolov5n(tensors, num_categories=80, H=640, W=640, anchors=default_anchors, strides=default_strides):
     # Tensors box format: [x_c, y_c, w, h]
     no = num_categories + 5  # number of outputs per anchor
     nl = len(anchors)  # number of detection layers
@@ -117,8 +112,9 @@ def box_decoding_yolov5n(tensors,
 
 
 # same as in preprocess but differs in h/w location
-def scale_boxes(boxes: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int,
-                preserve_aspect_ratio: bool) -> np.ndarray:
+def scale_boxes(
+    boxes: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int, preserve_aspect_ratio: bool
+) -> np.ndarray:
     """
     Scale and offset bounding boxes based on model output size and original image size.
 
@@ -212,10 +208,12 @@ def apply_normalization(boxes, orig_width, orig_height, boxes_format):
 
 # Locate at tutorials
 def coco80_to_coco91(x):  # converts 80-index to 91-index
+    # fmt: off
     coco91Indexs = np.array(
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34,
          35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62,
          63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90])
+    # fmt: on
 
     return coco91Indexs[x.astype(np.int32)]
 
@@ -229,9 +227,11 @@ def yolov5n_preprocess(img):
     resize_ratio = max(img.shape[0] / new_height, img.shape[1] / new_width)
     height_tag = int(np.round(img.shape[0] / resize_ratio))
     width_tag = int(np.round(img.shape[1] / resize_ratio))
-    pad_values = ((int((new_height - height_tag) / 2), int((new_height - height_tag) / 2 + 0.5)),
-                  (int((new_width - width_tag) / 2), int((new_width - width_tag) / 2 + 0.5)),
-                  (0, 0))
+    pad_values = (
+        (int((new_height - height_tag) / 2), int((new_height - height_tag) / 2 + 0.5)),
+        (int((new_width - width_tag) / 2), int((new_width - width_tag) / 2 + 0.5)),
+        (0, 0),
+    )
 
     resized_img = cv2.resize(img, (width_tag, height_tag), interpolation=resize_method)
     padded_img = np.pad(resized_img, pad_values, constant_values=pad_value)

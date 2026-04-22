@@ -16,6 +16,7 @@ class LibavMjpegEncoder(Encoder):
         # Save low-powered Pis from importing av unless it is needed.
         global av
         import av
+
         super().__init__()
         self._codec = "mjpeg"
         self.repeat = repeat
@@ -29,14 +30,9 @@ class LibavMjpegEncoder(Encoder):
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
         # the user may have set for themselves.
-        if quality is not None or \
-           (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
+        if quality is not None or (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
             quality = Quality.MEDIUM if quality is None else quality
-            QP_TABLE = {Quality.VERY_LOW: 31,
-                        Quality.LOW: 15,
-                        Quality.MEDIUM: 10,
-                        Quality.HIGH: 5,
-                        Quality.VERY_HIGH: 3}
+            QP_TABLE = {Quality.VERY_LOW: 31, Quality.LOW: 15, Quality.MEDIUM: 10, Quality.HIGH: 5, Quality.VERY_HIGH: 3}
             self.qp = QP_TABLE[quality]
 
     def _send_streams(self, output):
@@ -78,11 +74,7 @@ class LibavMjpegEncoder(Encoder):
 
         self._stream.codec_context.time_base = Fraction(1, 1000000)
 
-        FORMAT_TABLE = {"YUV420": "yuv420p",
-                        "BGR888": "rgb24",
-                        "RGB888": "bgr24",
-                        "XBGR8888": "rgba",
-                        "XRGB8888": "bgra"}
+        FORMAT_TABLE = {"YUV420": "yuv420p", "BGR888": "rgb24", "RGB888": "bgr24", "XBGR8888": "rgba", "XRGB8888": "bgra"}
         self._av_input_format = FORMAT_TABLE[self._format]
 
         self._request_release_queue = collections.deque()

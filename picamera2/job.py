@@ -24,10 +24,7 @@ class Job(Generic[T]):
     Picamera2.switch_mode_and_capture_array.
     """
 
-    def __init__(self, functions: list[Callable[..., Union[
-            tuple[bool, Any],
-            tuple[Literal[True], T]]]], signal_function=None
-    ):
+    def __init__(self, functions: list[Callable[..., Union[tuple[bool, Any], tuple[Literal[True], T]]]], signal_function=None):
         self._functions = functions
         self._future = Future()
         self._future.set_running_or_notify_cancel()

@@ -67,6 +67,7 @@ class FrameServer:
 
 # Below here is just demo code that uses the class:
 
+
 def thread1_func():
     global thread1_count
     while not thread_abort:

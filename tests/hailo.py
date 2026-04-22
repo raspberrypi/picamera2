@@ -51,8 +51,7 @@ with Hailo(detect_model) as hailo:
     with Picamera2() as picam2:
         model_h, model_w = input_shape[0], input_shape[1]
         config = picam2.create_preview_configuration(
-            main={'size': (1920, 1080), 'format': 'XRGB8888'},
-            lores={'size': (model_w, model_h), 'format': 'RGB888'}
+            main={'size': (1920, 1080), 'format': 'XRGB8888'}, lores={'size': (model_w, model_h), 'format': 'RGB888'}
         )
         picam2.configure(config)
         picam2.start()
@@ -77,8 +76,7 @@ with Hailo(pose_model) as hailo:
     with Picamera2() as picam2:
         model_h, model_w = input_shape[0], input_shape[1]
         config = picam2.create_preview_configuration(
-            main={'size': (1920, 1080), 'format': 'XRGB8888'},
-            lores={'size': (model_w, model_h), 'format': 'RGB888'}
+            main={'size': (1920, 1080), 'format': 'XRGB8888'}, lores={'size': (model_w, model_h), 'format': 'RGB888'}
         )
         picam2.configure(config)
         picam2.start()

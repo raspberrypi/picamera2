@@ -48,7 +48,7 @@ def calculate_motion(frame1, frame2):
     motion_map = np.zeros((frame1.shape[0] // BLOCK_SIZE, frame1.shape[1] // BLOCK_SIZE, 2), dtype=np.int8)
     for block_x in range(0, frame1.shape[1], BLOCK_SIZE):
         for block_y in range(0, frame1.shape[0], BLOCK_SIZE):
-            block = frame1[block_y:block_y + BLOCK_SIZE, block_x:block_x + BLOCK_SIZE]
+            block = frame1[block_y : block_y + BLOCK_SIZE, block_x : block_x + BLOCK_SIZE]
             min_diff = np.inf
             max_diff = 0
             for offset_x in range(-SEARCH_SIZE, SEARCH_SIZE + 1, STEP_SIZE):
@@ -57,9 +57,11 @@ def calculate_motion(frame1, frame2):
                 for offset_y in range(-SEARCH_SIZE, SEARCH_SIZE + 1, STEP_SIZE):
                     if block_y + offset_y < 0 or block_y + offset_y + BLOCK_SIZE >= frame2.shape[0]:
                         continue
-                    block2 = frame2[block_y + offset_y:block_y + offset_y + BLOCK_SIZE,
-                                    block_x + offset_x:block_x + offset_x + BLOCK_SIZE]
-                    diff = np.sum((block - block2)**2)
+                    block2 = frame2[
+                        block_y + offset_y : block_y + offset_y + BLOCK_SIZE,
+                        block_x + offset_x : block_x + offset_x + BLOCK_SIZE,
+                    ]
+                    diff = np.sum((block - block2) ** 2)
                     if diff < min_diff:
                         min_diff = diff
                         min_offset = (offset_x, offset_y)

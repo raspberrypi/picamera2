@@ -10,10 +10,7 @@ from picamera2.request import MappedArray
 class JpegEncoder(MultiEncoder):
     """Uses functionality from MultiEncoder"""
 
-    FORMAT_TABLE = {"XBGR8888": "RGBX",
-                    "XRGB8888": "BGRX",
-                    "BGR888": "RGB",
-                    "RGB888": "BGR"}
+    FORMAT_TABLE = {"XBGR8888": "RGBX", "XRGB8888": "BGRX", "BGR888": "RGB", "RGB888": "BGR"}
 
     def __init__(self, num_threads=4, q=None, colour_space=None, colour_subsampling='420'):
         """Initialises Jpeg encoder
@@ -49,13 +46,14 @@ class JpegEncoder(MultiEncoder):
                 width, height = request.config[name]['size']
                 Y = m.array[:height, :width]
                 reshaped = m.array.reshape((m.array.shape[0] * 2, m.array.strides[0] // 2))
-                U = reshaped[2 * height: 2 * height + height // 2, :width // 2]
-                V = reshaped[2 * height + height // 2:, :width // 2]
+                U = reshaped[2 * height : 2 * height + height // 2, : width // 2]
+                V = reshaped[2 * height + height // 2 :, : width // 2]
                 return simplejpeg.encode_jpeg_yuv_planes(Y, U, V, self.q)
             if self.colour_space is None:
                 self.colour_space = self.FORMAT_TABLE[request.config[name]["format"]]
-            return simplejpeg.encode_jpeg(m.array, quality=self.q, colorspace=self.colour_space,
-                                          colorsubsampling=self.colour_subsampling)
+            return simplejpeg.encode_jpeg(
+                m.array, quality=self.q, colorspace=self.colour_space, colorsubsampling=self.colour_subsampling
+            )
 
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any q value
@@ -63,9 +61,5 @@ class JpegEncoder(MultiEncoder):
         if quality is not None or getattr(self, "q", None) is None:
             quality = Quality.MEDIUM if quality is None else quality
             # Image size and framerate isn't an issue here, you just get what you get.
-            Q_TABLE = {Quality.VERY_LOW: 25,
-                       Quality.LOW: 35,
-                       Quality.MEDIUM: 50,
-                       Quality.HIGH: 65,
-                       Quality.VERY_HIGH: 80}
+            Q_TABLE = {Quality.VERY_LOW: 25, Quality.LOW: 35, Quality.MEDIUM: 50, Quality.HIGH: 65, Quality.VERY_HIGH: 80}
             self.q = Q_TABLE[quality]

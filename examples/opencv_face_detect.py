@@ -22,7 +22,7 @@ while True:
         faces = face_detector.detectMultiScale(grey, 1.1, 5)
 
         with MappedArray(request, 'main') as m:
-            for (x, y, w, h) in faces:
+            for x, y, w, h in faces:
                 cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0))
 
             cv2.imshow("Camera", m.array)
