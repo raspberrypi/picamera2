@@ -58,8 +58,7 @@ def DrawRectangles(request):
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(m.array, text, (xmin, ymin - 10),
-                            font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(m.array, text, (xmin, ymin - 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
 
 def classFilter(classdata):
@@ -68,8 +67,8 @@ def classFilter(classdata):
 
 
 def YOLOdetect(output_data):  # input = interpreter, output is boxes(xyxy), classes, scores
-    output_data = output_data[0]                # x(1, 25200, 7) to x(25200, 7)
-    boxes = np.squeeze(output_data[..., :4])    # boxes  [25200, 4]
+    output_data = output_data[0]  # x(1, 25200, 7) to x(25200, 7)
+    boxes = np.squeeze(output_data[..., :4])  # boxes  [25200, 4]
     scores = np.squeeze(output_data[..., 4:5])  # confidences  [25200, 1]
     classes = classFilter(output_data[..., 5:])  # get classes
     # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
@@ -97,8 +96,9 @@ def main():
     if Picamera2.platform == Platform.PISP:
         stream_format = "RGB888"
 
-    config = picam2.create_preview_configuration(main={"size": normalSize},
-                                                 lores={"size": lowresSize, "format": stream_format})
+    config = picam2.create_preview_configuration(
+        main={"size": normalSize}, lores={"size": lowresSize, "format": stream_format}
+    )
     picam2.configure(config)
     picam2.post_callback = DrawRectangles
 
@@ -136,7 +136,7 @@ def main():
         rectangles = []
 
         for i in range(len(scores)):
-            if ((scores[i] > 0.4) and (scores[i] <= 1.0)):
+            if (scores[i] > 0.4) and (scores[i] <= 1.0):
                 xmin = int(max(1, (xyxy[0][i] * normalSize[0])))
                 ymin = int(max(1, (xyxy[1][i] * normalSize[1])))
                 xmax = int(min(normalSize[0], (xyxy[2][i] * normalSize[0])))

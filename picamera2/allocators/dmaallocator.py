@@ -6,9 +6,15 @@ import os
 import libcamera
 
 from picamera2.allocators.allocator import Allocator, Sync
-from picamera2.dma_heap import (DMA_BUF_IOCTL_SYNC, DMA_BUF_SYNC_END,
-                                DMA_BUF_SYNC_READ, DMA_BUF_SYNC_RW,
-                                DMA_BUF_SYNC_START, DmaHeap, dma_buf_sync)
+from picamera2.dma_heap import (
+    DMA_BUF_IOCTL_SYNC,
+    DMA_BUF_SYNC_END,
+    DMA_BUF_SYNC_READ,
+    DMA_BUF_SYNC_RW,
+    DMA_BUF_SYNC_START,
+    DmaHeap,
+    dma_buf_sync,
+)
 
 _log = logging.getLogger("picamera2")
 

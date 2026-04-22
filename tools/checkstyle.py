@@ -20,10 +20,7 @@ import shutil
 import subprocess
 import sys
 
-dependencies = {
-    'clang-format': True,
-    'git': True,
-}
+dependencies = {'clang-format': True, 'git': True}
 
 # ------------------------------------------------------------------------------
 # Colour terminal handling
@@ -75,6 +72,7 @@ class Colours:
 # Diff parsing, handling and printing
 #
 
+
 class DiffHunkSide(object):
     """A side of a diff hunk, recording line numbers"""
 
@@ -88,8 +86,7 @@ class DiffHunkSide(object):
 
 
 class DiffHunk(object):
-    diff_header_regex = re.compile(
-        r'@@ -([0-9]+),?([0-9]+)? \+([0-9]+),?([0-9]+)? @@')
+    diff_header_regex = re.compile(r'@@ -([0-9]+),?([0-9]+)? \+([0-9]+),?([0-9]+)? @@')
 
     def __init__(self, line):
         match = DiffHunk.diff_header_regex.match(line)
@@ -104,10 +101,13 @@ class DiffHunk(object):
         self.lines = []
 
     def __repr__(self):
-        s = '%s@@ -%u,%u +%u,%u @@\n' % \
-            (Colours.fg(Colours.Cyan),
-             self.__from.start, len(self.__from),
-             self.__to.start, len(self.__to))
+        s = '%s@@ -%u,%u +%u,%u @@\n' % (
+            Colours.fg(Colours.Cyan),
+            self.__from.start,
+            len(self.__from),
+            self.__to.start,
+            len(self.__to),
+        )
 
         for line in self.lines:
             if line[0] == '-':
@@ -181,6 +181,7 @@ def parse_diff(diff):
 # Commit, Staged Changes & Amendments
 #
 
+
 class CommitFile:
     def __init__(self, name):
         info = name.split()
@@ -208,9 +209,9 @@ class Commit:
 
     def _parse(self):
         # Get the commit title and list of files.
-        ret = subprocess.run(['git', 'show', '--pretty=oneline', '--name-status',
-                              self.commit],
-                             stdout=subprocess.PIPE).stdout.decode('utf-8')
+        ret = subprocess.run(
+            ['git', 'show', '--pretty=oneline', '--name-status', self.commit], stdout=subprocess.PIPE
+        ).stdout.decode('utf-8')
         files = ret.splitlines()
         if files[1]:
             self._files = [CommitFile(f) for f in files[1:]]
@@ -226,14 +227,16 @@ class Commit:
         return self._title
 
     def get_diff(self, top_level, filename):
-        diff = subprocess.run(['git', 'diff', '%s~..%s' % (self.commit, self.commit),
-                               '--', '%s/%s' % (top_level, filename)],
-                              stdout=subprocess.PIPE).stdout.decode('utf-8')
+        diff = subprocess.run(
+            ['git', 'diff', '%s~..%s' % (self.commit, self.commit), '--', '%s/%s' % (top_level, filename)],
+            stdout=subprocess.PIPE,
+        ).stdout.decode('utf-8')
         return parse_diff(diff.splitlines(True))
 
     def get_file(self, filename):
-        return subprocess.run(['git', 'show', '%s:%s' % (self.commit, filename)],
-                              stdout=subprocess.PIPE).stdout.decode('utf-8')
+        return subprocess.run(['git', 'show', '%s:%s' % (self.commit, filename)], stdout=subprocess.PIPE).stdout.decode(
+            'utf-8'
+        )
 
 
 class StagedChanges(Commit):
@@ -241,15 +244,14 @@ class StagedChanges(Commit):
         Commit.__init__(self, '')
 
     def _parse(self):
-        ret = subprocess.run(['git', 'diff', '--staged', '--name-status'],
-                             stdout=subprocess.PIPE).stdout.decode('utf-8')
+        ret = subprocess.run(['git', 'diff', '--staged', '--name-status'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         self._title = "Staged changes"
         self._files = [CommitFile(f) for f in ret.splitlines()]
 
     def get_diff(self, top_level, filename):
-        diff = subprocess.run(['git', 'diff', '--staged', '--',
-                               '%s/%s' % (top_level, filename)],
-                              stdout=subprocess.PIPE).stdout.decode('utf-8')
+        diff = subprocess.run(
+            ['git', 'diff', '--staged', '--', '%s/%s' % (top_level, filename)], stdout=subprocess.PIPE
+        ).stdout.decode('utf-8')
         return parse_diff(diff.splitlines(True))
 
 
@@ -259,24 +261,25 @@ class Amendment(StagedChanges):
 
     def _parse(self):
         # Create a title using HEAD commit
-        ret = subprocess.run(['git', 'show', '--pretty=oneline', '--no-patch'],
-                             stdout=subprocess.PIPE).stdout.decode('utf-8')
+        ret = subprocess.run(['git', 'show', '--pretty=oneline', '--no-patch'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         self._title = 'Amendment of ' + ret.strip()
         # Extract the list of modified files
-        ret = subprocess.run(['git', 'diff', '--staged', '--name-status', 'HEAD~'],
-                             stdout=subprocess.PIPE).stdout.decode('utf-8')
+        ret = subprocess.run(['git', 'diff', '--staged', '--name-status', 'HEAD~'], stdout=subprocess.PIPE).stdout.decode(
+            'utf-8'
+        )
         self._files = [CommitFile(f) for f in ret.splitlines()]
 
     def get_diff(self, top_level, filename):
-        diff = subprocess.run(['git', 'diff', '--staged', 'HEAD~', '--',
-                               '%s/%s' % (top_level, filename)],
-                              stdout=subprocess.PIPE).stdout.decode('utf-8')
+        diff = subprocess.run(
+            ['git', 'diff', '--staged', 'HEAD~', '--', '%s/%s' % (top_level, filename)], stdout=subprocess.PIPE
+        ).stdout.decode('utf-8')
         return parse_diff(diff.splitlines(True))
 
 
 # ------------------------------------------------------------------------------
 # Helpers
 #
+
 
 class ClassRegistry(type):
     def __new__(cls, clsname, bases, attrs):
@@ -289,6 +292,7 @@ class ClassRegistry(type):
 # ------------------------------------------------------------------------------
 # Commit Checkers
 #
+
 
 class CommitChecker(metaclass=ClassRegistry):
     subclasses = []
@@ -313,6 +317,7 @@ class CommitIssue(object):
 # ------------------------------------------------------------------------------
 # Style Checkers
 #
+
 
 class StyleChecker(metaclass=ClassRegistry):
     subclasses = []
@@ -356,10 +361,28 @@ class StyleIssue(object):
 class IncludeChecker(StyleChecker):
     patterns = ('*.cpp', '*.h', '*.hpp')
 
-    headers = ('assert', 'ctype', 'errno', 'fenv', 'float', 'inttypes',
-               'limits', 'locale', 'setjmp', 'signal', 'stdarg', 'stddef',
-               'stdint', 'stdio', 'stdlib', 'string', 'time', 'uchar', 'wchar',
-               'wctype')
+    headers = (
+        'assert',
+        'ctype',
+        'errno',
+        'fenv',
+        'float',
+        'inttypes',
+        'limits',
+        'locale',
+        'setjmp',
+        'signal',
+        'stdarg',
+        'stddef',
+        'stdint',
+        'stdio',
+        'stdlib',
+        'string',
+        'time',
+        'uchar',
+        'wchar',
+        'wctype',
+    )
     include_regex = re.compile('^#include <c([a-z]*)>')
 
     def __init__(self, content):
@@ -379,8 +402,7 @@ class IncludeChecker(StyleChecker):
             if header not in IncludeChecker.headers:
                 continue
 
-            issues.append(StyleIssue(line_number, line,
-                                     'C compatibility header <%s.h> is preferred' % header))
+            issues.append(StyleIssue(line_number, line, 'C compatibility header <%s.h> is preferred' % header))
 
         return issues
 
@@ -398,11 +420,9 @@ class Pep8Checker(StyleChecker):
         data = ''.join(self.__content).encode('utf-8')
 
         try:
-            ret = subprocess.run(['pycodestyle', '--ignore=E501', '-'],
-                                 input=data, stdout=subprocess.PIPE)
+            ret = subprocess.run(['pycodestyle', '--ignore=E501', '-'], input=data, stdout=subprocess.PIPE)
         except FileNotFoundError:
-            issues.append(StyleIssue(
-                0, None, "Please install pycodestyle to validate python additions"))
+            issues.append(StyleIssue(0, None, "Please install pycodestyle to validate python additions"))
             return issues
 
         results = ret.stdout.decode('utf-8').splitlines()
@@ -432,11 +452,9 @@ class ShellChecker(StyleChecker):
         data = ''.join(self.__content).encode('utf-8')
 
         try:
-            ret = subprocess.run(['shellcheck', '-Cnever', '-'],
-                                 input=data, stdout=subprocess.PIPE)
+            ret = subprocess.run(['shellcheck', '-Cnever', '-'], input=data, stdout=subprocess.PIPE)
         except FileNotFoundError:
-            issues.append(StyleIssue(
-                0, None, "Please install shellcheck to validate shell script additions"))
+            issues.append(StyleIssue(0, None, "Please install shellcheck to validate shell script additions"))
             return issues
 
         results = ret.stdout.decode('utf-8').splitlines()
@@ -461,6 +479,7 @@ class ShellChecker(StyleChecker):
 # ------------------------------------------------------------------------------
 # Formatters
 #
+
 
 class Formatter(metaclass=ClassRegistry):
     subclasses = []
@@ -498,9 +517,9 @@ class CLangFormatter(Formatter):
 
     @classmethod
     def format(cls, filename, data):
-        ret = subprocess.run(['clang-format', '-style=file',
-                              '-assume-filename=' + filename],
-                             input=data.encode('utf-8'), stdout=subprocess.PIPE)
+        ret = subprocess.run(
+            ['clang-format', '-style=file', '-assume-filename=' + filename], input=data.encode('utf-8'), stdout=subprocess.PIPE
+        )
         return ret.stdout.decode('utf-8')
 
 
@@ -560,6 +579,7 @@ class StripTrailingSpaceFormatter(Formatter):
 # Style checking
 #
 
+
 def check_file(top_level, commit, filename):
     # Extract the line numbers touched by the commit.
     commit_diff = commit.get_diff(top_level, filename)
@@ -587,8 +607,7 @@ def check_file(top_level, commit, filename):
     # Split the diff in hunks, recording line number ranges for each hunk, and
     # filter out hunks that are not touched by the commit.
     formatted_diff = parse_diff(diff)
-    formatted_diff = [
-        hunk for hunk in formatted_diff if hunk.intersects(lines)]
+    formatted_diff = [hunk for hunk in formatted_diff if hunk.intersects(lines)]
 
     # Check for code issues not related to formatting.
     issues = []
@@ -611,8 +630,7 @@ def check_file(top_level, commit, filename):
     if len(issues):
         issues = sorted(issues, key=lambda i: i.line_number)
         for issue in issues:
-            print('%s#%u: %s' %
-                  (Colours.fg(Colours.Yellow), issue.line_number, issue.msg))
+            print('%s#%u: %s' % (Colours.fg(Colours.Yellow), issue.line_number, issue.msg))
             if issue.line is not None:
                 print('+%s%s' % (issue.line.rstrip(), Colours.reset()))
                 if issue.offset is not None:
@@ -632,16 +650,14 @@ def check_style(top_level, commit):
     # Apply the commit checkers first.
     for checker in CommitChecker.checkers():
         for issue in checker.check(commit, top_level):
-            print('%s%s%s' %
-                  (Colours.fg(Colours.Yellow), issue.msg, Colours.reset()))
+            print('%s%s%s' % (Colours.fg(Colours.Yellow), issue.msg, Colours.reset()))
             issues += 1
 
     # Filter out files we have no checker for.
     patterns = set()
     patterns.update(StyleChecker.all_patterns())
     patterns.update(Formatter.all_patterns())
-    files = [f for f in commit.files() if len(
-        [p for p in patterns if fnmatch.fnmatch(os.path.basename(f), p)])]
+    files = [f for f in commit.files() if len([p for p in patterns if fnmatch.fnmatch(os.path.basename(f), p)])]
 
     for f in files:
         issues += check_file(top_level, commit, f)
@@ -650,16 +666,14 @@ def check_style(top_level, commit):
         print("No issue detected")
     else:
         print('---')
-        print("%u potential %s detected, please review" %
-              (issues, 'issue' if issues == 1 else 'issues'))
+        print("%u potential %s detected, please review" % (issues, 'issue' if issues == 1 else 'issues'))
 
     return issues
 
 
 def extract_commits(revs):
     """Extract a list of commits on which to operate from a revision or revision range."""
-    ret = subprocess.run(['git', 'rev-parse', revs], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+    ret = subprocess.run(['git', 'rev-parse', revs], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         print(ret.stderr.decode('utf-8').splitlines()[0])
         return []
@@ -669,8 +683,7 @@ def extract_commits(revs):
     # If the revlist contains more than one item, pass it to git rev-list to list
     # each commit individually.
     if len(revlist) > 1:
-        ret = subprocess.run(['git', 'rev-list', *revlist],
-                             stdout=subprocess.PIPE)
+        ret = subprocess.run(['git', 'rev-list', *revlist], stdout=subprocess.PIPE)
         revlist = ret.stdout.decode('utf-8').splitlines()
         revlist.reverse()
 
@@ -679,9 +692,7 @@ def extract_commits(revs):
 
 def git_top_level():
     """Get the absolute path of the git top-level directory."""
-    ret = subprocess.run(['git', 'rev-parse', '--show-toplevel'],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+    ret = subprocess.run(['git', 'rev-parse', '--show-toplevel'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         print(ret.stderr.decode('utf-8').splitlines()[0])
         return None
@@ -690,15 +701,22 @@ def git_top_level():
 
 
 def main(argv):
-
     # Parse command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--staged', '-s', action='store_true',
-                        help='Include the changes in the index. Defaults to False')
-    parser.add_argument('--amend', '-a', action='store_true',
-                        help='Include changes in the index and the previous patch combined. Defaults to False')
-    parser.add_argument('revision_range', type=str, default=None, nargs='?',
-                        help='Revision range (as defined by git rev-parse). Defaults to HEAD if not specified.')
+    parser.add_argument('--staged', '-s', action='store_true', help='Include the changes in the index. Defaults to False')
+    parser.add_argument(
+        '--amend',
+        '-a',
+        action='store_true',
+        help='Include changes in the index and the previous patch combined. Defaults to False',
+    )
+    parser.add_argument(
+        'revision_range',
+        type=str,
+        default=None,
+        nargs='?',
+        help='Revision range (as defined by git rev-parse). Defaults to HEAD if not specified.',
+    )
     args = parser.parse_args(argv[1:])
 
     # Check for required dependencies.

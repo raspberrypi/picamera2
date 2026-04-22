@@ -7,8 +7,7 @@ import numpy as np
 from picamera2 import CompletedRequest, MappedArray, Picamera2
 from picamera2.devices.imx500 import IMX500, NetworkIntrinsics
 from picamera2.devices.imx500.postprocess import COCODrawer
-from picamera2.devices.imx500.postprocess_highernet import \
-    postprocess_higherhrnet
+from picamera2.devices.imx500.postprocess_highernet import postprocess_higherhrnet
 
 last_boxes = None
 last_scores = None
@@ -21,12 +20,14 @@ def ai_output_tensor_parse(metadata: dict):
     global last_boxes, last_scores, last_keypoints
     np_outputs = imx500.get_outputs(metadata=metadata, add_batch=True)
     if np_outputs is not None:
-        keypoints, scores, boxes = postprocess_higherhrnet(outputs=np_outputs,
-                                                           img_size=WINDOW_SIZE_H_W,
-                                                           img_w_pad=(0, 0),
-                                                           img_h_pad=(0, 0),
-                                                           detection_threshold=args.detection_threshold,
-                                                           network_postprocess=True)
+        keypoints, scores, boxes = postprocess_higherhrnet(
+            outputs=np_outputs,
+            img_size=WINDOW_SIZE_H_W,
+            img_w_pad=(0, 0),
+            img_h_pad=(0, 0),
+            detection_threshold=args.detection_threshold,
+            network_postprocess=True,
+        )
 
         if scores is not None and len(scores) > 0:
             last_keypoints = np.reshape(np.stack(keypoints, axis=0), (len(scores), 17, 3))
@@ -39,9 +40,18 @@ def ai_output_tensor_draw(request: CompletedRequest, boxes, scores, keypoints, s
     """Draw the detections for this request onto the ISP output."""
     with MappedArray(request, stream) as m:
         if boxes is not None and len(boxes) > 0:
-            drawer.annotate_image(m.array, boxes, scores,
-                                  np.zeros(scores.shape), keypoints, args.detection_threshold,
-                                  args.detection_threshold, request.get_metadata(), picam2, stream)
+            drawer.annotate_image(
+                m.array,
+                boxes,
+                scores,
+                np.zeros(scores.shape),
+                keypoints,
+                args.detection_threshold,
+                args.detection_threshold,
+                request.get_metadata(),
+                picam2,
+                stream,
+            )
 
 
 def picamera2_pre_callback(request: CompletedRequest):
@@ -52,15 +62,13 @@ def picamera2_pre_callback(request: CompletedRequest):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/usr/share/imx500-models/imx500_network_higherhrnet_coco.rpk")
+    parser.add_argument(
+        "--model", type=str, help="Path of the model", default="/usr/share/imx500-models/imx500_network_higherhrnet_coco.rpk"
+    )
     parser.add_argument("--fps", type=int, help="Frames per second")
-    parser.add_argument("--detection-threshold", type=float, default=0.3,
-                        help="Post-process detection threshold")
-    parser.add_argument("--labels", type=str,
-                        help="Path to the labels file")
-    parser.add_argument("--print-intrinsics", action="store_true",
-                        help="Print JSON network_intrinsics then exit")
+    parser.add_argument("--detection-threshold", type=float, default=0.3, help="Post-process detection threshold")
+    parser.add_argument("--labels", type=str, help="Path to the labels file")
+    parser.add_argument("--print-intrinsics", action="store_true", help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 

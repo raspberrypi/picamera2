@@ -12,10 +12,9 @@ import numpy as np
 from picamera2.devices.imx500.postprocess import combined_nms, softmax
 
 
-def postprocess_nanodet_detection(outputs,
-                                  conf: float = 0.0,
-                                  iou_thres: float = 0.65,
-                                  max_out_dets: int = 300) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def postprocess_nanodet_detection(
+    outputs, conf: float = 0.0, iou_thres: float = 0.65, max_out_dets: int = 300
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     reg_max = 7
     num_categories = 80
     classes = outputs[..., :num_categories]

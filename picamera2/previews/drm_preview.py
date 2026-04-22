@@ -17,7 +17,7 @@ from libcamera import Transform
 from picamera2.previews.null_preview import *
 
 
-class DrmManager():
+class DrmManager:
     def __init__(self):
         self.lock = threading.Lock()
         self.use_count = 0
@@ -91,7 +91,7 @@ class DrmPreview(NullPreview):
             if self.current and self.own_current:
                 self.current.release()
             self.current = completed_request
-            self.own_current = (completed_request.config['buffer_count'] > 1)
+            self.own_current = completed_request.config['buffer_count'] > 1
             if self.own_current:
                 self.current.acquire()
 
@@ -220,10 +220,9 @@ class DrmPreview(NullPreview):
                     h2 = height // 2
                     stride2 = stride // 2
                     size = height * stride
-                    drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt,
-                                                    [fd, fd, fd],
-                                                    [stride, stride2, stride2],
-                                                    [0, size, size + h2 * stride2])
+                    drmfb = pykms.DmabufFramebuffer(
+                        self.card, width, height, fmt, [fd, fd, fd], [stride, stride2, stride2], [0, size, size + h2 * stride2]
+                    )
                 else:
                     drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
                 self.drmfbs[fb] = drmfb

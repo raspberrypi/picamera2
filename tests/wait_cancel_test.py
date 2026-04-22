@@ -30,7 +30,7 @@ with Picamera2() as picam2:
     t2 = time.monotonic()
     print("Stopping took", t2 - t1, "seconds")
     if t2 - t1 > 0.1:
-        print(f"ERROR: stopping took too long ({t2-t1} seconds)")
+        print(f"ERROR: stopping took too long ({t2 - t1} seconds)")
 
 with Picamera2() as picam2:
     config = picam2.create_preview_configuration(controls=controls)

@@ -38,11 +38,13 @@ class V4L2Encoder(Encoder):
     @property
     def _v4l2_format(self):
         """The input format to the codec, as a V4L2 type."""
-        FORMAT_TABLE = {"RGB888": V4L2_PIX_FMT_BGR24,
-                        "BGR888": V4L2_PIX_FMT_RGB24,
-                        "XBGR8888": V4L2_PIX_FMT_BGR32,
-                        "XRGB8888": V4L2_PIX_FMT_RGBA32,
-                        "YUV420": V4L2_PIX_FMT_YUV420}
+        FORMAT_TABLE = {
+            "RGB888": V4L2_PIX_FMT_BGR24,
+            "BGR888": V4L2_PIX_FMT_RGB24,
+            "XBGR8888": V4L2_PIX_FMT_BGR32,
+            "XRGB8888": V4L2_PIX_FMT_RGBA32,
+            "YUV420": V4L2_PIX_FMT_YUV420,
+        }
         if self._format not in FORMAT_TABLE:
             raise RuntimeError("Unrecognised format", self._format, "for V4L2")
         return FORMAT_TABLE[self._format]
@@ -141,10 +143,16 @@ class V4L2Encoder(Encoder):
             buffer.length = 1
             buffer.m.planes = planes
             fcntl.ioctl(self.vd, VIDIOC_QUERYBUF, buffer)
-            self.bufs[i] = (mmap.mmap(self.vd.fileno(), buffer.m.planes[0].length,
-                                      mmap.PROT_READ | mmap.PROT_WRITE,
-                                      mmap.MAP_SHARED, offset=buffer.m.planes[0].m.mem_offset),
-                            buffer.m.planes[0].length)
+            self.bufs[i] = (
+                mmap.mmap(
+                    self.vd.fileno(),
+                    buffer.m.planes[0].length,
+                    mmap.PROT_READ | mmap.PROT_WRITE,
+                    mmap.MAP_SHARED,
+                    offset=buffer.m.planes[0].m.mem_offset,
+                ),
+                buffer.m.planes[0].length,
+            )
             fcntl.ioctl(self.vd, VIDIOC_QBUF, buffer)
 
         typev = v4l2_buf_type(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)

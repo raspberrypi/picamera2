@@ -83,15 +83,15 @@ def combined_nms(batch_boxes, batch_scores, iou_thres: float = 0.65, conf: float
     return nms_results
 
 
-def combined_nms_seg(batch_boxes, batch_scores, batch_masks, iou_thres: float = 0.5, conf: float = 0.001,
-                     max_out_dets: int = 300):
+def combined_nms_seg(
+    batch_boxes, batch_scores, batch_masks, iou_thres: float = 0.5, conf: float = 0.001, max_out_dets: int = 300
+):
     nms_results = []
     for boxes, scores, masks in zip(batch_boxes, batch_scores, batch_masks):
         # Compute maximum scores and corresponding class indices
         class_indices = np.argmax(scores, axis=1)
         max_scores = np.amax(scores, axis=1)
-        detections = np.concatenate([boxes, np.expand_dims(max_scores, axis=1), np.expand_dims(class_indices, axis=1)],
-                                    axis=1)
+        detections = np.concatenate([boxes, np.expand_dims(max_scores, axis=1), np.expand_dims(class_indices, axis=1)], axis=1)
 
         # Swap the position of the two dimensions (32, 8400) to (8400, 32)
         masks = np.transpose(masks, (1, 0))
@@ -101,7 +101,6 @@ def combined_nms_seg(batch_boxes, batch_scores, batch_masks, iou_thres: float = 
         if np.all(valid_detections is False):
             nms_results.append((np.ndarray(0), np.ndarray(0), np.ndarray(0), np.ndarray(0)))
         else:
-
             detections = detections[valid_detections]
             masks = masks[valid_detections]
 
@@ -198,8 +197,15 @@ def clip_boxes(boxes: np.ndarray, h: int, w: int) -> np.ndarray:
     return boxes
 
 
-def scale_boxes(boxes: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int, preserve_aspect_ratio: bool,
-                normalized: bool = True) -> np.ndarray:
+def scale_boxes(
+    boxes: np.ndarray,
+    h_image: int,
+    w_image: int,
+    h_model: int,
+    w_model: int,
+    preserve_aspect_ratio: bool,
+    normalized: bool = True,
+) -> np.ndarray:
     """
     Scale and offset bounding boxes based on model output size and original image size.
 
@@ -239,8 +245,9 @@ def scale_boxes(boxes: np.ndarray, h_image: int, w_image: int, h_model: int, w_m
     return boxes
 
 
-def scale_coords(kpts: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int,
-                 preserve_aspect_ratio: bool) -> np.ndarray:
+def scale_coords(
+    kpts: np.ndarray, h_image: int, w_image: int, h_model: int, w_model: int, preserve_aspect_ratio: bool
+) -> np.ndarray:
     """
     Scale and offset keypoints based on model output size and original image size.
 
@@ -309,7 +316,7 @@ PARTS = {
     13: 'KneeL',
     14: 'KneeR',
     15: 'AnkleL',
-    16: 'AnkleR'
+    16: 'AnkleR',
 }
 
 
@@ -344,12 +351,14 @@ class COCODrawer:
             y0, x0, _, _ = self.get_coords((y0, x0, y0 + 1, x0 + 1), metadata, picam2, stream)
             return x0, y0
 
+        # fmt: off
         skeleton = [
             [0, 1], [0, 2], [1, 3], [2, 4],  # Head
             [5, 6], [5, 7], [7, 9], [6, 8],  # Arms
             [8, 10], [5, 11], [6, 12], [11, 12],  # Body
-            [11, 13], [12, 14], [13, 15], [14, 16]  # Legs
+            [11, 13], [12, 14], [13, 15], [14, 16],  # Legs
         ]
+        # fmt: on
 
         # Draw skeleton lines
         for connection in skeleton:

@@ -9,37 +9,40 @@ from typing import Tuple
 
 import numpy as np
 
-from picamera2.devices.imx500.postprocess import (
-    BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms)
+from picamera2.devices.imx500.postprocess import BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms
 from picamera2.devices.imx500.postprocess_yolov5 import coco80_to_coco91
 
 default_box_variance = [1.0, 1.0, 1.0, 1.0]
 default_aspect_ratios = [1.0, 2.0, 0.5]
 
 
-def postprocess_efficientdet_lite0_detection(outputs: Tuple[np.ndarray, np.ndarray, np.ndarray],
-                                             anchor_scale=3,
-                                             min_level=3,
-                                             max_level=7,
-                                             box_variance=default_box_variance,
-                                             model_input_shape=(320, 320),
-                                             min_wh=2,
-                                             max_wh=7680,
-                                             conf_thres: float = 0.001,
-                                             iou_thres: float = 0.65,
-                                             max_nms_dets: int = 5000,
-                                             max_out_dets: int = 1000):
+def postprocess_efficientdet_lite0_detection(
+    outputs: Tuple[np.ndarray, np.ndarray, np.ndarray],
+    anchor_scale=3,
+    min_level=3,
+    max_level=7,
+    box_variance=default_box_variance,
+    model_input_shape=(320, 320),
+    min_wh=2,
+    max_wh=7680,
+    conf_thres: float = 0.001,
+    iou_thres: float = 0.65,
+    max_nms_dets: int = 5000,
+    max_out_dets: int = 1000,
+):
     H, W = model_input_shape
     ############################################################
     # Box decoding
     ############################################################
-    outputs_decoded = box_decoding_edetlite(output_annotations=outputs,
-                                            H=H,
-                                            W=W,
-                                            anchor_scale=anchor_scale,
-                                            min_level=min_level,
-                                            max_level=max_level,
-                                            box_variance=box_variance)
+    outputs_decoded = box_decoding_edetlite(
+        output_annotations=outputs,
+        H=H,
+        W=W,
+        anchor_scale=anchor_scale,
+        min_level=min_level,
+        max_level=max_level,
+        box_variance=box_variance,
+    )
 
     classes = outputs[0]
     num_categories = classes.shape[-1]
@@ -98,13 +101,9 @@ def postprocess_efficientdet_lite0_detection(outputs: Tuple[np.ndarray, np.ndarr
     return post_processed_outputs[0]['boxes'], post_processed_outputs[0]['scores'], post_processed_outputs[0]['classes']
 
 
-def box_decoding_edetlite(output_annotations,
-                          H=320,
-                          W=320,
-                          anchor_scale=3,
-                          min_level=3,
-                          max_level=7,
-                          box_variance=default_box_variance):
+def box_decoding_edetlite(
+    output_annotations, H=320, W=320, anchor_scale=3, min_level=3, max_level=7, box_variance=default_box_variance
+):
     # -----------------------------------------------
     # EfficientDetLite detection post processing
     # -----------------------------------------------
@@ -123,18 +122,20 @@ def box_decoding_edetlite(output_annotations,
     # Anchor boxes format: [y_min, x_min, y_max, x_max] normalized
 
     # Extract feature map sizes
-    strides = [2 ** i for i in range(max_level + 1)]
+    strides = [2**i for i in range(max_level + 1)]
     featmap_sizes = [(np.ceil(H / stride), np.ceil(W / stride)) for stride in strides]
 
     # Generate priors
     batch_size = outputs.shape[0]
-    anchors = generate_anchors_EDETLITE(batch_size=batch_size,
-                                        featmap_sizes=featmap_sizes,
-                                        H=H,
-                                        W=W,
-                                        anchor_scale=anchor_scale,
-                                        min_level=min_level,
-                                        max_level=max_level)
+    anchors = generate_anchors_EDETLITE(
+        batch_size=batch_size,
+        featmap_sizes=featmap_sizes,
+        H=H,
+        W=W,
+        anchor_scale=anchor_scale,
+        min_level=min_level,
+        max_level=max_level,
+    )
 
     # Decode bboxes
     y_c_anchors = (anchors[..., 0:1] + anchors[..., 2:3]) / 2
@@ -155,14 +156,9 @@ def box_decoding_edetlite(output_annotations,
     return outputs
 
 
-def generate_anchors_EDETLITE(batch_size,
-                              featmap_sizes,
-                              H=320,
-                              W=320,
-                              anchor_scale=3,
-                              min_level=3,
-                              max_level=7,
-                              aspect_ratios=default_aspect_ratios):
+def generate_anchors_EDETLITE(
+    batch_size, featmap_sizes, H=320, W=320, anchor_scale=3, min_level=3, max_level=7, aspect_ratios=default_aspect_ratios
+):
     """Generate configurations of anchor boxes."""
     anchor_scales = [anchor_scale] * (max_level - min_level + 1)
     num_scales = len(aspect_ratios)
@@ -172,10 +168,16 @@ def generate_anchors_EDETLITE(batch_size,
         for scale_octave in range(num_scales):
             for aspect in aspect_ratios:
                 anchor_configs[level].append(
-                    ((featmap_sizes[0][0] / float(featmap_sizes[level][0]),
-                      featmap_sizes[0][1] / float(featmap_sizes[level][1])),
-                     scale_octave / float(num_scales), aspect,
-                     anchor_scales[level - min_level]))
+                    (
+                        (
+                            featmap_sizes[0][0] / float(featmap_sizes[level][0]),
+                            featmap_sizes[0][1] / float(featmap_sizes[level][1]),
+                        ),
+                        scale_octave / float(num_scales),
+                        aspect,
+                        anchor_scales[level - min_level],
+                    )
+                )
 
     """Generates multiscale anchor boxes."""
     boxes_all = []
@@ -183,8 +185,8 @@ def generate_anchors_EDETLITE(batch_size,
         boxes_level = []
         for config in configs:
             stride, octave_scale, aspect, anchor_scale = config
-            base_anchor_size_x = anchor_scale * stride[1] * 2 ** octave_scale
-            base_anchor_size_y = anchor_scale * stride[0] * 2 ** octave_scale
+            base_anchor_size_x = anchor_scale * stride[1] * 2**octave_scale
+            base_anchor_size_y = anchor_scale * stride[0] * 2**octave_scale
             if isinstance(aspect, list):
                 aspect_x, aspect_y = aspect
             else:
@@ -199,8 +201,7 @@ def generate_anchors_EDETLITE(batch_size,
             xv = xv.reshape(-1)
             yv = yv.reshape(-1)
 
-            boxes = np.vstack((yv - anchor_size_y_2, xv - anchor_size_x_2,
-                               yv + anchor_size_y_2, xv + anchor_size_x_2))
+            boxes = np.vstack((yv - anchor_size_y_2, xv - anchor_size_x_2, yv + anchor_size_y_2, xv + anchor_size_x_2))
             boxes = np.swapaxes(boxes, 0, 1)
             boxes_level.append(np.expand_dims(boxes, axis=1))
 

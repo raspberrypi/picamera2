@@ -3,8 +3,7 @@
 from libcamera import controls
 from PyQt5 import QtCore
 from PyQt5.QtGui import QPalette
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
-                             QPushButton, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import QApplication, QCheckBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from picamera2 import Picamera2
 from picamera2.previews.qt import QGlPicamera2

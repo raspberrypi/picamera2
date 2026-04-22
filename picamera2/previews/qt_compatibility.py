@@ -38,5 +38,5 @@ def _get_qt_modules(qt_module: _QT_BINDING) -> tuple[ModuleType, ModuleType, Mod
             QtCoreModule.pyqtSlot = QtCoreModule.Slot
 
         return (QtCoreModule, QtGuiModule, QtWidgetsModule)
-    except ImportError:
-        raise ImportError(f'{qt_module} is not installed or could not be imported.')
+    except ImportError as e:
+        raise ImportError(f'{qt_module} is not installed or could not be imported.') from e

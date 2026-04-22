@@ -23,7 +23,6 @@ print("Biggest mode:", max_mode)
 print("Smallest mode:", min_mode)
 
 if max_mode['size'] != min_mode['size']:
-
     picam2.still_configuration.main.size = min_mode['size']
     picam2.still_configuration.raw.size = min_mode['size']
     picam2.still_configuration.raw.format = min_mode['format'].format

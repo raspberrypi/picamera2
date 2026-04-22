@@ -50,7 +50,7 @@ class Model:
         if len(image.shape) == 2:
             # Image is YUV420. Must convert and trim off any padding.
             image = cv2.cvtColor(image, cv2.COLOR_YUV420p2RGB)
-        image = image[:self.height, :self.width]
+        image = image[: self.height, : self.width]
         input_data = np.expand_dims(image, axis=0)
         if self.floating_model:
             input_data = np.float32(input_data / 255)
@@ -116,8 +116,9 @@ def main():
     captured = []
 
     picam2 = Picamera2()
-    config = picam2.create_preview_configuration(main={"size": NORMAL_SIZE},
-                                                 lores={"size": LOWRES_SIZE, "format": lowres_format})
+    config = picam2.create_preview_configuration(
+        main={"size": NORMAL_SIZE}, lores={"size": LOWRES_SIZE, "format": lowres_format}
+    )
     picam2.configure(config)
 
     picam2.start(show_preview=True)

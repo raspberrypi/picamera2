@@ -14,52 +14,54 @@ import numpy as np
 
 try:
     from munkres import Munkres
-except ImportError:
-    raise ImportError("Please install munkres first. `pip3 install --break-system-packages munkres`")
+except ImportError as e:
+    raise ImportError("Please install munkres first. `pip3 install --break-system-packages munkres`") from e
 
 default_joint_order = [0, 1, 2, 3, 4, 5, 6, 11, 12, 7, 8, 9, 10, 13, 14, 15, 16]
 
 
-def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
-                            img_size,
-                            img_w_pad,
-                            img_h_pad,
-                            network_postprocess,
-                            num_joints=17,
-                            tag_per_joint=True,
-                            joint_order=default_joint_order,
-                            detection_threshold=0.3,
-                            max_num_people=30,
-                            nms_kernel=5,
-                            nms_padding=2,
-                            ignore_too_much=False,
-                            use_detection_val=True,
-                            tag_threshold=1.0,
-                            adjust=False,
-                            refine=False,
-                            input_image_size=(288, 384),
-                            output_shape=(144, 192)) -> Tuple[list[list], list, list[list]]:
+def postprocess_higherhrnet(
+    outputs: list[np.ndarray, np.ndarray],
+    img_size,
+    img_w_pad,
+    img_h_pad,
+    network_postprocess,
+    num_joints=17,
+    tag_per_joint=True,
+    joint_order=default_joint_order,
+    detection_threshold=0.3,
+    max_num_people=30,
+    nms_kernel=5,
+    nms_padding=2,
+    ignore_too_much=False,
+    use_detection_val=True,
+    tag_threshold=1.0,
+    adjust=False,
+    refine=False,
+    input_image_size=(288, 384),
+    output_shape=(144, 192),
+) -> Tuple[list[list], list, list[list]]:
     all_preds = []
     all_scores = []
     if network_postprocess:
         # outputs [[B, max_num_people, num_joints], [B, max_num_people, num_joints], [B, max_num_people, num_joints]]
-        grouped, scores = parse(network_outputs=[outputs[0][0, ...],
-                                                 outputs[1][0, ...],
-                                                 outputs[2][0, ...]],
-                                output_shape=output_shape,
-                                adjust=adjust,
-                                refine=refine,
-                                network_postprocess=network_postprocess,
-                                tag_per_joint=tag_per_joint,
-                                max_num_people=max_num_people,
-                                nms_kernel=nms_kernel,
-                                nms_padding=nms_padding,
-                                num_joints=num_joints,
-                                joint_order=joint_order,
-                                detection_threshold=detection_threshold,
-                                ignore_too_much=ignore_too_much,
-                                use_detection_val=use_detection_val,
-                                tag_threshold=tag_threshold)
+        grouped, scores = parse(
+            network_outputs=[outputs[0][0, ...], outputs[1][0, ...], outputs[2][0, ...]],
+            output_shape=output_shape,
+            adjust=adjust,
+            refine=refine,
+            network_postprocess=network_postprocess,
+            tag_per_joint=tag_per_joint,
+            max_num_people=max_num_people,
+            nms_kernel=nms_kernel,
+            nms_padding=nms_padding,
+            num_joints=num_joints,
+            joint_order=joint_order,
+            detection_threshold=detection_threshold,
+            ignore_too_much=ignore_too_much,
+            use_detection_val=use_detection_val,
+            tag_threshold=tag_threshold,
+        )
     else:
         out0 = outputs[0][0]
         out1 = outputs[1][0]
@@ -70,21 +72,23 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
         # average heatmaps from both outputs
         heatmaps = (out0[..., :17] + out1) / 2
         tags = out0[..., 17:]
-        grouped, scores = parse(network_outputs=[heatmaps, tags],
-                                output_shape=output_shape,
-                                adjust=adjust,
-                                refine=refine,
-                                network_postprocess=network_postprocess,
-                                tag_per_joint=tag_per_joint,
-                                max_num_people=max_num_people,
-                                nms_kernel=nms_kernel,
-                                nms_padding=nms_padding,
-                                num_joints=num_joints,
-                                joint_order=joint_order,
-                                detection_threshold=detection_threshold,
-                                ignore_too_much=ignore_too_much,
-                                use_detection_val=use_detection_val,
-                                tag_threshold=tag_threshold)
+        grouped, scores = parse(
+            network_outputs=[heatmaps, tags],
+            output_shape=output_shape,
+            adjust=adjust,
+            refine=refine,
+            network_postprocess=network_postprocess,
+            tag_per_joint=tag_per_joint,
+            max_num_people=max_num_people,
+            nms_kernel=nms_kernel,
+            nms_padding=nms_padding,
+            num_joints=num_joints,
+            joint_order=joint_order,
+            detection_threshold=detection_threshold,
+            ignore_too_much=ignore_too_much,
+            use_detection_val=use_detection_val,
+            tag_threshold=tag_threshold,
+        )
 
     # scale keypoints coordinates to input image size
     scale_factor = (np.array(input_image_size) / output_shape).reshape((1, 1, 2))
@@ -96,17 +100,13 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
             grouped[img_index][:, :, 0] = grouped[img_index][:, :, 0] - img_w_pad[0]
             grouped[img_index][:, :, 1] = grouped[img_index][:, :, 1] - img_h_pad[0]
             # rescale to original image size
-            resized_input_image = np.array(input_image_size) - np.array(
-                (sum(img_h_pad),
-                 sum(img_w_pad)))
+            resized_input_image = np.array(input_image_size) - np.array((sum(img_h_pad), sum(img_w_pad)))
             s = (np.array(img_size) / resized_input_image).reshape((1, 1, 2))
             grouped[img_index][:, :, :2] = grouped[img_index][:, :, :2] * s
 
     # Calculate zero keypoint
     zero_kpt = np.zeros((1, 4))
-    resized_input_image = np.array(input_image_size) - np.array(
-        (sum(img_h_pad),
-         sum(img_w_pad)))
+    resized_input_image = np.array(input_image_size) - np.array((sum(img_h_pad), sum(img_w_pad)))
     s = (np.array(img_size) / resized_input_image).reshape((1, 1, 2))
     zero_kpt[:, 0] = zero_kpt[:, 0] - img_w_pad[0]
     zero_kpt[:, 1] = zero_kpt[:, 1] - img_h_pad[0]
@@ -122,14 +122,7 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
             area = (np.max(kpt[:, 0]) - np.min(kpt[:, 0])) * (np.max(kpt[:, 1]) - np.min(kpt[:, 1]))
             # kpt [17, 4]
             kpt = processKeypoints(kpt)
-            kpts.append(
-                {
-                    'keypoints': kpt[:, 0:3],
-                    'score': all_scores[idx][idx_kpt],
-                    'tags': kpt[:, 3],
-                    'area': area
-                }
-            )
+            kpts.append({'keypoints': kpt[:, 0:3], 'score': all_scores[idx][idx_kpt], 'tags': kpt[:, 3], 'area': area})
     # _coco_keypoint_results_one_category_kernel
     out_keypoints = []
     out_scores = []
@@ -140,13 +133,8 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
     if len(img_kpts) == 0:
         return [], [], []
 
-    _key_points = np.array(
-        [img_kpts[k]['keypoints'] for k in range(len(img_kpts))]
-    )
-    key_points = np.zeros(
-        (_key_points.shape[0], num_joints * 3),
-        dtype=np.float32
-    )
+    _key_points = np.array([img_kpts[k]['keypoints'] for k in range(len(img_kpts))])
+    key_points = np.zeros((_key_points.shape[0], num_joints * 3), dtype=np.float32)
 
     for ipt in range(num_joints):
         key_points[:, ipt * 3 + 0] = _key_points[:, ipt, 0]
@@ -167,55 +155,57 @@ def postprocess_higherhrnet(outputs: list[np.ndarray, np.ndarray],
     return out_keypoints, out_scores, out_bbox
 
 
-def parse(network_outputs,
-          output_shape,
-          adjust=False,
-          refine=False,
-          network_postprocess=False,
-          tag_per_joint=17,
-          max_num_people=30,
-          nms_kernel=5,
-          nms_padding=2,
-          num_joints=17,
-          joint_order=default_joint_order,
-          detection_threshold=0.1,
-          ignore_too_much=False,
-          use_detection_val=True,
-          tag_threshold=1.0
-          ):
+def parse(
+    network_outputs,
+    output_shape,
+    adjust=False,
+    refine=False,
+    network_postprocess=False,
+    tag_per_joint=17,
+    max_num_people=30,
+    nms_kernel=5,
+    nms_padding=2,
+    num_joints=17,
+    joint_order=default_joint_order,
+    detection_threshold=0.1,
+    ignore_too_much=False,
+    use_detection_val=True,
+    tag_threshold=1.0,
+):
     if network_postprocess:
         tag_k, ind_k, val_k = network_outputs
         x = ind_k % output_shape[1]
         y = (ind_k / output_shape[1]).astype(ind_k.dtype)
         ind_k = np.stack([x, y], axis=2)
 
-        topk_output_dict = {'tag_k': tag_k[np.newaxis, ...],
-                            'loc_k': ind_k[np.newaxis, ...],
-                            'val_k': val_k[np.newaxis, ...],
-                            }
+        topk_output_dict = {'tag_k': tag_k[np.newaxis, ...], 'loc_k': ind_k[np.newaxis, ...], 'val_k': val_k[np.newaxis, ...]}
     else:
         det, tag = network_outputs
         # topk_output_dict
         # {'tag_k': [num_images, max_num_people, num_joints],
         # 'loc_k': [num_images, max_num_people, num_joints, 2],
         # 'val_k': [num_images, max_num_people, num_joints]}
-        topk_output_dict = top_k(det=det,
-                                 tag=tag,
-                                 tag_per_joint=tag_per_joint,
-                                 max_num_people=max_num_people,
-                                 nms_kernel=nms_kernel,
-                                 nms_padding=nms_padding)
+        topk_output_dict = top_k(
+            det=det,
+            tag=tag,
+            tag_per_joint=tag_per_joint,
+            max_num_people=max_num_people,
+            nms_kernel=nms_kernel,
+            nms_padding=nms_padding,
+        )
     # ans [num_joints_detected, num_joints, 4]
-    ans = match(tag_k=topk_output_dict['tag_k'],
-                loc_k=topk_output_dict['loc_k'],
-                val_k=topk_output_dict['val_k'],
-                num_joints=num_joints,
-                joint_order=joint_order,
-                detection_threshold=detection_threshold,
-                max_num_people=max_num_people,
-                ignore_too_much=ignore_too_much,
-                use_detection_val=use_detection_val,
-                tag_threshold=tag_threshold)
+    ans = match(
+        tag_k=topk_output_dict['tag_k'],
+        loc_k=topk_output_dict['loc_k'],
+        val_k=topk_output_dict['val_k'],
+        num_joints=num_joints,
+        joint_order=joint_order,
+        detection_threshold=detection_threshold,
+        max_num_people=max_num_people,
+        ignore_too_much=ignore_too_much,
+        use_detection_val=use_detection_val,
+        tag_threshold=tag_threshold,
+    )
     if adjust:
         # ans [[num_joints_detected, num_joints, 4]]
         ans = adjust_func(ans, det[np.newaxis, ...])  # TODO support batch size > 1
@@ -239,19 +229,12 @@ def ResizeBilinear(img, new_height, new_width):
     return cv2.resize(img, (new_width, new_height))
 
 
-def top_k(det,
-          tag,
-          tag_per_joint=17,
-          max_num_people=30,
-          nms_kernel=5,
-          nms_padding=2):
+def top_k(det, tag, tag_per_joint=17, max_num_people=30, nms_kernel=5, nms_padding=2):
     # det [144, 192, 17]
     # tag [144, 192, 17]
 
     # det [144, 192, 17]
-    det = nms(det,
-              nms_kernel=nms_kernel,
-              nms_padding=nms_padding)
+    det = nms(det, nms_kernel=nms_kernel, nms_padding=nms_padding)
     # num_images 1
     # h 144
     # w 192
@@ -286,15 +269,10 @@ def top_k(det,
     # {'tag_k': [num_images, max_num_people, num_joints],
     # 'loc_k': [num_images, max_num_people, num_joints, 2],
     # 'val_k': [num_images, max_num_people, num_joints]}
-    return {'tag_k': tag_k,
-            'loc_k': ind_k,
-            'val_k': val_k,
-            }
+    return {'tag_k': tag_k, 'loc_k': ind_k, 'val_k': val_k}
 
 
-def nms(det,
-        nms_kernel=5,
-        nms_padding=2):
+def nms(det, nms_kernel=5, nms_padding=2):
     # det [144, 192, 17]
     # maxm [144, 192, 17]
     maxm = np_max_pool(det, k=nms_kernel, p=nms_padding)
@@ -303,10 +281,7 @@ def nms(det,
     return det
 
 
-def np_max_pool(x,
-                k=5,
-                p=2,
-                p_value=0):
+def np_max_pool(x, k=5, p=2, p_value=0):
     # x [144, 192, 17]
     # k - kernel size (h, w)
     # p - padding size (top, bottom, left, right)
@@ -320,9 +295,23 @@ def np_max_pool(x,
     # y [148, 196, 17
     y = np.pad(x, p)
     out = np.concatenate(
-        [np.max(np.concatenate([y[ky:ky + y.shape[0] - k[0] + 1, kx:kx + y.shape[1] - k[1] + 1, c:c + 1]
-                                for ky in range(k[0])
-                                for kx in range(k[1])], 2), axis=2, keepdims=True) for c in range(y.shape[2])], 2)
+        [
+            np.max(
+                np.concatenate(
+                    [
+                        y[ky : ky + y.shape[0] - k[0] + 1, kx : kx + y.shape[1] - k[1] + 1, c : c + 1]
+                        for ky in range(k[0])
+                        for kx in range(k[1])
+                    ],
+                    2,
+                ),
+                axis=2,
+                keepdims=True,
+            )
+            for c in range(y.shape[2])
+        ],
+        2,
+    )
     # out [144, 192, 17]
     return out
 
@@ -340,42 +329,49 @@ def np_topk(x, k):
         for kp in range(n_keypoints):
             # _inds [k]
             _inds = np.argpartition(x[img, :, kp], -k)[-k:]
-            _inds = _inds[np.argsort(x[img, _inds, kp], )][::-1]
+            _inds = _inds[np.argsort(x[img, _inds, kp])][::-1]
             inds[img, :, kp] = _inds
             vals[img, :, kp] = x[img, _inds, kp]
     return vals, inds
 
 
-def match(tag_k,
-          loc_k,
-          val_k,
-          num_joints=17,
-          joint_order=default_joint_order,
-          detection_threshold=0.1,
-          max_num_people=30,
-          ignore_too_much=False,
-          use_detection_val=True,
-          tag_threshold=1.0):
+def match(
+    tag_k,
+    loc_k,
+    val_k,
+    num_joints=17,
+    joint_order=default_joint_order,
+    detection_threshold=0.1,
+    max_num_people=30,
+    ignore_too_much=False,
+    use_detection_val=True,
+    tag_threshold=1.0,
+):
     def m(x):
-        return match_by_tag(inp=x,
-                            num_joints=num_joints,
-                            joint_order=joint_order,
-                            detection_threshold=detection_threshold,
-                            max_num_people=max_num_people,
-                            ignore_too_much=ignore_too_much,
-                            use_detection_val=use_detection_val,
-                            tag_threshold=tag_threshold)
+        return match_by_tag(
+            inp=x,
+            num_joints=num_joints,
+            joint_order=joint_order,
+            detection_threshold=detection_threshold,
+            max_num_people=max_num_people,
+            ignore_too_much=ignore_too_much,
+            use_detection_val=use_detection_val,
+            tag_threshold=tag_threshold,
+        )
+
     return list(map(m, zip(tag_k, loc_k, val_k)))
 
 
-def match_by_tag(inp,
-                 num_joints=17,
-                 joint_order=default_joint_order,
-                 detection_threshold=0.1,
-                 max_num_people=30,
-                 ignore_too_much=False,
-                 use_detection_val=True,
-                 tag_threshold=1.0):
+def match_by_tag(
+    inp,
+    num_joints=17,
+    joint_order=default_joint_order,
+    detection_threshold=0.1,
+    max_num_people=30,
+    ignore_too_much=False,
+    use_detection_val=True,
+    tag_threshold=1.0,
+):
     # tag_k [num_images, max_num_people, num_joints]
     # loc_k [num_images, max_num_people, num_joints, 2]
     # val_k [num_images, max_num_people, num_joints]
@@ -389,9 +385,9 @@ def match_by_tag(inp,
         idx = joint_order[i]
 
         # tags [max_num_people, 1]
-        tags = tag_k[:, idx:idx + 1]
+        tags = tag_k[:, idx : idx + 1]
         # joints [max_num_people, 4]
-        joints = np.concatenate((loc_k[:, idx, :], val_k[:, idx:idx + 1], tags), 1)
+        joints = np.concatenate((loc_k[:, idx, :], val_k[:, idx : idx + 1], tags), 1)
         # mask [max_num_people]
         mask = joints[:, 2] > detection_threshold
         tags = tags[mask]
@@ -409,8 +405,7 @@ def match_by_tag(inp,
             grouped_keys = list(joint_dict.keys())[:max_num_people]
             grouped_tags = [np.mean(tag_dict[i], axis=0) for i in grouped_keys]
 
-            if ignore_too_much \
-                    and len(grouped_keys) == max_num_people:
+            if ignore_too_much and len(grouped_keys) == max_num_people:
                 continue
 
             diff = joints[:, None, 3:] - np.array(grouped_tags)[None, :, :]
@@ -424,28 +419,17 @@ def match_by_tag(inp,
             num_grouped = diff.shape[1]
 
             if num_added > num_grouped:
-                diff_normed = np.concatenate(
-                    (
-                        diff_normed,
-                        np.zeros((num_added, num_added - num_grouped)) + 1e10
-                    ),
-                    axis=1
-                )
+                diff_normed = np.concatenate((diff_normed, np.zeros((num_added, num_added - num_grouped)) + 1e10), axis=1)
 
             pairs = py_max_match(diff_normed)
             for row, col in pairs:
-                if (
-                        row < num_added
-                        and col < num_grouped
-                        and diff_saved[row][col] < tag_threshold
-                ):
+                if row < num_added and col < num_grouped and diff_saved[row][col] < tag_threshold:
                     key = grouped_keys[col]
                     joint_dict[key][idx] = joints[row]
                     tag_dict[key].append(tags[row])
                 else:
                     key = tags[row][0]
-                    joint_dict.setdefault(key, np.copy(default_))[idx] = \
-                        joints[row]
+                    joint_dict.setdefault(key, np.copy(default_))[idx] = joints[row]
                     tag_dict[key] = [tags[row]]
 
     # ans [len(joint_dict), num_joints, 4]
@@ -509,7 +493,7 @@ def refine_func(det, tag, keypoints):
         # score of joints i at all position
         tmp = det[:, :, i]
         # distance of all tag values with mean tag of current detected people
-        tt = (((tag[:, :, i] - prev_tag[None, None, :]) ** 2).sum(axis=2) ** 0.5)
+        tt = ((tag[:, :, i] - prev_tag[None, None, :]) ** 2).sum(axis=2) ** 0.5
         tmp2 = tmp - np.round(tt)
 
         # find maximum position
@@ -553,10 +537,6 @@ def processKeypoints(keypoints):
     if keypoints[:, 2].max() > 0:
         num_keypoints = keypoints.shape[0]
         for i in range(num_keypoints):
-            tmp[i][0:3] = [
-                float(keypoints[i][0]),
-                float(keypoints[i][1]),
-                float(keypoints[i][2])
-            ]
+            tmp[i][0:3] = [float(keypoints[i][0]), float(keypoints[i][1]), float(keypoints[i][2])]
 
     return tmp

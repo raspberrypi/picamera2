@@ -35,8 +35,7 @@ class PersistentAllocator(DmaAllocator):
                 self.mapped_buffers_used,
             )
         else:
-            (self.open_fds, self.libcamera_fds, self.frame_buffers,
-             self.mapped_buffers, self.mapped_buffers_used) = buffers
+            (self.open_fds, self.libcamera_fds, self.frame_buffers, self.mapped_buffers, self.mapped_buffers_used) = buffers
 
     def cleanup(self):
         pass
@@ -49,8 +48,9 @@ class PersistentAllocator(DmaAllocator):
         tmp = super().__new__(DmaAllocator)
         tmp.dmaHeap = None
 
-        (tmp.open_fds, tmp.libcamera_fds, tmp.frame_buffers,
-         tmp.mapped_buffers, tmp.mapped_buffers_used) = self.buffer_dict[buffer_key]
+        (tmp.open_fds, tmp.libcamera_fds, tmp.frame_buffers, tmp.mapped_buffers, tmp.mapped_buffers_used) = self.buffer_dict[
+            buffer_key
+        ]
         tmp.close()
         del self.buffer_dict[buffer_key]
 

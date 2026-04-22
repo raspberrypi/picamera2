@@ -13,10 +13,12 @@ if Picamera2.platform == Platform.VC4:
 
 picam2 = Picamera2()
 
-for m, l in [(False, False), (False, True), (True, False), (True, True)]:
-    cfg = picam2.create_video_configuration(main={"size": (1920, 1080), "format": 'XRGB8888', "preserve_ar": m},
-                                            lores={"size": (320, 320), "format": 'XRGB8888', "preserve_ar": l},
-                                            display="main")
+for m, lo in [(False, False), (False, True), (True, False), (True, True)]:
+    cfg = picam2.create_video_configuration(
+        main={"size": (1920, 1080), "format": 'XRGB8888', "preserve_ar": m},
+        lores={"size": (320, 320), "format": 'XRGB8888', "preserve_ar": lo},
+        display="main",
+    )
     picam2.configure(cfg)
     picam2.start(show_preview=True)
 
