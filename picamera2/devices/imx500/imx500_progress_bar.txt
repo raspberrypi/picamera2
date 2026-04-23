@@ -1,0 +1,41 @@
+HOW TO MAKE THE IMX500 FIRMWARE UPLOAD PROGRESS BAR WORK FOR USERS WITHOUT SUDO PRIVELEGES
+
+These instructions explain how the firmware upload progress bar can be
+made to work for users without sudo priveleges, and who therefore
+can't open the necessary files in /sys/kernel/debug directly.
+
+It works by enabling a couple of small scripts that read these files
+for you, and then we enable them to run for *everyone* with
+password-less sudo.
+
+These instructions will need to be performed by someone with root
+access, but thereafter the progress bar should work for everyone.
+
+1. Fix the file permissions
+
+The two scripts in question are, in this folder:
+
+debug_stream_imx500.sh
+debug_stream_rp2040.sh
+
+First ensure they are owned by root and are non-writable.
+
+sudo chown root:root debug_stream_*
+sudo chmod 755 debug_stream_*
+
+NOTE: Doing this incorrectly exposes your system to security risks!
+
+2. Copy these scripts to /usr/sbin
+
+sudo cp debug_stream_* /usr/sbin
+
+3. Enable password-less sudo for these scripts
+
+Add the following two lines to the bottom of /etc/sudoers:
+
+%video	ALL=(root) NOPASSWD: /usr/sbin/debug_stream_imx500.sh
+%video	ALL=(root) NOPASSWD: /usr/sbin/debug_stream_rp2040.sh
+
+We suggest editing the file using "sudo visudo". This will allow
+members of the "video" group (which will include camera users) to run
+these scripts; or use a different group (or ALL) if you prefer.
