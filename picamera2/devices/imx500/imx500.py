@@ -5,7 +5,9 @@ import json
 import multiprocessing
 import os
 import struct
+import subprocess
 import time
+from enum import IntEnum
 from typing import List, Optional
 
 import Imath
@@ -298,10 +300,13 @@ class NetworkIntrinsics:
 
 
 class IMX500:
+    class FwProgressType(IntEnum):
+        NONE = (0,)  # fw update progress bar not available
+        DIRECT = (1,)  # can read files in /sys/kernel/debug directly
+        INDIRECT = 2  # need to use debug_stream* scripts with passwordless sudo
+
     def __init__(self, network_file: str, camera_id: str = '', tensor_injection: bool = False):
         self.device_fd = None
-        self.fw_progress = None
-        self.fw_progress_chunk = None
         self.__cfg = {'network_file': network_file, 'input_tensor': {}}
 
         imx500_device_id = None
@@ -329,20 +334,23 @@ class IMX500:
         if self.device_fd is None:
             raise RuntimeError('IMX500: Requested camera dev-node not found')
 
-        # Progress status specific debugfs entries. These are cosmetic (they only feed the
-        # firmware upload progress bar), so a PermissionError here must not break IMX500.
-        if imx500_device_id:
-            path = f'/sys/kernel/debug/imx500-fw:{imx500_device_id}/fw_progress'
+        self.imx500_device_id = imx500_device_id
+        self.spi_device_id = spi_device_id
+
+        # Find out how, if at all, we can access the debugfs files that tell us the
+        # firmware upload progress.
+        try:
+            self.fw_progress = IMX500.FwProgressType.DIRECT
+            self._fw_progress_read()
+            self._fw_progress_chunk_read()
+        except subprocess.CalledProcessError:
             try:
-                self.fw_progress = open(path, 'r')
-            except (PermissionError, FileNotFoundError) as err:
-                print(f'IMX500: Unable to open {path} ({err}). Firmware upload progress bar will not be displayed')
-        if spi_device_id:
-            path = f'/sys/kernel/debug/rp2040-spi:{spi_device_id}/transfer_progress'
-            try:
-                self.fw_progress_chunk = open(path, 'r')
-            except (PermissionError, FileNotFoundError) as err:
-                print(f'IMX500: Unable to open {path} ({err}). Firmware upload progress bar will not be displayed')
+                self.fw_progress = IMX500.FwProgressType.INDIRECT
+                self._fw_progress_read()
+                self._fw_progress_chunk_read()
+            except subprocess.CalledProcessError:
+                self.fw_progress = IMX500.FwProgressType.NONE
+                print("IMX500 firmware update progress bar is not available")
 
         if self.config['network_file'] != '':
             if tensor_injection:
@@ -361,6 +369,22 @@ class IMX500:
 
         full_sensor = self.__get_full_sensor_resolution()
         self.set_inference_roi_abs(full_sensor.to_tuple())
+
+    def _fw_progress_read(self):
+        assert self.fw_progress != IMX500.FwProgressType.NONE
+        if self.fw_progress == IMX500.FwProgressType.DIRECT:
+            cmd = ["cat", f"/sys/kernel/debug/imx500-fw:{self.imx500_device_id}/fw_progress"]
+        else:
+            cmd = ["sudo", "-n", "/usr/sbin/debug_stream_imx500.sh", f"{self.imx500_device_id}"]
+        return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True)
+
+    def _fw_progress_chunk_read(self):
+        assert self.fw_progress != IMX500.FwProgressType.NONE
+        if self.fw_progress == IMX500.FwProgressType.DIRECT:
+            cmd = ["cat", f"/sys/kernel/debug/rp2040-spi:{self.spi_device_id}/transfer_progress"]
+        else:
+            cmd = ["sudo", "-n", "/usr/sbin/debug_stream_rp2040.sh", f"{self.spi_device_id}"]
+        return subprocess.check_output(cmd, stderr=subprocess.DEVNULL, text=True)
 
     @staticmethod
     def __get_full_sensor_resolution():
@@ -449,16 +473,13 @@ class IMX500:
         size = 0
         stage = 0
 
-        if self.fw_progress:
-            self.fw_progress.seek(0)
-            progress = self.fw_progress.readline().strip().split()
-            stage = int(progress[0])
-            progress_block = int(progress[1])
-            size = int(progress[2])
+        # We have already checked that we can read this information successfully.
+        progress = self._fw_progress_read().strip().split()
+        stage = int(progress[0])
+        progress_block = int(progress[1])
+        size = int(progress[2])
 
-        if self.fw_progress_chunk:
-            self.fw_progress_chunk.seek(0)
-            progress_chunk = int(self.fw_progress_chunk.readline().strip())
+        progress_chunk = int(self._fw_progress_chunk_read().strip())
 
         if stage == stage_req:
             return (min(progress_block + progress_chunk, size), size)
@@ -466,8 +487,8 @@ class IMX500:
             return (0, 0)
 
     def show_network_fw_progress_bar(self):
-        if not self.fw_progress and not self.fw_progress_chunk:
-            # No readable progress source: skip the bar so the worker does not spin on (0, 0).
+        if self.fw_progress == IMX500.FwProgressType.NONE:
+            # No readable progress source: skip the bar entirely.
             return
         p = multiprocessing.Process(target=self.__do_progress_bar, args=(FW_NETWORK_STAGE, 'Network Firmware Upload'))
         p.start()
