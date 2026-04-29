@@ -6,6 +6,16 @@
 
 ### Changed
 
+## 0.3.35 Beta Release 34
+
+### Added
+
+### Changed
+
+* IMX500 progress bar can be made to work for non-sudo users.
+* Formatting check has been changed over to Ruff.
+* Other minor fixes (see commit history).
+
 ## 0.3.34 Beta Release 33
 
 ### Added

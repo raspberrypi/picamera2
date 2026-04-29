@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "picamera2"
-version = "0.3.34"
+version = "0.3.35"
 description = "The libcamera-based Python interface to Raspberry Pi cameras, based on the original Picamera library"
 readme = "README.md"
 license = "BSD-2-Clause"
