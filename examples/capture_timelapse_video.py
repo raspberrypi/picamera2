@@ -51,9 +51,5 @@ picam2.stop_encoder()
 picam2.stop()
 
 # Create the output mp4 video
-merge = subprocess.Popen([
-    "mkvmerge", "-o", "timelapse.mkv",
-    "--timestamps", "0:timestamps.txt",
-    "test.h264"
-])
+merge = subprocess.Popen(["mkvmerge", "-o", "timelapse.mkv", "--timestamps", "0:timestamps.txt", "test.h264"])
 merge.wait()

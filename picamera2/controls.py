@@ -4,7 +4,7 @@ import threading
 from libcamera import ControlType, Rectangle, Size
 
 
-class Controls():
+class Controls:
     def _framerates_to_durations_(framerates):
         if not isinstance(framerates, (tuple, list)):
             framerates = (framerates, framerates)

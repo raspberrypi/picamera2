@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton,
-                             QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder

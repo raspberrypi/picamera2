@@ -58,11 +58,11 @@ def draw_masks(masks: Dict[int, np.ndarray]):
 def get_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/usr/share/imx500-models/imx500_network_deeplabv3plus.rpk")
+    parser.add_argument(
+        "--model", type=str, help="Path of the model", default="/usr/share/imx500-models/imx500_network_deeplabv3plus.rpk"
+    )
     parser.add_argument("--fps", type=int, help="Frames per second")
-    parser.add_argument("--print-intrinsics", action="store_true",
-                        help="Print JSON network_intrinsics then exit")
+    parser.add_argument("--print-intrinsics", action="store_true", help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 

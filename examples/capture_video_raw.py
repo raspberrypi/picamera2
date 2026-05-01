@@ -27,7 +27,7 @@ picam2.stop_recording()
 
 buf = open("/dev/shm/test.raw", "rb").read(stride * size[1])
 arr = np.frombuffer(buf, dtype=np.uint8).reshape((size[1], stride))
-arr = arr[:, :2 * size[0]].view(np.uint16)
+arr = arr[:, : 2 * size[0]].view(np.uint16)
 
 # Scale 10 bit / channel to 8 bit per channel
 im = Image.fromarray((arr * ((2**8 - 1) / (2**10 - 1))).astype(np.uint8))

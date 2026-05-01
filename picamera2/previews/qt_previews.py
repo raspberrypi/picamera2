@@ -33,8 +33,9 @@ class QtPreviewBase:
 
         @QtCore.pyqtSlot()
         def createpreview(parent, cam, previewretrieveq):
-            qpicamera2 = parent.make_picamera2_widget(cam, width=parent.width, height=parent.height,
-                                                      transform=parent.transform)
+            qpicamera2 = parent.make_picamera2_widget(
+                cam, width=parent.width, height=parent.height, transform=parent.transform
+            )
             if parent.x is not None and parent.y is not None:
                 qpicamera2.move(parent.x, parent.y)
             qpicamera2.setWindowTitle(parent.get_title())
@@ -43,7 +44,6 @@ class QtPreviewBase:
             previewretrieveq.put(qpicamera2)
 
         class MonitorThread(QtCore.QThread):
-
             previewsignal = QtCore.pyqtSignal(object, object, object)
             deletesignal = QtCore.pyqtSignal(object, object, object)
 
@@ -129,6 +129,7 @@ class QtPreviewBase:
 class QtPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QPicamera2
+
         return QPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):
@@ -138,6 +139,7 @@ class QtPreview(QtPreviewBase):
 class QtGlPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QGlPicamera2
+
         return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):

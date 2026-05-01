@@ -81,33 +81,37 @@ def draw_classification_results(request: CompletedRequest, results: List[Classif
             overlay = m.array.copy()
 
             # Draw the background rectangle on the overlay
-            cv2.rectangle(overlay,
-                          (text_x, text_y - text_height),
-                          (text_x + text_width, text_y + baseline),
-                          (255, 255, 255),  # Background color (white)
-                          cv2.FILLED)
+            cv2.rectangle(
+                overlay,
+                (text_x, text_y - text_height),
+                (text_x + text_width, text_y + baseline),
+                (255, 255, 255),  # Background color (white)
+                cv2.FILLED,
+            )
 
             alpha = 0.3
             cv2.addWeighted(overlay, alpha, m.array, 1 - alpha, 0, m.array)
 
             # Draw text on top of the background
-            cv2.putText(m.array, text, (text_x, text_y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            cv2.putText(m.array, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
 
 def get_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/usr/share/imx500-models/imx500_network_mobilenet_v2.rpk")
+    parser.add_argument(
+        "--model", type=str, help="Path of the model", default="/usr/share/imx500-models/imx500_network_mobilenet_v2.rpk"
+    )
     parser.add_argument("--fps", type=int, help="Frames per second")
     parser.add_argument("-s", "--softmax", action=argparse.BooleanOptionalAction, help="Add post-process softmax")
-    parser.add_argument("-r", "--preserve-aspect-ratio", action=argparse.BooleanOptionalAction,
-                        help="preprocess the image with preserve aspect ratio")
-    parser.add_argument("--labels", type=str,
-                        help="Path to the labels file")
-    parser.add_argument("--print-intrinsics", action="store_true",
-                        help="Print JSON network_intrinsics then exit")
+    parser.add_argument(
+        "-r",
+        "--preserve-aspect-ratio",
+        action=argparse.BooleanOptionalAction,
+        help="preprocess the image with preserve aspect ratio",
+    )
+    parser.add_argument("--labels", type=str, help="Path to the labels file")
+    parser.add_argument("--print-intrinsics", action="store_true", help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 

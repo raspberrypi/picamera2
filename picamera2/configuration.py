@@ -95,10 +95,26 @@ class SensorConfiguration(Configuration):
 
 
 class CameraConfiguration(Configuration):
-    _ALLOWED_FIELDS = ("use_case", "buffer_count", "transform", "display", "encode", "colour_space",
-                       "controls", "main", "lores", "raw", "queue", "sensor")
-    _FIELD_CLASS_MAP = {"main": StreamConfiguration, "lores": StreamConfiguration, "raw": StreamConfiguration,
-                        "sensor": SensorConfiguration}
+    _ALLOWED_FIELDS = (
+        "use_case",
+        "buffer_count",
+        "transform",
+        "display",
+        "encode",
+        "colour_space",
+        "controls",
+        "main",
+        "lores",
+        "raw",
+        "queue",
+        "sensor",
+    )
+    _FIELD_CLASS_MAP = {
+        "main": StreamConfiguration,
+        "lores": StreamConfiguration,
+        "raw": StreamConfiguration,
+        "sensor": SensorConfiguration,
+    }
     _FORWARD_FIELDS = {"size": "main", "format": "main"}
 
     def __init__(self, d={}, picam2=None):

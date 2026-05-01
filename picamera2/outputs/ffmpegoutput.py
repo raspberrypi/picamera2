@@ -33,10 +33,21 @@ class FfmpegOutput(Output):
     audio_samplerate, audio_codec, audio_bitrate - the usual audio parameters.
     """
 
-    def __init__(self, output_filename, audio=False, audio_device="default", audio_sync=-0.3,
-                 audio_samplerate=48000, audio_codec="aac", audio_bitrate=128000, audio_filter=None, pts=None):
+    def __init__(
+        self,
+        output_filename,
+        audio=False,
+        audio_device="default",
+        audio_sync=-0.3,
+        audio_samplerate=48000,
+        audio_codec="aac",
+        audio_bitrate=128000,
+        audio_filter=None,
+        pts=None,
+    ):
         super().__init__(pts=pts)
         self.ffmpeg = None
+        self.output_broken = False
         self.output_filename = output_filename
         self.audio = audio
         self.audio_device = audio_device
@@ -54,18 +65,20 @@ class FfmpegOutput(Output):
         self.needs_pacing = True
 
     def start(self):
-        general_options = ['-loglevel', 'warning',
-                           '-y']  # -y means overwrite output without asking
+        general_options = ['-loglevel', 'warning', '-y']  # -y means overwrite output without asking
         # We have to get FFmpeg to timestamp the video frames as it gets them. This isn't
         # ideal because we're likely to pick up some jitter, but works passably, and I
         # don't have a better alternative right now.
+        # fmt: off
         video_input = ['-use_wallclock_as_timestamps', '1',
                        '-thread_queue_size', '64',  # necessary to prevent warnings
                        '-i', '-']
+        # fmt: on
         video_codec = ['-c:v', 'copy']
         audio_input = []
         audio_codec = []
         if self.audio:
+            # fmt: off
             audio_input = ['-itsoffset', str(self.audio_sync),
                            '-f', 'pulse',
                            '-sample_rate', str(self.audio_samplerate),
@@ -73,11 +86,13 @@ class FfmpegOutput(Output):
                            '-i', self.audio_device]
             audio_codec = ['-b:a', str(self.audio_bitrate),
                            '-c:a', self.audio_codec]
+            # fmt: on
             if self.audio_filter:  # Check if audio_filter is not empty or None
                 audio_codec.extend(['-af', self.audio_filter])
 
-        command = ['ffmpeg'] + general_options + audio_input + video_input + \
-            audio_codec + video_codec + self.output_filename.split()
+        command = (
+            ['ffmpeg'] + general_options + audio_input + video_input + audio_codec + video_codec + self.output_filename.split()
+        )
         # The preexec_fn is a slightly nasty way of ensuring FFmpeg gets stopped if we quit
         # without calling stop() (which is otherwise not guaranteed).
         self.ffmpeg = subprocess.Popen(command, stdin=subprocess.PIPE, preexec_fn=lambda: prctl.set_pdeathsig(signal.SIGKILL))
@@ -86,7 +101,10 @@ class FfmpegOutput(Output):
     def stop(self):
         super().stop()
         if self.ffmpeg is not None:
-            self.ffmpeg.stdin.close()  # FFmpeg needs this to shut down tidily
+            try:
+                self.ffmpeg.stdin.close()  # FFmpeg needs this to shut down tidily
+            except Exception:
+                pass
             try:
                 # Give it a moment to flush out video frames, but after that make sure we terminate it.
                 self.ffmpeg.wait(timeout=self.timeout)
@@ -103,13 +121,15 @@ class FfmpegOutput(Output):
     def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
         if audio:
             raise RuntimeError("FfmpegOutput does not support audio packets from Picamera2")
-        if self.recording and self.ffmpeg:
+        if self.recording and not self.output_broken:
             # Handle the case where the FFmpeg prcoess has gone away for reasons of its own.
             try:
                 self.ffmpeg.stdin.write(frame)
                 self.ffmpeg.stdin.flush()  # forces every frame to get timestamped individually
             except Exception as e:  # presumably a BrokenPipeError? should we check explicitly?
-                self.ffmpeg = None
+                # Don't clear up the ffmpeg process here, that's what stop() is for. But
+                # set a flag so that we don't keep coming back and re-trying to no avail...
+                self.output_broken = True
                 if self.error_callback:
                     self.error_callback(e)
             else:

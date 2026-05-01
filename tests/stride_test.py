@@ -16,7 +16,7 @@ def post_callback(request):
     # Make right side grey
     with MappedArray(request, "main") as m1:
         a1 = m1.array
-        a1[:, -a1.shape[1] // 2:] = 70
+        a1[:, -a1.shape[1] // 2 :] = 70
 
 
 picam2 = Picamera2(0)
@@ -31,9 +31,7 @@ stride = picam2.camera_config["main"]["stride"]
 # Configure as half frame, with full frame stride so right side is blank
 picam2.pre_callback = pre_callback
 picam2.post_callback = post_callback
-main_config = picam2.create_preview_configuration(
-    main={"size": half_size, "stride": stride}
-)
+main_config = picam2.create_preview_configuration(main={"size": half_size, "stride": stride})
 picam2.configure(main_config)
 picam2.start_preview(True)
 

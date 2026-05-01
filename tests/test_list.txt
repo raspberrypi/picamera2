@@ -85,6 +85,8 @@ tests/encoder_import.py
 tests/encoder_start_stop.py
 tests/ffmpeg_abort.py
 tests/grey_world.py
+tests/hailo.py
+tests/imx500.py
 tests/imx708_device.py
 tests/large_datagram.py
 tests/mjpeg_server.py

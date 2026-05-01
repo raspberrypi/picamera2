@@ -51,8 +51,7 @@ def InferenceTensorFlow(image, model):
     mask = np.argmax(output, axis=-1)
     output_shape = (o_width, o_height)
     overlay = (mask == 0).astype(np.uint8)
-    overlay = np.array([0, 255])[overlay].reshape(
-        output_shape).astype(np.uint8)
+    overlay = np.array([0, 255])[overlay].reshape(output_shape).astype(np.uint8)
     overlay = cv2.resize(overlay, normalSize)
     background_mask = Image.fromarray(overlay)
 
@@ -66,8 +65,10 @@ def main():
 
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
+    # fmt: off
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
+    # fmt: on
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
@@ -83,7 +84,7 @@ def main():
 
     while True:
         buffer = picam2.capture_buffer("lores")
-        grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+        grey = buffer[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
         InferenceTensorFlow(grey, args.model)
         base_img = np.zeros((normalSize[1], normalSize[0], 3), dtype=np.uint8)
         base_img = Image.fromarray(base_img)

@@ -26,11 +26,10 @@ def _set_configuration_file(filename):
 
     platform_dir = "vc4" if get_platform() == Platform.VC4 else "pisp"
     dirs = [
-        os.path.expanduser(
-            "~/libcamera/src/libcamera/pipeline/rpi/" + platform_dir + "/data"
-        ),
+        os.path.expanduser("~/libcamera/src/libcamera/pipeline/rpi/" + platform_dir + "/data"),
         "/usr/local/share/libcamera/pipeline/rpi/" + platform_dir,
-        "/usr/share/libcamera/pipeline/rpi/" + platform_dir]
+        "/usr/share/libcamera/pipeline/rpi/" + platform_dir,
+    ]
 
     for directory in dirs:
         file = os.path.join(directory, filename)
@@ -48,8 +47,12 @@ def libcamera_transforms_eq(t1, t2):
 
 
 def libcamera_colour_spaces_eq(c1, c2):
-    return c1.primaries == c2.primaries and c1.transferFunction == c2.transferFunction and \
-        c1.ycbcrEncoding == c2.ycbcrEncoding and c1.range == c2.range
+    return (
+        c1.primaries == c2.primaries
+        and c1.transferFunction == c2.transferFunction
+        and c1.ycbcrEncoding == c2.ycbcrEncoding
+        and c1.range == c2.range
+    )
 
 
 libcamera.Transform.__repr__ = libcamera.Transform.__str__

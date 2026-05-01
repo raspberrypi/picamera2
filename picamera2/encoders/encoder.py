@@ -289,17 +289,12 @@ class Encoder:
 
     def _send_streams(self, output):
         # Send video stream information to the output.
-        FORMAT_TABLE = {"YUV420": "yuv420p",
-                        "BGR888": "rgb24",
-                        "RGB888": "bgr24",
-                        "XBGR8888": "rgba",
-                        "XRGB8888": "bgra"}
+        FORMAT_TABLE = {"YUV420": "yuv420p", "BGR888": "rgb24", "RGB888": "bgr24", "XBGR8888": "rgba", "XRGB8888": "bgra"}
         pix_fmt = FORMAT_TABLE.get(self._format)
         rate = Fraction(1000000, self._framerate)
         if pix_fmt is None and output.needs_add_stream:
             raise RuntimeError(f"Output does not support {self._format}")
-        output._add_stream("video", "rawvideo", pix_fmt=pix_fmt, rate=rate,
-                           width=self.width, height=self.height)
+        output._add_stream("video", "rawvideo", pix_fmt=pix_fmt, rate=rate, width=self.width, height=self.height)
 
     def start(self, quality=None):
         with self._lock:
@@ -318,6 +313,7 @@ class Encoder:
                 # Save low-powered Pis from importing av unless it is needed.
                 global av
                 import av
+
                 self._audio_input_container = av.open(**self.audio_input)
                 self._audio_input_stream = self._audio_input_container.streams.get(audio=0)[0]
                 self._audio_output_container = av.open("/dev/null", 'w', format="null")

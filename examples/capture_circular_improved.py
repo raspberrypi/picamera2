@@ -31,7 +31,6 @@ encoding = False
 ltime = 0
 
 try:
-
     while True:
         # Just get the greyscale part of the YUV420 image.
         cur = picam2.capture_array("lores")[:h, :w]

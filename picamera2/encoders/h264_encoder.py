@@ -1,17 +1,20 @@
 """H264 encoder functionality"""
 
-from videodev2 import (V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
-                       V4L2_CID_MPEG_VIDEO_H264_LEVEL,
-                       V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
-                       V4L2_CID_MPEG_VIDEO_H264_MIN_QP,
-                       V4L2_CID_MPEG_VIDEO_H264_PROFILE,
-                       V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER,
-                       V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
-                       V4L2_MPEG_VIDEO_H264_LEVEL_4_2,
-                       V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
-                       V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
-                       V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
-                       V4L2_MPEG_VIDEO_H264_PROFILE_MAIN, V4L2_PIX_FMT_H264)
+from videodev2 import (
+    V4L2_CID_MPEG_VIDEO_H264_I_PERIOD,
+    V4L2_CID_MPEG_VIDEO_H264_LEVEL,
+    V4L2_CID_MPEG_VIDEO_H264_MAX_QP,
+    V4L2_CID_MPEG_VIDEO_H264_MIN_QP,
+    V4L2_CID_MPEG_VIDEO_H264_PROFILE,
+    V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER,
+    V4L2_MPEG_VIDEO_H264_LEVEL_4_1,
+    V4L2_MPEG_VIDEO_H264_LEVEL_4_2,
+    V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+    V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
+    V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+    V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
+    V4L2_PIX_FMT_H264,
+)
 
 from picamera2.encoders import Quality
 from picamera2.encoders.v4l2_encoder import V4L2Encoder
@@ -20,8 +23,9 @@ from picamera2.encoders.v4l2_encoder import V4L2Encoder
 class H264Encoder(V4L2Encoder):
     """Uses functionality from V4L2Encoder"""
 
-    def __init__(self, bitrate=None, repeat=True, iperiod=None, framerate=None, enable_sps_framerate=False,
-                 qp=None, profile=None):
+    def __init__(
+        self, bitrate=None, repeat=True, iperiod=None, framerate=None, enable_sps_framerate=False, qp=None, profile=None
+    ):
         """H264 Encoder
 
         :param bitrate: Bitrate, default None
@@ -53,10 +57,12 @@ class H264Encoder(V4L2Encoder):
         self._controls = []
 
         # These names match what FFmpeg uses.
-        profile_lookup = {"baseline": V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
-                          "constrained baseline": V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
-                          "main": V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
-                          "high": V4L2_MPEG_VIDEO_H264_PROFILE_HIGH}
+        profile_lookup = {
+            "baseline": V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+            "constrained baseline": V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
+            "main": V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
+            "high": V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+        }
         if self.profile:
             if not isinstance(self.profile, str):
                 raise RuntimeError("Profile should be a string value")
@@ -97,15 +103,19 @@ class H264Encoder(V4L2Encoder):
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
         # the user may have set for themselves.
+        # fmt: off
         if quality is not None or \
            (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
+            # fmt: on
             quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
+            # fmt: off
             BITRATE_TABLE = {Quality.VERY_LOW: 2,
                              Quality.LOW: 4,
                              Quality.MEDIUM: 6,
                              Quality.HIGH: 9,
                              Quality.VERY_HIGH: 15}
+            # fmt: on
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000

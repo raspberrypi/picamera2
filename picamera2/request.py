@@ -97,8 +97,9 @@ class CompletedRequest:
         self.config = self.picam2.camera_config.copy()
         self.stream_map = self.picam2.stream_map.copy()
         with self.lock:
-            self.syncs = [picam2.allocator.sync(self.picam2.allocator, buffer, False)
-                          for buffer in self.request.buffers.values()]
+            self.syncs = [
+                picam2.allocator.sync(self.picam2.allocator, buffer, False) for buffer in self.request.buffers.values()
+            ]
             self.picam2.allocator.acquire(self.request.buffers)
             [sync.__enter__() for sync in self.syncs]
 
@@ -123,7 +124,6 @@ class CompletedRequest:
                     self.request.reuse()
                     controls = self.picam2.controls.get_libcamera_controls()
                     for id, value in controls.items():
-
                         # libcamera now has "ExposureTimeMode" and "AnalogueGainMode" which must be set to
                         # manual for the fixed exposure time or gain to have any effect, and cleared to return
                         # to "auto " mode. We're going to hide that by supplying them automatically as needed.
@@ -217,8 +217,9 @@ class CompletedRequest:
             pil_img = pil_img.resize((width, height))
         return pil_img
 
-    def save(self, name: str, file_output: Any, format: Optional[str] = None,
-             exif_data: Optional[Dict[str, Any]] = None) -> None:
+    def save(
+        self, name: str, file_output: Any, format: Optional[str] = None, exif_data: Optional[Dict[str, Any]] = None
+    ) -> None:
         """
         Save a JPEG or PNG image of the named stream's buffer.
 
@@ -229,8 +230,9 @@ class CompletedRequest:
         config = self.config.get(name, None)
         if config is None:
             raise RuntimeError(f'Stream {name!r} is not defined')
-        if (config['format'] == 'YUV420' or (self.FASTER_JPEG and config['format'] != "MJPEG")) and \
-           self.picam2.helpers._get_format_str(file_output, format) in ('jpg', 'jpeg'):
+        if (
+            config['format'] == 'YUV420' or (self.FASTER_JPEG and config['format'] != "MJPEG")
+        ) and self.picam2.helpers._get_format_str(file_output, format) in ('jpg', 'jpeg'):
             quality = self.picam2.options.get("quality", 90)
             with MappedArray(self, name) as m:
                 format = self.config[name]["format"]
@@ -238,8 +240,8 @@ class CompletedRequest:
                     width, height = self.config[name]['size']
                     Y = m.array[:height, :width]
                     reshaped = m.array.reshape((m.array.shape[0] * 2, m.array.strides[0] // 2))
-                    U = reshaped[2 * height: 2 * height + height // 2, :width // 2]
-                    V = reshaped[2 * height + height // 2:, :width // 2]
+                    U = reshaped[2 * height : 2 * height + height // 2, : width // 2]
+                    V = reshaped[2 * height + height // 2 :, : width // 2]
                     output_bytes = simplejpeg.encode_jpeg_yuv_planes(Y, U, V, quality)
                     Y = reshaped = U = V = None
                 else:
@@ -264,8 +266,7 @@ class CompletedRequest:
                 if f is not file_output:
                     f.close()
         else:
-            return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output,
-                                            format, exif_data)
+            return self.picam2.helpers.save(self.make_image(name), self.get_metadata(), file_output, format, exif_data)
 
     def save_dng(self, file_output: Any, name: str = "raw") -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
@@ -302,17 +303,17 @@ class Helpers:
         if fmt in ("BGR888", "RGB888"):
             if stride != w * 3:
                 array = array.reshape((h, stride))
-                array = array[:, :w * 3]
+                array = array[:, : w * 3]
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
             if stride != w * 4:
                 array = array.reshape((h, stride))
-                array = array[:, :w * 4]
+                array = array[:, : w * 4]
             image = array.reshape((h, w, 4))
         elif fmt in ("BGR161616", "RGB161616"):
             if stride != w * 6:
                 array = array.reshape((h, stride))
-                array = array[:, :w * 6]
+                array = array[:, : w * 6]
             array = array.view(np.uint16)
             image = array.reshape((h, w, 3))
         elif fmt in ("YUV420", "YVU420"):
@@ -352,8 +353,9 @@ class Helpers:
             raise RuntimeError(f"Stream format {fmt} not supported for PIL images")
         return mode
 
-    def make_image(self, buffer: np.ndarray, config: Dict[str, Any], width: Optional[int] = None,
-                   height: Optional[int] = None) -> Image.Image:
+    def make_image(
+        self, buffer: np.ndarray, config: Dict[str, Any], width: Optional[int] = None, height: Optional[int] = None
+    ) -> Image.Image:
         """Make a PIL image from the named stream's buffer."""
         fmt = config["format"]
         if fmt == "MJPEG":
@@ -380,14 +382,18 @@ class Helpers:
         exif = b''
         if "AnalogueGain" in metadata and "DigitalGain" in metadata:
             datetime_now = datetime.now().strftime("%Y:%m:%d %H:%M:%S")
-            zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
-                        piexif.ImageIFD.Model: self.picam2.camera.id,
-                        piexif.ImageIFD.Software: "Picamera2",
-                        piexif.ImageIFD.DateTime: datetime_now}
+            zero_ifd = {
+                piexif.ImageIFD.Make: "Raspberry Pi",
+                piexif.ImageIFD.Model: self.picam2.camera.id,
+                piexif.ImageIFD.Software: "Picamera2",
+                piexif.ImageIFD.DateTime: datetime_now,
+            }
             total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
-            exif_ifd = {piexif.ExifIFD.DateTimeOriginal: datetime_now,
-                        piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
-                        piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100)}
+            exif_ifd = {
+                piexif.ExifIFD.DateTimeOriginal: datetime_now,
+                piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100),
+            }
             exif_dict = {"0th": zero_ifd, "Exif": exif_ifd}
             # merge user provided exif data, overwriting the defaults
             exif_dict = exif_dict | (exif_data or {})
@@ -404,8 +410,14 @@ class Helpers:
         else:
             raise RuntimeError("Cannot determine format to save")
 
-    def save(self, img: Image.Image, metadata: Dict[str, Any], file_output: Union[str, Path], format: Optional[str] = None,
-             exif_data: Optional[Dict] = None) -> None:
+    def save(
+        self,
+        img: Image.Image,
+        metadata: Dict[str, Any],
+        file_output: Union[str, Path],
+        format: Optional[str] = None,
+        exif_data: Optional[Dict] = None,
+    ) -> None:
         """Save a JPEG or PNG image of the named stream's buffer.
 
         exif_data - dictionary containing user defined exif data (based on `piexif`). This will
@@ -433,7 +445,7 @@ class Helpers:
         img.save(file_output, **keywords)
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {file_output}.")
-        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Time taken for encode: {(end_time - start_time) * 1000} ms.")
 
     def save_dng(self, buffer: np.ndarray, metadata: Dict[str, Any], config: Dict[str, Any], file_output: Any) -> None:
         """Save a DNG RAW image of the raw stream's buffer."""
@@ -464,7 +476,7 @@ class Helpers:
 
         end_time = time.monotonic()
         _log.info(f"Saved {self} to file {file_output}.")
-        _log.info(f"Time taken for encode: {(end_time-start_time)*1000} ms.")
+        _log.info(f"Time taken for encode: {(end_time - start_time) * 1000} ms.")
 
     def decompress(self, array: np.ndarray):
         """Decompress an image buffer that has been compressed with a PiSP compression format."""

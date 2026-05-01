@@ -52,3 +52,4 @@ docs/_build/
 /.spyproject
 .spyproject
 hailort.log
+.ruff_cache/

@@ -51,9 +51,9 @@ def main():
     # Close the camera.
     picam2.close()
 
-    print(f"QT GL Cycle Results: {qtgl2-qtgl1-wait-buffer} s")
-    print(f"Null Cycle Results: {null2-null1-wait-buffer} s")
-    print(f"QT Cycle Results: {qt2-qt1-wait-buffer} s")
+    print(f"QT GL Cycle Results: {qtgl2 - qtgl1 - wait - buffer} s")
+    print(f"Null Cycle Results: {null2 - null1 - wait - buffer} s")
+    print(f"QT Cycle Results: {qt2 - qt1 - wait - buffer} s")
 
 
 if __name__ == "__main__":
