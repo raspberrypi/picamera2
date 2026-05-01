@@ -7,7 +7,7 @@ kwargs = {
     'score_threshold': 0.001,
     'nms_iou_thresh': 0.7,
     'meta_arch': 'nanodet_v8',
-    'device_pre_post_layers': None
+    'device_pre_post_layers': None,
 }
 
 
@@ -32,15 +32,17 @@ def postproc_yolov8_pose(num_of_classes, raw_detections, img_size):
     keypoints = 51
 
     # The following assumes that the batch size is 1:
-    endnodes = [raw_detections[layer_from_shape[1, 20, 20, detection_output_channels]],
-                raw_detections[layer_from_shape[1, 20, 20, num_of_classes]],
-                raw_detections[layer_from_shape[1, 20, 20, keypoints]],
-                raw_detections[layer_from_shape[1, 40, 40, detection_output_channels]],
-                raw_detections[layer_from_shape[1, 40, 40, num_of_classes]],
-                raw_detections[layer_from_shape[1, 40, 40, keypoints]],
-                raw_detections[layer_from_shape[1, 80, 80, detection_output_channels]],
-                raw_detections[layer_from_shape[1, 80, 80, num_of_classes]],
-                raw_detections[layer_from_shape[1, 80, 80, keypoints]]]
+    endnodes = [
+        raw_detections[layer_from_shape[1, 20, 20, detection_output_channels]],
+        raw_detections[layer_from_shape[1, 20, 20, num_of_classes]],
+        raw_detections[layer_from_shape[1, 20, 20, keypoints]],
+        raw_detections[layer_from_shape[1, 40, 40, detection_output_channels]],
+        raw_detections[layer_from_shape[1, 40, 40, num_of_classes]],
+        raw_detections[layer_from_shape[1, 40, 40, keypoints]],
+        raw_detections[layer_from_shape[1, 80, 80, detection_output_channels]],
+        raw_detections[layer_from_shape[1, 80, 80, num_of_classes]],
+        raw_detections[layer_from_shape[1, 80, 80, keypoints]],
+    ]
 
     predictions_dict = yolov8_pose_estimation_postprocess(endnodes, **kwargs)
 
@@ -48,6 +50,7 @@ def postproc_yolov8_pose(num_of_classes, raw_detections, img_size):
 
 
 # ---------------- Architecture functions ----------------- #
+
 
 def _sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -121,8 +124,7 @@ def _yolov8_decoding(raw_boxes, raw_kpts, strides, image_dims, reg_max):
 
         # box distribution to distance
         reg_range = np.arange(reg_max + 1)
-        box_distribute = np.reshape(
-            box_distribute, (-1, box_distribute.shape[1] * box_distribute.shape[2], 4, reg_max + 1))
+        box_distribute = np.reshape(box_distribute, (-1, box_distribute.shape[1] * box_distribute.shape[2], 4, reg_max + 1))
         box_distance = _softmax(box_distribute)
         box_distance = box_distance * np.reshape(reg_range, (1, 1, 1, -1))
         box_distance = np.sum(box_distance, axis=-1)
@@ -159,8 +161,7 @@ def xywh2xyxy(x):
     return y
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.45,
-                        max_det=100, n_kpts=17):
+def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.45, max_det=100, n_kpts=17):
     """Non-Maximum Suppression (NMS) on inference results to reject overlapping detections.
 
     Args:
@@ -180,10 +181,8 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.45,
         'num_detections':   int
         }
     """
-    assert 0 <= conf_thres <= 1, \
-        f'Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0'
-    assert 0 <= iou_thres <= 1, \
-        f'Invalid IoU threshold {iou_thres}, valid values are between 0.0 and 1.0'
+    assert 0 <= conf_thres <= 1, f'Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0'
+    assert 0 <= iou_thres <= 1, f'Invalid IoU threshold {iou_thres}, valid values are between 0.0 and 1.0'
 
     nc = prediction.shape[2] - n_kpts * 3 - 4  # number of classes
     xc = prediction[..., 4] > conf_thres  # candidates
@@ -195,10 +194,14 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.45,
         x = x[xc[xi]]
         # If none remain process next image
         if not x.shape[0]:
-            output.append({'bboxes': np.zeros((0, 4)),
-                           'keypoints': np.zeros((0, n_kpts, 3)),
-                           'scores': np.zeros((0)),
-                           'num_detections': 0})
+            output.append(
+                {
+                    'bboxes': np.zeros((0, 4)),
+                    'keypoints': np.zeros((0, n_kpts, 3)),
+                    'scores': np.zeros((0)),
+                    'num_detections': 0,
+                }
+            )
             continue
 
         # (center_x, center_y, width, height) to (x1, y1, x2, y2)
@@ -228,10 +231,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.45,
         kpts = out[:, 6:]
         kpts = np.reshape(kpts, (-1, n_kpts, 3))
 
-        out = {'bboxes': boxes,
-               'keypoints': kpts,
-               'scores': scores,
-               'num_detections': int(scores.shape[0])}
+        out = {'bboxes': boxes, 'keypoints': kpts, 'scores': scores, 'num_detections': int(scores.shape[0])}
 
         output.append(out)
     return output
@@ -283,8 +283,8 @@ def yolov8_pose_estimation_postprocess(endnodes, **kwargs):
     output['joint_scores'] = np.zeros((batch_size, max_detections, 17, 1))
     output['scores'] = np.zeros((batch_size, max_detections, 1))
     for b in range(batch_size):
-        output['bboxes'][b, :nms_res[b]['num_detections']] = nms_res[b]['bboxes']
-        output['keypoints'][b, :nms_res[b]['num_detections']] = nms_res[b]['keypoints'][..., :2]
-        output['joint_scores'][b, :nms_res[b]['num_detections'], ..., 0] = _sigmoid(nms_res[b]['keypoints'][..., 2])
-        output['scores'][b, :nms_res[b]['num_detections'], ..., 0] = nms_res[b]['scores']
+        output['bboxes'][b, : nms_res[b]['num_detections']] = nms_res[b]['bboxes']
+        output['keypoints'][b, : nms_res[b]['num_detections']] = nms_res[b]['keypoints'][..., :2]
+        output['joint_scores'][b, : nms_res[b]['num_detections'], ..., 0] = _sigmoid(nms_res[b]['keypoints'][..., 2])
+        output['scores'][b, : nms_res[b]['num_detections'], ..., 0] = nms_res[b]['scores']
     return output

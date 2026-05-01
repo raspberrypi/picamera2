@@ -26,7 +26,7 @@ def copy_image(request):
     with MappedArray(request, "main") as m1, MappedArray(request_2, "main") as m2:
         a1 = m1.array
         a2 = m2.array
-        a1[:, -a2.shape[1]:] = a2
+        a1[:, -a2.shape[1] :] = a2
     request_2.release()
 
 
@@ -54,7 +54,7 @@ picam2a.pre_callback = pre_callback
 picam2a.post_callback = copy_image
 main_config = picam2a.create_preview_configuration(
     main={"size": half_size, "stride": stride},
-    controls={"ScalerCrop": (0, 0, picam2a.sensor_resolution[0], picam2a.sensor_resolution[1])}
+    controls={"ScalerCrop": (0, 0, picam2a.sensor_resolution[0], picam2a.sensor_resolution[1])},
 )
 picam2a.configure(main_config)
 picam2a.start_preview(True)
@@ -63,8 +63,7 @@ picam2a.start_preview(True)
 picam2b = Picamera2(1)
 picam2b.pre_callback = save_request
 half_config = picam2a.create_preview_configuration(
-    main={"size": half_size},
-    controls={"ScalerCrop": (0, 0, picam2a.sensor_resolution[0], picam2a.sensor_resolution[1])}
+    main={"size": half_size}, controls={"ScalerCrop": (0, 0, picam2a.sensor_resolution[0], picam2a.sensor_resolution[1])}
 )
 picam2b.configure(half_config)
 

@@ -5,8 +5,9 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder, MJPEGEncoder
 
 picam2 = Picamera2()
-video_config = picam2.create_video_configuration(main={"size": (1280, 720), "format": "RGB888"},
-                                                 lores={"size": (640, 480), "format": "YUV420"})
+video_config = picam2.create_video_configuration(
+    main={"size": (1280, 720), "format": "RGB888"}, lores={"size": (640, 480), "format": "YUV420"}
+)
 
 picam2.configure(video_config)
 

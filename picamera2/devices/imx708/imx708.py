@@ -5,7 +5,7 @@ from videodev2 import VIDIOC_S_CTRL, v4l2_control
 
 from picamera2 import Picamera2
 
-HDR_CTRL_ID = 0x009a0915
+HDR_CTRL_ID = 0x009A0915
 
 
 class IMX708:

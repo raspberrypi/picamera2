@@ -10,8 +10,7 @@ if 'imx708' in picam2.camera_properties['Model']:
 # Select the smallest full FoV mode for the preview.
 preview_mode = None
 for mode in picam2.sensor_modes:
-    if mode['crop_limits'][:2] == (0, 0) and \
-       (preview_mode is None or mode['size'][0] < preview_mode['size'][0]):
+    if mode['crop_limits'][:2] == (0, 0) and (preview_mode is None or mode['size'][0] < preview_mode['size'][0]):
         preview_mode = mode
 print("Preview mode:", preview_mode)
 

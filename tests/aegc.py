@@ -43,6 +43,7 @@ test_control_auto("AnalogueGain")
 
 # Also test that it works when we start the camera.
 
+
 def test_control_start(control, value):
     controls = {control: value}
     config = picam2.create_preview_configuration(controls=controls)

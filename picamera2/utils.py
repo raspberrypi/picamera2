@@ -45,7 +45,7 @@ _TRANSFORM_TO_ORIENTATION_TABLE = {
     Transform(transpose=1): Orientation.Rotate90Mirror,
     Transform(transpose=1, hflip=1): Orientation.Rotate270,
     Transform(transpose=1, vflip=1): Orientation.Rotate90,
-    Transform(transpose=1, hflip=1, vflip=1): Orientation.Rotate270Mirror
+    Transform(transpose=1, hflip=1, vflip=1): Orientation.Rotate270Mirror,
 }
 
 _ORIENTATION_TO_TRANSFORM_TABLE = {
@@ -56,7 +56,7 @@ _ORIENTATION_TO_TRANSFORM_TABLE = {
     Orientation.Rotate90Mirror: Transform(transpose=1),
     Orientation.Rotate270: Transform(transpose=1, hflip=1),
     Orientation.Rotate90: Transform(transpose=1, vflip=1),
-    Orientation.Rotate270Mirror: Transform(transpose=1, hflip=1, vflip=1)
+    Orientation.Rotate270Mirror: Transform(transpose=1, hflip=1, vflip=1),
 }
 
 

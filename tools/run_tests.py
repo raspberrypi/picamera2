@@ -126,13 +126,22 @@ def directoryexists(arg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='picamera2 automated tests')
-    parser.add_argument('--dir', '-d', action='store',
-                        default='/home/pi/picamera2_tests', help='Folder in which to run tests')
-    parser.add_argument('--picamera2-dir', '-p', action='store', type=directoryexists,
-                        default='/home/pi/picamera2', help='Location of picamera2 folder')
-    parser.add_argument('--test-list-files', '-t', action='store',
-                        default='test_list_drm.txt, test_list.txt',
-                        help='Comma-separated list of files, each containing a list of tests to run')
+    parser.add_argument('--dir', '-d', action='store', default='/home/pi/picamera2_tests', help='Folder in which to run tests')
+    parser.add_argument(
+        '--picamera2-dir',
+        '-p',
+        action='store',
+        type=directoryexists,
+        default='/home/pi/picamera2',
+        help='Location of picamera2 folder',
+    )
+    parser.add_argument(
+        '--test-list-files',
+        '-t',
+        action='store',
+        default='test_list_drm.txt, test_list.txt',
+        help='Comma-separated list of files, each containing a list of tests to run',
+    )
     args = parser.parse_args()
 
     dir = args.dir

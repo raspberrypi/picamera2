@@ -27,29 +27,40 @@ def configure_and_check(config):
     if libcamera_config.at(picam2.main_index).color_space == check_main_colour_space:
         print("Main stream colour spaces match", check_main_colour_space)
     else:
-        print("ERROR: main stream colour space is", libcamera_config.at(picam2.main_index).color_space,
-              "expected", check_main_colour_space)
+        print(
+            "ERROR: main stream colour space is",
+            libcamera_config.at(picam2.main_index).color_space,
+            "expected",
+            check_main_colour_space,
+        )
         quit()
 
     if picam2.lores_index >= 0:
         if libcamera_config.at(picam2.lores_index).color_space == check_colour_space:
             print("Lores stream colour spaces match", check_colour_space)
         else:
-            print("ERROR: lores stream colour space is", libcamera_config.at(picam2.lores_index).color_space,
-                  "expected", check_colour_space)
+            print(
+                "ERROR: lores stream colour space is",
+                libcamera_config.at(picam2.lores_index).color_space,
+                "expected",
+                check_colour_space,
+            )
             quit()
 
     if picam2.raw_index >= 0:
         if libcamera_config.at(picam2.raw_index).color_space == ColorSpace.Raw():
             print("Raw stream colour spaces match", ColorSpace.Raw())
         else:
-            print("ERROR: raw stream colour space is", libcamera_config.at(picam2.raw_index).color_space,
-                  "expected", ColorSpace.Raw())
+            print(
+                "ERROR: raw stream colour space is",
+                libcamera_config.at(picam2.raw_index).color_space,
+                "expected",
+                ColorSpace.Raw(),
+            )
             quit()
 
 
 for colour_space in (ColorSpace.Sycc(), ColorSpace.Smpte170m(), ColorSpace.Rec709()):
-
     for format in ("RGB888", "YUV420"):
         print("Checking with colour space", colour_space, "and format", format)
 

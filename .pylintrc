@@ -1,5 +1,0 @@
-[MASTER]
-extension-pkg-allow-list=libcamera, PyQt5, pykms, cv2
-
-[TYPECHECK]
-generated-members=cv2.*

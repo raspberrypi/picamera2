@@ -20,6 +20,7 @@ class PyavOutput(Output):
         # Save low-powered Pis from importing av unless it is needed.
         global av
         import av
+
         super().__init__(pts=pts)
         self._output_name = output_name
         self._format = format

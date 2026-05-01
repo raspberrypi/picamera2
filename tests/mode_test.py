@@ -20,9 +20,7 @@ def check(raw_config, fps):
     if raw_config["size"][0] * raw_config["size"][1] > 5e6:
         print("Not checking", raw_config)
         return
-    picam2.video_configuration = picam2.create_video_configuration(
-        raw=raw_config,
-    )
+    picam2.video_configuration = picam2.create_video_configuration(raw=raw_config)
     picam2.configure("video")
     # Check we got the correct raw format
     camera_config = picam2.camera_configuration()
@@ -37,10 +35,11 @@ def check(raw_config, fps):
     if 'sensor' in camera_config and camera_config['sensor'] is not None:
         if 'bit_depth' in camera_config['sensor']:
             set_format.bit_depth = camera_config['sensor']['bit_depth']
-    assert set_format.bayer_order == requested_format.bayer_order and \
-        set_format.bit_depth == requested_format.bit_depth and \
-        (set_format.packing == '') == (requested_format.packing == ''), \
-        f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
+    assert (
+        set_format.bayer_order == requested_format.bayer_order
+        and set_format.bit_depth == requested_format.bit_depth
+        and (set_format.packing == '') == (requested_format.packing == '')
+    ), f'{picam2.camera_configuration()["raw"]["format"]} != {raw_config["format"]}'
     picam2.set_controls({"FrameRate": fps})
     picam2.start(show_preview=True)
     time.sleep(1)

@@ -19,6 +19,7 @@ class LibavH264Encoder(Encoder):
         # Save low-powered Pis from importing av unless it is needed.
         global av
         import av
+
         super().__init__()
         self._codec = "h264"  # for now only support h264
         self.repeat = repeat
@@ -55,15 +56,10 @@ class LibavH264Encoder(Encoder):
     def _setup(self, quality):
         # If an explicit quality was specified, use it, otherwise try to preserve any bitrate/qp
         # the user may have set for themselves.
-        if quality is not None or \
-           (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
+        if quality is not None or (getattr(self, "bitrate", None) is None and getattr(self, "qp", None) is None):
             quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 3,
-                             Quality.LOW: 4,
-                             Quality.MEDIUM: 7,
-                             Quality.HIGH: 10,
-                             Quality.VERY_HIGH: 14}
+            BITRATE_TABLE = {Quality.VERY_LOW: 3, Quality.LOW: 4, Quality.MEDIUM: 7, Quality.HIGH: 10, Quality.VERY_HIGH: 14}
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000
@@ -125,11 +121,7 @@ class LibavH264Encoder(Encoder):
         self._stream.codec_context.time_base = Fraction(1, 1000000)
         self._stream.codec_context.options["tune"] = "zerolatency"
 
-        FORMAT_TABLE = {"YUV420": "yuv420p",
-                        "BGR888": "rgb24",
-                        "RGB888": "bgr24",
-                        "XBGR8888": "rgba",
-                        "XRGB8888": "bgra"}
+        FORMAT_TABLE = {"YUV420": "yuv420p", "BGR888": "rgb24", "RGB888": "bgr24", "XBGR8888": "rgba", "XRGB8888": "bgra"}
         self._av_input_format = FORMAT_TABLE[self._format]
 
         self._request_release_queue = collections.deque()

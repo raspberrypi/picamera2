@@ -40,8 +40,9 @@ def DrawRectangles(request):
             if len(rect) == 5:
                 text = rect[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10),
-                            font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(
+                    m.array, text, (int(rect[0] * 2) + 10, int(rect[1] * 2) + 10), font, 1, (255, 255, 255), 2, cv2.LINE_AA
+                )
 
 
 def InferenceTensorFlow(image, model, label=None):
@@ -110,7 +111,7 @@ def capture_image_and_masks(picam2: Picamera2, model, label_file):
     image = request.make_image("main")
     lores = request.make_buffer("lores")
     stride = picam2.stream_configuration("lores")["stride"]
-    grey = lores[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+    grey = lores[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
     InferenceTensorFlow(grey, model, label_file)
     for rect in rectangles:
         print(image.size)
@@ -136,21 +137,19 @@ def main():
     parser.add_argument('--output', help='File path of the output image.')
     args = parser.parse_args()
 
-    if (args.output):
+    if args.output:
         output_file = args.output
     else:
         output_file = 'out.png'
 
-    if (args.label):
+    if args.label:
         label_file = args.label
     else:
         label_file = None
 
     picam2 = Picamera2()
     picam2.start_preview(Preview.QTGL)
-    config = picam2.create_preview_configuration(
-        main={"size": normalSize},
-        lores={"size": lowresSize, "format": "YUV420"})
+    config = picam2.create_preview_configuration(main={"size": normalSize}, lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
 
     stride = picam2.stream_configuration("lores")["stride"]
@@ -162,7 +161,7 @@ def main():
         print("Starting capture, press enter to capture objects")
         while True:
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+            grey = buffer[: stride * lowresSize[1]].reshape((lowresSize[1], stride))
             InferenceTensorFlow(grey, args.model, label_file)
             # Check if enter has been pressed
             i, o, e = select.select([sys.stdin], [], [], 0.1)

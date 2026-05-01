@@ -29,11 +29,13 @@ class MJPEGEncoder(V4L2Encoder):
         if quality is not None or getattr(self, "bitrate", None) is None:
             quality = Quality.MEDIUM if quality is None else quality
             # These are suggested bitrates for 1080p30 in Mbps
-            BITRATE_TABLE = {Quality.VERY_LOW: 16,
-                             Quality.LOW: 20,
-                             Quality.MEDIUM: 30,
-                             Quality.HIGH: 40,
-                             Quality.VERY_HIGH: 50}
+            BITRATE_TABLE = {
+                Quality.VERY_LOW: 16,
+                Quality.LOW: 20,
+                Quality.MEDIUM: 30,
+                Quality.HIGH: 40,
+                Quality.VERY_HIGH: 50,
+            }
             reference_complexity = 1920 * 1080 * 30
             actual_complexity = self.width * self.height * getattr(self, "framerate", 30)
             reference_bitrate = BITRATE_TABLE[quality] * 1000000

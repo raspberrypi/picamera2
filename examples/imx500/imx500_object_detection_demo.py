@@ -6,8 +6,7 @@ import cv2
 
 from picamera2 import MappedArray, Picamera2
 from picamera2.devices import IMX500
-from picamera2.devices.imx500 import (NetworkIntrinsics,
-                                      postprocess_nanodet_detection)
+from picamera2.devices.imx500 import NetworkIntrinsics, postprocess_nanodet_detection
 
 last_detections = []
 
@@ -34,10 +33,11 @@ def parse_detections(metadata: dict):
     if np_outputs is None:
         return last_detections
     if intrinsics.postprocess == "nanodet":
-        boxes, scores, classes = \
-            postprocess_nanodet_detection(outputs=np_outputs[0], conf=threshold, iou_thres=iou,
-                                          max_out_dets=max_detections)[0]
+        boxes, scores, classes = postprocess_nanodet_detection(
+            outputs=np_outputs[0], conf=threshold, iou_thres=iou, max_out_dets=max_detections
+        )[0]
         from picamera2.devices.imx500.postprocess import scale_boxes
+
         boxes = scale_boxes(boxes, 1, 1, input_h, input_w, False, False)
     else:
         boxes, scores, classes = np_outputs[0][0], np_outputs[1][0], np_outputs[2][0]
@@ -48,9 +48,7 @@ def parse_detections(metadata: dict):
             boxes = boxes[:, [1, 0, 3, 2]]
 
     last_detections = [
-        Detection(box, category, score, metadata)
-        for box, score, category in zip(boxes, scores, classes)
-        if score > threshold
+        Detection(box, category, score, metadata) for box, score, category in zip(boxes, scores, classes) if score > threshold
     ]
     return last_detections
 
@@ -84,18 +82,19 @@ def draw_detections(request, stream="main"):
             overlay = m.array.copy()
 
             # Draw the background rectangle on the overlay
-            cv2.rectangle(overlay,
-                          (text_x, text_y - text_height),
-                          (text_x + text_width, text_y + baseline),
-                          (255, 255, 255),  # Background color (white)
-                          cv2.FILLED)
+            cv2.rectangle(
+                overlay,
+                (text_x, text_y - text_height),
+                (text_x + text_width, text_y + baseline),
+                (255, 255, 255),  # Background color (white)
+                cv2.FILLED,
+            )
 
             alpha = 0.30
             cv2.addWeighted(overlay, alpha, m.array, 1 - alpha, 0, m.array)
 
             # Draw text on top of the background
-            cv2.putText(m.array, label, (text_x, text_y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            cv2.putText(m.array, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
             # Draw detection box
             cv2.rectangle(m.array, (x, y), (x + w, y + h), (0, 255, 0, 0), thickness=2)
@@ -109,24 +108,30 @@ def draw_detections(request, stream="main"):
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, help="Path of the model",
-                        default="/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk")
+    parser.add_argument(
+        "--model",
+        type=str,
+        help="Path of the model",
+        default="/usr/share/imx500-models/imx500_network_ssd_mobilenetv2_fpnlite_320x320_pp.rpk",
+    )
     parser.add_argument("--fps", type=int, help="Frames per second")
     parser.add_argument("--bbox-normalization", action=argparse.BooleanOptionalAction, help="Normalize bbox")
-    parser.add_argument("--bbox-order", choices=["yx", "xy"], default="yx",
-                        help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)")
+    parser.add_argument(
+        "--bbox-order", choices=["yx", "xy"], default="yx", help="Set bbox order yx -> (y0, x0, y1, x1) xy -> (x0, y0, x1, y1)"
+    )
     parser.add_argument("--threshold", type=float, default=0.55, help="Detection threshold")
     parser.add_argument("--iou", type=float, default=0.65, help="Set iou threshold")
     parser.add_argument("--max-detections", type=int, default=10, help="Set max detections")
     parser.add_argument("--ignore-dash-labels", action=argparse.BooleanOptionalAction, help="Remove '-' labels ")
-    parser.add_argument("--postprocess", choices=["", "nanodet"],
-                        default=None, help="Run post process of type")
-    parser.add_argument("-r", "--preserve-aspect-ratio", action=argparse.BooleanOptionalAction,
-                        help="preserve the pixel aspect ratio of the input tensor")
-    parser.add_argument("--labels", type=str,
-                        help="Path to the labels file")
-    parser.add_argument("--print-intrinsics", action="store_true",
-                        help="Print JSON network_intrinsics then exit")
+    parser.add_argument("--postprocess", choices=["", "nanodet"], default=None, help="Run post process of type")
+    parser.add_argument(
+        "-r",
+        "--preserve-aspect-ratio",
+        action=argparse.BooleanOptionalAction,
+        help="preserve the pixel aspect ratio of the input tensor",
+    )
+    parser.add_argument("--labels", type=str, help="Path to the labels file")
+    parser.add_argument("--print-intrinsics", action="store_true", help="Print JSON network_intrinsics then exit")
     return parser.parse_args()
 
 

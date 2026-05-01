@@ -32,11 +32,12 @@ class Process:
     """
 
     def __init__(
-            self,
-            run: Callable[["RemoteRequest"], Any],
-            picam2: picamera2.Picamera2,
-            init: Callable[[], None] | None = None,
-            timeout: float | None = 30):
+        self,
+        run: Callable[["RemoteRequest"], Any],
+        picam2: picamera2.Picamera2,
+        init: Callable[[], None] | None = None,
+        timeout: float | None = 30,
+    ):
         """
         Initializes the Process.
 
@@ -106,14 +107,15 @@ class _RemoteProcess(mp.Process):
     """
 
     def __init__(
-            self,
-            send_queue: mp.Queue,
-            return_queue: mp.Queue,
-            picam2: picamera2.Picamera2,
-            run: Callable[["RemoteRequest"], Any],
-            init: Callable[[], None],
-            *args,
-            **kwargs):
+        self,
+        send_queue: mp.Queue,
+        return_queue: mp.Queue,
+        picam2: picamera2.Picamera2,
+        run: Callable[["RemoteRequest"], Any],
+        init: Callable[[], None],
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._send_queue = send_queue
         self._return_queue = return_queue
@@ -271,14 +273,14 @@ class RemoteRequest:
                     process._buffer_cache[pid_fd] = self._buffers[name]
 
         self.config["transform"] = Transform(
-            self.config["transform"][0],
-            self.config["transform"][1],
-            self.config["transform"][2])
+            self.config["transform"][0], self.config["transform"][1], self.config["transform"][2]
+        )
         self.config["colour_space"] = ColorSpace(
             self.config["colour_space"][0],
             self.config["colour_space"][1],
             self.config["colour_space"][2],
-            self.config["colour_space"][3])
+            self.config["colour_space"][3],
+        )
 
     def _deserialize_buffer(self, fd: int, length: int):
         """Deserializes a buffer."""
@@ -296,9 +298,9 @@ class RemoteRequest:
             return array.reshape((height + height // 2, stride))
         array = array.reshape((height, stride))
         if format in ("RGB888", "BGR888"):
-            return array[:, :width * 3].reshape((height, width, 3))
+            return array[:, : width * 3].reshape((height, width, 3))
         elif format in ("XBGR8888", "XRGB8888"):
-            return array[:, :width * 4].reshape((height, width, 4))
+            return array[:, : width * 4].reshape((height, width, 4))
         return array
 
     def get_metadata(self):
@@ -395,12 +397,13 @@ class Pool:
     """
 
     def __init__(
-            self,
-            run: Callable[["RemoteRequest"], Any],
-            count: int,
-            picam2: picamera2.Picamera2,
-            init: Callable[[], None] | None = None,
-            timeout: float | None = 30):
+        self,
+        run: Callable[["RemoteRequest"], Any],
+        count: int,
+        picam2: picamera2.Picamera2,
+        init: Callable[[], None] | None = None,
+        timeout: float | None = 30,
+    ):
         """Initializes the Pool."""
         self._processes = [Process(run, picam2, init, timeout) for _ in range(count)]
         self._process_count = count
@@ -416,10 +419,7 @@ class Pool:
         """Sends a request to the child process."""
         process = min(
             enumerate(self._processes),
-            key=lambda p: (
-                len(p[1]._requests_sent),
-                (p[0] + self._process_index) % self._process_count
-            )
+            key=lambda p: (len(p[1]._requests_sent), (p[0] + self._process_index) % self._process_count),
         )[1]
         self._process_index = (self._process_index + 1) % self._process_count
 

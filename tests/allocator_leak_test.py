@@ -3,8 +3,7 @@
 # Test that the allocators don't leak
 
 from picamera2 import Picamera2
-from picamera2.allocators import (DmaAllocator, LibcameraAllocator,
-                                  PersistentAllocator)
+from picamera2.allocators import DmaAllocator, LibcameraAllocator, PersistentAllocator
 
 for _ in range(20):
     picam2 = Picamera2()

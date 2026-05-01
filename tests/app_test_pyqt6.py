@@ -8,8 +8,7 @@ import time
 
 try:
     from PyQt6 import QtCore
-    from PyQt6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
-                                 QPushButton, QVBoxLayout, QWidget)
+    from PyQt6.QtWidgets import QApplication, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
     from picamera2 import Picamera2
     from picamera2.previews.qt import QGl6Picamera2 as QGlPicamera2

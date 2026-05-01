@@ -31,21 +31,24 @@ def draw_objects(request):
                 x0, y0, x1, y1 = bbox
                 label = f"{class_name} %{int(score * 100)}"
                 cv2.rectangle(m.array, (x0, y0), (x1, y1), (0, 255, 0, 0), 2)
-                cv2.putText(m.array, label, (x0 + 5, y0 + 15),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0, 0), 1, cv2.LINE_AA)
+                cv2.putText(m.array, label, (x0 + 5, y0 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0, 0), 1, cv2.LINE_AA)
 
 
 if __name__ == "__main__":
     # Parse command-line arguments.
     parser = argparse.ArgumentParser(description="Detection Example")
-    parser.add_argument("-m", "--model", help="Path for the HEF model. "
-                                              "Defaults to /usr/share/hailo-models/yolov8s_h8l.hef for H8 devices, "
-                                              "and /usr/share/hailo-models/yolov8m_h10.hef for H10 devices.",
-                        default=None)
-    parser.add_argument("-l", "--labels", default="coco.txt",
-                        help="Path to a text file containing labels.")
-    parser.add_argument("-s", "--score_thresh", type=float, default=0.5,
-                        help="Score threshold, must be a float between 0 and 1.")
+    parser.add_argument(
+        "-m",
+        "--model",
+        help="Path for the HEF model. "
+        "Defaults to /usr/share/hailo-models/yolov8s_h8l.hef for H8 devices, "
+        "and /usr/share/hailo-models/yolov8m_h10.hef for H10 devices.",
+        default=None,
+    )
+    parser.add_argument("-l", "--labels", default="coco.txt", help="Path to a text file containing labels.")
+    parser.add_argument(
+        "-s", "--score_thresh", type=float, default=0.5, help="Score threshold, must be a float between 0 and 1."
+    )
     args = parser.parse_args()
 
     if args.model is None:
