@@ -1,3 +1,10 @@
+picamera2 (0.3.35-1) trixie; urgency=medium
+
+  * New upstream version 0.3.35
+  * Add pybuild-plugin-pyprojec to build-depends
+
+ -- Serge Schneider <serge@raspberrypi.com>  Fri, 01 May 2026 20:45:44 +0100
+
 picamera2 (0.3.34-1) trixie; urgency=medium
 
   * New upstream version 0.3.34
