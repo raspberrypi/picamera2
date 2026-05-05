@@ -85,6 +85,9 @@ picam2.configure("still")
 # Read the sensor modes
 _ = picam2.sensor_modes
 
+# Get CFA: mono or color sensor?
+color_sensor = (picam2.camera_properties["ColorFilterArrangement"]!=5)
+print(f"colorfilterarrangement value: {picam2.camera_properties["ColorFilterArrangement"]} {color_sensor}")
 app = QApplication([])
 
 
@@ -656,6 +659,9 @@ class AECTab(QWidget):
         self.awb_check.setChecked(True)
         self.awb_check.stateChanged.connect(self.awb_update)
         self.awb_mode = QComboBox()
+
+
+
         self.awb_mode.addItems(["Auto", "Incandescent", "Tungsten", "Fluorescent", "Indoor", "Daylight", "Cloudy"])
         self.awb_mode.currentIndexChanged.connect(self.awb_update)
         self.colour_gain_r = QDoubleSpinBox()
@@ -664,6 +670,12 @@ class AECTab(QWidget):
         self.colour_gain_b = QDoubleSpinBox()
         self.colour_gain_b.setSingleStep(0.1)
         self.colour_gain_b.valueChanged.connect(self.awb_update)
+
+        #disable controls if mono sensor
+        self.awb_check.setEnabled(color_sensor)  # only use in case of color sensor
+        self.awb_mode.setEnabled(color_sensor)
+        self.colour_gain_r.setEnabled(color_sensor)
+        self.colour_gain_b.setEnabled(color_sensor)
 
         self.reset()
         self.aec_update()
@@ -745,15 +757,16 @@ class AECTab(QWidget):
         return ret
 
     def awb_update(self):
-        self.colour_gain_r.setMinimum(picam2.camera_controls["ColourGains"][0] + 0.01)
-        self.colour_gain_r.setMaximum(picam2.camera_controls["ColourGains"][1])
-        self.colour_gain_b.setMinimum(picam2.camera_controls["ColourGains"][0] + 0.01)
-        self.colour_gain_b.setMaximum(picam2.camera_controls["ColourGains"][1])
+        if color_sensor:
+            self.colour_gain_r.setMinimum(picam2.camera_controls["ColourGains"][0] + 0.01)
+            self.colour_gain_r.setMaximum(picam2.camera_controls["ColourGains"][1])
+            self.colour_gain_b.setMinimum(picam2.camera_controls["ColourGains"][0] + 0.01)
+            self.colour_gain_b.setMaximum(picam2.camera_controls["ColourGains"][1])
 
-        self.colour_gain_r.setEnabled(not self.awb_check.isChecked())
-        self.colour_gain_b.setEnabled(not self.awb_check.isChecked())
-        # print(self.awb_dict)
-        picam2.set_controls(self.awb_dict)
+            self.colour_gain_r.setEnabled(not self.awb_check.isChecked())
+            self.colour_gain_b.setEnabled(not self.awb_check.isChecked())
+            # print(self.awb_dict)
+            picam2.set_controls(self.awb_dict)
 
 
 class IMGTab(QWidget):
@@ -764,6 +777,7 @@ class IMGTab(QWidget):
 
         self.ccm = QDoubleSpinBox()
         self.ccm.valueChanged.connect(self.img_update)
+        # if color_sensor:
         self.saturation = logControlSlider()
         self.saturation.valueChanged.connect(self.img_update)
         self.saturation.setSingleStep(0.1)
@@ -786,7 +800,8 @@ class IMGTab(QWidget):
         self.img_update()
 
         # self.layout.addRow("Colour Correction Matrix", self.ccm)
-        self.layout.addRow("Saturation", self.saturation)
+        if color_sensor:
+            self.layout.addRow("Saturation", self.saturation)
         self.layout.addRow("Contrast", self.contrast)
         self.layout.addRow("Sharpness", self.sharpness)
         self.layout.addRow("Brightness", self.brightness)
@@ -795,28 +810,34 @@ class IMGTab(QWidget):
 
     @property
     def img_dict(self):
-        return {
+        return_dict = {
             # "ColourCorrectionMatrix": self.ccm.value(),
-            "Saturation": self.saturation.value(),
             "Contrast": self.contrast.value(),
             "Sharpness": self.sharpness.value(),
             "Brightness": self.brightness.value(),
             # "NoiseReductionMode": self.noise_reduction.currentIndex()
         }
 
+        if color_sensor:
+            return_dict["Saturation"] =  self.saturation.value()
+        return return_dict
+
     def reset(self):
-        # self.ccm.setValue(picam2.camera_controls["ColourCorrectionMatrix"][2])
-        self.saturation.setValue(picam2.camera_controls["Saturation"][2], emit=True)
         self.contrast.setValue(picam2.camera_controls["Contrast"][2], emit=True)
         self.sharpness.setValue(picam2.camera_controls["Sharpness"][2], emit=True)
         self.brightness.setValue(picam2.camera_controls["Brightness"][2], emit=True)
+        if color_sensor:
+            self.saturation.setValue(picam2.camera_controls["Saturation"][2], emit=True)
+        #self.ccm.setValue(picam2.camera_controls["ColourCorrectionMatrix"][2])
+
 
     def img_update(self):
         # self.ccm.setMinimum(picam2.camera_controls["ColourCorrectionMatrix"][0])
         # self.ccm.setMaximum(picam2.camera_controls["ColourCorrectionMatrix"][1])
-        self.saturation.setMinimum(picam2.camera_controls["Saturation"][0])
-        # self.saturation.setMaximum(picam2.camera_controls["Saturation"][1])
-        self.saturation.setMaximum(6.0)
+        if color_sensor:
+            self.saturation.setMinimum(picam2.camera_controls["Saturation"][0])
+            # self.saturation.setMaximum(picam2.camera_controls["Saturation"][1])
+            self.saturation.setMaximum(6.0)
         self.contrast.setMinimum(picam2.camera_controls["Contrast"][0])
         # self.contrast.setMaximum(picam2.camera_controls["Contrast"][1])
         self.contrast.setMaximum(6.0)
