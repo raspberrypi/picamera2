@@ -17,7 +17,10 @@ picam2.start()
 time.sleep(1)
 
 metadata = picam2.capture_metadata()
-controls = {c: metadata[c] for c in ["ExposureTime", "AnalogueGain", "ColourGains"]}
+ctrl_test = ["ExposureTime", "AnalogueGain"]
+if not picam2.is_mono:
+    ctrl_test.append("ColourGains")
+controls = {c: metadata[c] for c in ctrl_test}
 print(controls)
 
 picam2.set_controls(controls)
