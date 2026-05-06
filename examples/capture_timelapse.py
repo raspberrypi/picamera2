@@ -9,7 +9,12 @@ picam2.start()
 
 # Give time for Aec and Awb to settle, before disabling them
 time.sleep(1)
-picam2.set_controls({"AeEnable": False, "AwbEnable": False, "FrameRate": 1.0})
+ctrls = {"AeEnable": False, "FrameRate": 1.0}
+
+if not picam2.is_mono:
+    ctrls["AwbEnable"] = False
+
+picam2.set_controls(ctrls)
 # And wait for those settings to take effect
 time.sleep(1)
 
