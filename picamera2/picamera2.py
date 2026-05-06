@@ -1291,6 +1291,11 @@ class Picamera2:
         """Return the stream configuration for the named stream."""
         return self.camera_config[name]
 
+    @property
+    def is_mono(self) -> bool:
+        """Return True is this is a monochrome sensor, otherwise return False."""
+        return self.camera_properties['ColorFilterArrangement'] == libcamera.properties.draft.ColorFilterArrangementEnum.MONO
+
     def start_(self):
         """Start the camera system running."""
         if not self.camera_config:
