@@ -10,9 +10,11 @@ if picam2.camera_properties['Model'] == "imx219":
     print("SKIPPED (imx219 test bypass)")
     quit()
 
-config = picam2.create_preview_configuration(
-    controls={'FrameRate': 0.2, 'ExposureTime': 5000, 'AnalogueGain': 1.0, 'ColourGains': (1, 1)}
-)
+controls = {'FrameRate': 0.2, 'ExposureTime': 5000, 'AnalogueGain': 1.0}
+if not picam2.is_mono:
+    controls['ColourGains'] = (1, 1)
+
+config = picam2.create_preview_configuration(controls=controls)
 picam2.configure(config)
 picam2.start()
 

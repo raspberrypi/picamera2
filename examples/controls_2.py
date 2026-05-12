@@ -15,5 +15,9 @@ picam2.configure(preview_config)
 picam2.start()
 time.sleep(1)
 
-picam2.set_controls({"AwbEnable": 0, "AeEnable": 0})
+ctrls = {"AeEnable": 0}
+if not picam2.is_mono:
+    ctrls["AwbEnable"] = 0
+
+picam2.set_controls(ctrls)
 time.sleep(5)

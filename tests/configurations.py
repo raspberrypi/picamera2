@@ -41,5 +41,7 @@ if config.format != "YUV420":
 
 picam2.configure("still")
 config = CameraConfiguration(picam2.camera_configuration(), picam2)
-if config.raw.size != half_res:
+full_res = tuple(picam2.camera_properties['PixelArraySize'])
+has_binning = any(mode.get("size", full_res) != full_res for mode in picam2.sensor_modes)
+if has_binning and config.raw.size != half_res:
     raise RuntimeError("still raw size incorrect")

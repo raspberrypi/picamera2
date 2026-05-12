@@ -66,7 +66,7 @@ def post_callback(request):
         # Only set if they're disabled
         aec_tab.exposure_time.setValue(metadata["ExposureTime"])
         aec_tab.analogue_gain.setValue(metadata["AnalogueGain"])
-    if not aec_tab.colour_gain_r.isEnabled():
+    if hasattr(aec_tab, "colour_gain_r") and not aec_tab.colour_gain_r.isEnabled():
         # Only set if they're disabled
         aec_tab.colour_gain_r.setValue(metadata.get("ColourGains", [1.0, 1.0])[0])
         aec_tab.colour_gain_b.setValue(metadata.get("ColourGains", [1.0, 1.0])[1])
@@ -622,7 +622,7 @@ class panZoomDisplay(QWidget):
 
 
 class AECTab(QWidget):
-    def __init__(self):
+    def __init__(self, is_mono: bool):
         super().__init__()
         self.layout = QFormLayout()
         self.setLayout(self.layout)
@@ -651,19 +651,21 @@ class AECTab(QWidget):
         self.aec_apply.clicked.connect(self.aec_manual_update)
         self.exposure_time.valueChanged.connect(lambda: self.aec_apply.setEnabled(self.exposure_time.isEnabled()))
         self.analogue_gain.valueChanged.connect(lambda: self.aec_apply.setEnabled(self.exposure_time.isEnabled()))
+        self.is_mono = is_mono
 
-        self.awb_check = QCheckBox("AWB")
-        self.awb_check.setChecked(True)
-        self.awb_check.stateChanged.connect(self.awb_update)
-        self.awb_mode = QComboBox()
-        self.awb_mode.addItems(["Auto", "Incandescent", "Tungsten", "Fluorescent", "Indoor", "Daylight", "Cloudy"])
-        self.awb_mode.currentIndexChanged.connect(self.awb_update)
-        self.colour_gain_r = QDoubleSpinBox()
-        self.colour_gain_r.setSingleStep(0.1)
-        self.colour_gain_r.valueChanged.connect(self.awb_update)
-        self.colour_gain_b = QDoubleSpinBox()
-        self.colour_gain_b.setSingleStep(0.1)
-        self.colour_gain_b.valueChanged.connect(self.awb_update)
+        if not self.is_mono:
+            self.awb_check = QCheckBox("AWB")
+            self.awb_check.setChecked(True)
+            self.awb_check.stateChanged.connect(self.awb_update)
+            self.awb_mode = QComboBox()
+            self.awb_mode.addItems(["Auto", "Incandescent", "Tungsten", "Fluorescent", "Indoor", "Daylight", "Cloudy"])
+            self.awb_mode.currentIndexChanged.connect(self.awb_update)
+            self.colour_gain_r = QDoubleSpinBox()
+            self.colour_gain_r.setSingleStep(0.1)
+            self.colour_gain_r.valueChanged.connect(self.awb_update)
+            self.colour_gain_b = QDoubleSpinBox()
+            self.colour_gain_b.setSingleStep(0.1)
+            self.colour_gain_b.valueChanged.connect(self.awb_update)
 
         self.reset()
         self.aec_update()
@@ -680,18 +682,20 @@ class AECTab(QWidget):
         self.layout.addRow(self.analogue_label)
         self.layout.addRow(self.aec_apply)
 
-        self.layout.addRow(self.awb_check)
-        self.layout.addRow("AWB Mode", self.awb_mode)
-        self.layout.addRow("Red Gain", self.colour_gain_r)
-        self.layout.addRow("Blue Gain", self.colour_gain_b)
+        if not self.is_mono:
+            self.layout.addRow(self.awb_check)
+            self.layout.addRow("AWB Mode", self.awb_mode)
+            self.layout.addRow("Red Gain", self.colour_gain_r)
+            self.layout.addRow("Blue Gain", self.colour_gain_b)
 
     def reset(self):
         self.aec_check.setChecked(True)
-        self.awb_check.setChecked(True)
         self.exposure_time.setValue(10000)
         self.analogue_gain.setValue(1.0)
-        self.colour_gain_r.setValue(1.0)
-        self.colour_gain_b.setValue(1.0)
+        if not self.is_mono:
+            self.awb_check.setChecked(True)
+            self.colour_gain_r.setValue(1.0)
+            self.colour_gain_b.setValue(1.0)
 
     @property
     def aec_dict(self):
@@ -745,6 +749,9 @@ class AECTab(QWidget):
         return ret
 
     def awb_update(self):
+        if self.is_mono:
+            return
+
         self.colour_gain_r.setMinimum(picam2.camera_controls["ColourGains"][0] + 0.01)
         self.colour_gain_r.setMaximum(picam2.camera_controls["ColourGains"][1])
         self.colour_gain_b.setMinimum(picam2.camera_controls["ColourGains"][0] + 0.01)
@@ -757,7 +764,7 @@ class AECTab(QWidget):
 
 
 class IMGTab(QWidget):
-    def __init__(self):
+    def __init__(self, is_mono: bool):
         super().__init__()
         self.layout = QFormLayout()
         self.setLayout(self.layout)
@@ -781,12 +788,14 @@ class IMGTab(QWidget):
         self.noise_reduction.currentIndexChanged.connect(self.img_update)
         self.reset_button = QPushButton("Reset")
         self.reset_button.clicked.connect(self.reset)
+        self.is_mono = is_mono
 
         self.reset()
         self.img_update()
 
         # self.layout.addRow("Colour Correction Matrix", self.ccm)
-        self.layout.addRow("Saturation", self.saturation)
+        if not self.is_mono:
+            self.layout.addRow("Saturation", self.saturation)
         self.layout.addRow("Contrast", self.contrast)
         self.layout.addRow("Sharpness", self.sharpness)
         self.layout.addRow("Brightness", self.brightness)
@@ -795,18 +804,23 @@ class IMGTab(QWidget):
 
     @property
     def img_dict(self):
-        return {
+        values = {
             # "ColourCorrectionMatrix": self.ccm.value(),
-            "Saturation": self.saturation.value(),
             "Contrast": self.contrast.value(),
             "Sharpness": self.sharpness.value(),
             "Brightness": self.brightness.value(),
             # "NoiseReductionMode": self.noise_reduction.currentIndex()
         }
 
+        if not self.is_mono:
+            values["Saturation"] = self.saturation.value()
+
+        return values
+
     def reset(self):
         # self.ccm.setValue(picam2.camera_controls["ColourCorrectionMatrix"][2])
-        self.saturation.setValue(picam2.camera_controls["Saturation"][2], emit=True)
+        if not self.is_mono:
+            self.saturation.setValue(picam2.camera_controls["Saturation"][2], emit=True)
         self.contrast.setValue(picam2.camera_controls["Contrast"][2], emit=True)
         self.sharpness.setValue(picam2.camera_controls["Sharpness"][2], emit=True)
         self.brightness.setValue(picam2.camera_controls["Brightness"][2], emit=True)
@@ -814,7 +828,8 @@ class IMGTab(QWidget):
     def img_update(self):
         # self.ccm.setMinimum(picam2.camera_controls["ColourCorrectionMatrix"][0])
         # self.ccm.setMaximum(picam2.camera_controls["ColourCorrectionMatrix"][1])
-        self.saturation.setMinimum(picam2.camera_controls["Saturation"][0])
+        if not self.is_mono:
+            self.saturation.setMinimum(picam2.camera_controls["Saturation"][0])
         # self.saturation.setMaximum(picam2.camera_controls["Saturation"][1])
         self.saturation.setMaximum(6.0)
         self.contrast.setMinimum(picam2.camera_controls["Contrast"][0])
@@ -1193,9 +1208,9 @@ qpicamera2.done_signal.connect(capture_done)
 
 # Tabs
 tabs = QTabWidget()
-img_tab = IMGTab()
+img_tab = IMGTab(picam2.is_mono)
 pan_tab = panTab()
-aec_tab = AECTab()
+aec_tab = AECTab(picam2.is_mono)
 info_tab = QLabel(alignment=Qt.AlignTop)
 other_tab = otherTab()
 hide_button = QPushButton(">")
