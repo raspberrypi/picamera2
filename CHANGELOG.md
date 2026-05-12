@@ -6,6 +6,16 @@
 
 ### Changed
 
+## 0.3.36 Beta Release 35
+
+### Added
+
+* Add is_mono property to detect monochrome sensors.
+
+### Changed
+
+* Tests/examples fixed for monochrome sensors.
+
 ## 0.3.35 Beta Release 34
 
 ### Added
