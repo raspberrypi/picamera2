@@ -10,6 +10,7 @@ permissions:
 jobs:
   trigger-camera-tests:
     runs-on: [self-hosted, camera-test-bridge]
+    environment: ${{ github.event.pull_request.head.repo.full_name == github.repository && '' || 'camera-test' }}
     timeout-minutes: 120
     steps:
       - name: Checkout camera_tester
