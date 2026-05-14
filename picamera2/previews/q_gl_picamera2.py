@@ -271,6 +271,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                 # doesn't work "VYUY": "VYUY",
                 "YUV420": "YU12",
                 "YVU420": "YV12",
+                "NV12": "NV12",
             }
 
             def __init__(self, display, completed_request, max_texture_size):
@@ -303,6 +304,22 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                         EGL_DMA_BUF_PLANE2_FD_EXT, fb.planes[0].fd,
                         EGL_DMA_BUF_PLANE2_OFFSET_EXT, h * cfg.stride + h2 * stride2,
                         EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
+                        EGL_NONE,
+                    ]
+                    # fmt: on
+                elif pixel_format == "NV12":
+                    h2 = h // 2
+                    # fmt: off
+                    attribs = [
+                        EGL_WIDTH, w,
+                        EGL_HEIGHT, h,
+                        EGL_LINUX_DRM_FOURCC_EXT, fmt,
+                        EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
+                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+                        EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
+                        EGL_DMA_BUF_PLANE1_FD_EXT, fb.planes[0].fd,
+                        EGL_DMA_BUF_PLANE1_OFFSET_EXT, h * cfg.stride,
+                        EGL_DMA_BUF_PLANE1_PITCH_EXT, cfg.stride,
                         EGL_NONE,
                     ]
                     # fmt: on
