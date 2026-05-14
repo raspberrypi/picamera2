@@ -199,12 +199,11 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
             stream_config = camera_config[display_stream_name]
 
             img = completed_request.make_array(display_stream_name)
-            if stream_config["format"] in ("YUV420", "YUYV"):
+            fmt = stream_config["format"]
+            if fmt in ("YUV420", "YUYV", "NV12"):
                 if cv2_available:
-                    if stream_config["format"] == "YUV420":
-                        img = cv2.cvtColor(img, cv2.COLOR_YUV420p2BGR)
-                    else:
-                        img = cv2.cvtColor(img, cv2.COLOR_YUV2RGB_YUYV)
+                    table = {"YUV420": cv2.COLOR_YUV420p2BGR, "YUYV": cv2.COLOR_YUV2RGB_YUYV, "NV12": cv2.COLOR_YUV2RGB_NV12}
+                    img = cv2.cvtColor(img, table[fmt])
                 else:
                     logging.error("Qt preview cannot display YUV420/YUYV without cv2")
                     return
