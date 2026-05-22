@@ -341,6 +341,10 @@ class Picamera2:
         self._preview = None
         self.is_open = False
         # Get the real libcamera internal number.
+        if camera_num >= len(self.global_camera_info()):
+            raise RuntimeError(
+                f'No camera number {camera_num} found - use "rpicam-hello --list-cameras" to check connected cameras'
+            )
         camera_num = self.global_camera_info()[camera_num]['Num']
         self._cm.add(camera_num, self)
         self.camera_idx = camera_num
