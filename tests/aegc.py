@@ -22,9 +22,20 @@ def test_control_auto(control):
     for _ in range(5):
         check = picam2.capture_metadata()[control]
         if abs(check - current) > current * 0.05:
-            print(f"Control {control} changed from {current} to {check}")
-            return
-    print(f"ERROR: {control} has not returned to auto - still {check}")
+            return True, current, check
+    return False, current, check
+
+
+def run_auto_test(control, reset_value):
+    success, current, check = test_control_auto(control)
+    if not success:
+        # Retry in case the auto algorithm converged back to the last fixed value
+        test_control_fixed(control, reset_value)
+        success, current, check = test_control_auto(control)
+    if success:
+        print(f"Control {control} changed from {current} to {check}")
+    else:
+        print(f"ERROR: {control} has not returned to auto - still {current}")
 
 
 picam2 = Picamera2()
@@ -33,12 +44,12 @@ picam2.start()
 test_control_fixed("ExposureTime", 5000)
 test_control_fixed("ExposureTime", 10000)
 test_control_fixed("ExposureTime", 1000)
-test_control_auto("ExposureTime")
+run_auto_test("ExposureTime", 5000)
 
 test_control_fixed("AnalogueGain", 1.5)
 test_control_fixed("AnalogueGain", 3.0)
 test_control_fixed("AnalogueGain", 5.8)
-test_control_auto("AnalogueGain")
+run_auto_test("AnalogueGain", 1.5)
 
 
 # Also test that it works when we start the camera.
