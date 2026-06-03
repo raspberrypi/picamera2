@@ -10,7 +10,10 @@ permissions:
 jobs:
   trigger-camera-tests:
     runs-on: [self-hosted, camera-test-bridge]
-    environment: ${{ github.event.pull_request.head.repo.full_name == github.repository && '' || 'camera-test' }}
+    # Fork PRs require manual approval through the camera-test environment.
+    # Note the condition must be inverted so that the truthy branch holds the
+    # non-empty string, as '' is falsy and would fall through to the || branch.
+    environment: ${{ github.event.pull_request.head.repo.full_name != github.repository && 'camera-test' || '' }}
     timeout-minutes: 120
     steps:
       - name: Checkout camera_tester
