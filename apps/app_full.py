@@ -1196,6 +1196,7 @@ ignore_controls = {
     "AfPause",
     "AfMetering",
     "ScalerCrops",
+    "OutputWindows",
 }
 
 # Main widgets
