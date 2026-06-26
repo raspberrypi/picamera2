@@ -5,6 +5,7 @@
 ### Added
 
 * Add `Preview.QTGL_WL`, a GPU-accelerated Qt preview that runs as a native Wayland client (as well as X11), avoiding XWayland. See `examples/preview_qtgl_wayland.py`.
+* Add `Preview.QTGL_WL_DIRECT`, a native-Wayland Qt preview that renders directly to the window surface (QOpenGLWindow), avoiding the FBO blit of `Preview.QTGL_WL` for higher throughput. See `examples/preview_qtgl_wayland_direct.py`.
 
 ### Changed
 
