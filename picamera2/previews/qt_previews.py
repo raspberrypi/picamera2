@@ -144,3 +144,16 @@ class QtGlPreview(QtPreviewBase):
 
     def get_title(self):
         return "QtGlPreview"
+
+
+class QtGlPreviewWayland(QtPreviewBase):
+    # Like QtGlPreview, but uses the QOpenGLWidget-based QGlPicamera2Wl, which
+    # renders through Qt's own GL context and so works on native Wayland as
+    # well as X11 (QtGlPreview's raw-EGL-on-winId path is X11/XWayland only).
+    def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
+        from picamera2.previews.qt import QGlPicamera2Wl
+
+        return QGlPicamera2Wl(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
+
+    def get_title(self):
+        return "QtGlPreviewWayland"

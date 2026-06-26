@@ -12,6 +12,7 @@ _log = getLogger(__name__)
 
 try:
     from .q_gl_picamera2 import _get_qglpicamera2
+    from .q_gl_picamera2_wl import _get_qglpicamera2_wl
 except Exception:
     _log.warning("OpenGL will not be available")
 
@@ -36,4 +37,9 @@ def __getattr__(name: str):
         return _get_qglpicamera2(_QT_BINDING.PySide2)
     elif name == 'QGlSide6Picamera2':
         return _get_qglpicamera2(_QT_BINDING.PySide6)
+    # OpenGL accelerated Qt widget that also works on native Wayland
+    elif name == 'QGlPicamera2Wl':
+        return _get_qglpicamera2_wl(_QT_BINDING.PyQt5)
+    elif name == 'QGl6Picamera2Wl':
+        return _get_qglpicamera2_wl(_QT_BINDING.PyQt6)
     raise AttributeError(f"qt has no attribute '{name}'")
