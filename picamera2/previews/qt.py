@@ -13,6 +13,7 @@ _log = getLogger(__name__)
 try:
     from .q_gl_picamera2 import _get_qglpicamera2
     from .q_gl_picamera2_wl import _get_qglpicamera2_wl
+    from .q_gl_picamera2_wl_direct import _get_qglpicamera2_wl_direct
 except Exception:
     _log.warning("OpenGL will not be available")
 
@@ -42,4 +43,10 @@ def __getattr__(name: str):
         return _get_qglpicamera2_wl(_QT_BINDING.PyQt5)
     elif name == 'QGl6Picamera2Wl':
         return _get_qglpicamera2_wl(_QT_BINDING.PyQt6)
+    # Native-Wayland OpenGL widget that renders direct to the window surface
+    # (QOpenGLWindow, no FBO blit)
+    elif name == 'QGlPicamera2WlDirect':
+        return _get_qglpicamera2_wl_direct(_QT_BINDING.PyQt5)
+    elif name == 'QGl6Picamera2WlDirect':
+        return _get_qglpicamera2_wl_direct(_QT_BINDING.PyQt6)
     raise AttributeError(f"qt has no attribute '{name}'")
