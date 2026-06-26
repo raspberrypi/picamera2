@@ -751,7 +751,7 @@ class Picamera2:
         """
         if updates is None:
             return updates
-        valid = ("format", "size", "stride", "preserve_ar")
+        valid = ("format", "size", "stride", "preserve_ar", "buffer", "buffersize", "offset", "offset_bytes")
         for key, value in updates.items():
             if isinstance(value, SensorFormat):
                 value = str(value)
@@ -1255,9 +1255,34 @@ class Picamera2:
         else:
             self._max_queue_len = 0
 
-        # Allocate all the frame buffers.
+        # Allocate all the frame buffers. For each stream we pass the allocator:
+        # the size of the buffers it's going to allocate
+        # the offset in bytes into the buffer where the image will start
+        # the number of buffers to allocate.
+        def create_allocator_info(stream, stream_config):
+            buffersize = (
+                stream_config["buffersize"]
+                if stream_config.get("buffersize", None) is not None
+                else stream_config["framesize"]
+            )
+            offset_bytes = stream_config["offset_bytes"] if stream_config.get("offset_bytes", None) is not None else 0
+            return {
+                "stream": stream.stream,
+                "buffer_count": stream.buffer_count,
+                "buffersize": buffersize,
+                "offset_bytes": offset_bytes,
+            }
+
+        # Streams are always created in the order: main, lores then raw.
+        allocator_info = [create_allocator_info(libcamera_config.at(0), camera_config["main"])]
+        if self.lores_index >= 0:
+            allocator_info.append(create_allocator_info(libcamera_config.at(1), camera_config["lores"]))
+        if self.raw_index >= 0:
+            allocator_info.append(create_allocator_info(libcamera_config.at(self.raw_index), camera_config["raw"]))
+
+        self.allocator.allocate(allocator_info, camera_config.get("use_case"))
+
         self.streams = [stream_config.stream for stream_config in libcamera_config]
-        self.allocator.allocate(libcamera_config, camera_config.get("use_case"))
 
         # Mark ourselves as configured.
         self.libcamera_config = libcamera_config

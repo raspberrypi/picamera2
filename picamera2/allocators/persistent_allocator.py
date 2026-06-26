@@ -13,7 +13,7 @@ class PersistentAllocator(DmaAllocator):
         self.buffer_key = None
         self.buffer_dict = {}
 
-    def allocate(self, libcamera_config, use_case):
+    def allocate(self, allocator_info, use_case):
         if use_case is None:
             _log.error("Must set use_case before using persistent allocator")
         self.buffer_key = use_case
@@ -26,7 +26,7 @@ class PersistentAllocator(DmaAllocator):
 
         buffers = self.buffer_dict.get(self.buffer_key)
         if buffers is None:
-            super().allocate(libcamera_config, use_case)
+            super().allocate(allocator_info, use_case)
             self.buffer_dict[self.buffer_key] = (
                 self.open_fds,
                 self.libcamera_fds,

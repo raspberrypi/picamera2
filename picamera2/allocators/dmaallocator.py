@@ -32,7 +32,7 @@ class DmaAllocator(Allocator):
         self.libcamera_fds = []
         self.sync = self.DmaSync
 
-    def allocate(self, libcamera_config, _):
+    def allocate(self, allocator_info, use_case):
         # Delete old buffers
         self.libcamera_fds = []
         self.cleanup()
@@ -42,11 +42,13 @@ class DmaAllocator(Allocator):
         self.frame_buffers = {}
         self.open_fds = []
 
-        for c, stream_config in enumerate(libcamera_config):
-            stream = stream_config.stream
+        for c, info in enumerate(allocator_info):
+            stream = info["stream"]
+            offset_bytes = info["offset_bytes"]
+            buffersize = info["buffersize"]
             fb = []
-            for i in range(stream_config.buffer_count):
-                fd = self.dmaHeap.alloc(f"picamera2-{i}", stream_config.frame_size)
+            for i in range(info["buffer_count"]):
+                fd = self.dmaHeap.alloc(f"picamera2-{i}", buffersize)
                 # Keep track of our allocated fds, as libcamera makes copies
                 self.open_fds.append(fd.get())
 
@@ -55,14 +57,14 @@ class DmaAllocator(Allocator):
 
                 plane = [libcamera.FrameBuffer.Plane()]
                 plane[0].fd = fd.get()
-                plane[0].offset = 0
-                plane[0].length = stream_config.frame_size
+                plane[0].offset = offset_bytes
+                plane[0].length = buffersize - offset_bytes
 
                 self.libcamera_fds.append(plane[0].fd)
                 self.mapped_buffers_used[plane[0].fd] = False
 
                 fb.append(libcamera.FrameBuffer(plane))
-                memory = mmap.mmap(plane[0].fd, stream_config.frame_size, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
+                memory = mmap.mmap(plane[0].fd, buffersize, mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE)
                 self.mapped_buffers[fb[-1]] = memory
 
             self.frame_buffers[stream] = fb

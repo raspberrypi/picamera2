@@ -17,9 +17,9 @@ class LibcameraAllocator(Allocator):
         super().__init__()
         self.camera = camera
 
-    def allocate(self, libcamera_config, _):
+    def allocate(self, allocator_info, use_case):
         self.allocator = libcamera.FrameBufferAllocator(self.camera)
-        streams = [stream_config.stream for stream_config in libcamera_config]
+        streams = [info["stream"] for info in allocator_info]
         for i, stream in enumerate(streams):
             if self.allocator.allocate(stream) < 0:
                 logging.critical("Failed to allocate buffers.")
