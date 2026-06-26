@@ -28,7 +28,8 @@ import picamera2.utils as utils
 from picamera2.allocators import DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FileOutput, PyavOutput
-from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtGlPreviewWayland, QtPreview
+from picamera2.previews import (DrmPreview, NullPreview, QtGlPreview, QtGlPreviewWayland,
+                                QtGlPreviewWaylandDirect, QtPreview)
 
 from .configuration import CameraConfiguration
 from .controls import Controls
@@ -53,6 +54,7 @@ class Preview(Enum):
     QT = QtPreview
     QTGL = QtGlPreview
     QTGL_WL = QtGlPreviewWayland
+    QTGL_WL_DIRECT = QtGlPreviewWaylandDirect
 
 
 class GlobalCameraInfo(TypedDict):

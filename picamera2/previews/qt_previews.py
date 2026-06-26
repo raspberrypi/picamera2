@@ -157,3 +157,17 @@ class QtGlPreviewWayland(QtPreviewBase):
 
     def get_title(self):
         return "QtGlPreviewWayland"
+
+
+class QtGlPreviewWaylandDirect(QtPreviewBase):
+    # As QtGlPreviewWayland, but uses QGlPicamera2WlDirect (a QOpenGLWindow
+    # embedded via createWindowContainer) which renders straight to the window
+    # surface, avoiding the QOpenGLWidget FBO->window blit. See the stacking
+    # caveats in q_gl_picamera2_wl_direct.py.
+    def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
+        from picamera2.previews.qt import QGlPicamera2WlDirect
+
+        return QGlPicamera2WlDirect(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
+
+    def get_title(self):
+        return "QtGlPreviewWaylandDirect"
