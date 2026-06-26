@@ -1160,6 +1160,56 @@ class Picamera2:
             sensor_config['output_size'] = utils.convert_from_libcamera_type(libcamera_config.sensor_config.output_size)
             camera_config['sensor'] = sensor_config
 
+    def _update_config_for_offsets(self, camera_config):
+        # We need to get the stride and size in bytes of the buffer, which may be
+        # larger that that required by the final camera images. Do this by making
+        # a throw-away libcamera configuration which we can "validate" to give us
+        # this information
+        libcamera_config = self._make_libcamera_config(camera_config)
+        if camera_config["main"].get("buffer", None) is not None:
+            buffer = camera_config["main"]["buffer"]
+            libcamera_config.at(0).size.width = buffer[0]
+            libcamera_config.at(0).size.height = buffer[1]
+
+        has_lores = camera_config["lores"] is not None
+        if has_lores and camera_config["lores"].get("buffer", None) is not None:
+            buffer = camera_config["lores"]["buffer"]
+            libcamera_config.at(1).size.width = buffer[0]
+            libcamera_config.at(1).size.height = buffer[1]
+
+        status = libcamera_config.validate()
+        if status == libcamera.CameraConfiguration.Status.Invalid:
+            # Try and carry on without these changes. Will probably fail too.
+            return
+
+        # Now we need to update our stream configs with the stride and buffersize
+        # that will are correct for the (possibly larger) image buffers. In the case
+        # where there's a non-zero offset into these buffers, we will calculate the
+        # offset in bytes and store that. Libcamera doesn't want all these extra
+        # numbers, but we will need them later.
+
+        def update_stream(stream_config, libcamera_stream_config):
+            stream_config["stride"] = libcamera_stream_config.stride
+            stream_config["buffersize"] = libcamera_stream_config.frame_size
+            offset = stream_config.get("offset", (0, 0))
+            if offset == (0, 0) or offset is None:
+                stream_config["offset_bytes"] = 0
+                return
+            if Picamera2.platform == Platform.Platform.VC4:
+                raise RuntimeError("Non-zero offsets not supported on VC4 platform")
+            format = stream_config["format"]
+            alignment_info = formats.pixel_alignment(format)
+            if alignment_info is None:
+                raise RuntimeError(f"Non-zero offsets not allowed for format {format}")
+            alignment, bpp = alignment_info["alignment"], alignment_info["bpp"]
+            if offset[0] % alignment:
+                raise RuntimeError(f"Offset {offset[0]} for format {format} not aligned to {alignment} pixels")
+            stream_config["offset_bytes"] = libcamera_stream_config.stride * offset[1] + bpp * offset[0]
+
+        update_stream(camera_config["main"], libcamera_config.at(0))
+        if has_lores:
+            update_stream(camera_config["lores"], libcamera_config.at(1))
+
     def configure_(self, camera_config):
         """Configure the camera system with the given configuration.
 
@@ -1208,6 +1258,7 @@ class Picamera2:
 
         # Check the config and turn it into a libcamera config.
         self.check_camera_config(camera_config)
+        self._update_config_for_offsets(camera_config)
         libcamera_config = self._make_libcamera_config(camera_config)
 
         # Check that libcamera is happy with it.

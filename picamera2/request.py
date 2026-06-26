@@ -51,12 +51,15 @@ class _MappedBuffer:
 
 
 class MappedArray:
-    def __init__(self, request: "CompletedRequest", stream: str, reshape: bool = True, write: bool = True) -> None:
+    def __init__(
+        self, request: "CompletedRequest", stream: str, reshape: bool = True, write: bool = True, window=None
+    ) -> None:
         self.__request: "CompletedRequest" = request
         self.__stream: str = stream
         self.__buffer: _MappedBuffer = _MappedBuffer(request, stream, write=write)
         self.__array: Optional[np.ndarray] = None
         self.__reshape: bool = reshape
+        self.__window: Optional[dict] = window
 
     def __enter__(self) -> "MappedArray":
         b = self.__buffer.__enter__()
@@ -67,6 +70,23 @@ class MappedArray:
                 config = self.__request.config[self.__stream]
             else:
                 config = self.__stream.configuration
+            if self.__window:
+                # Check the window doesn't exceed the image buffer size.
+                maxsize = config.get('buffer', None) or config['size']
+                if self.__window[0] + self.__window[2] > maxsize[0]:
+                    raise RuntimeError("Window width exceeds image buffer width")
+                if self.__window[1] + self.__window[3] > maxsize[1]:
+                    raise RuntimeError("Window height exceeds image buffer height")
+
+                # Now we need to take the config and overwrite the image size and offset to
+                # give us the right window. Avoid changing the stream config in place.
+                config = config.copy()
+                config['size'] = self.__window[2:]
+                alignment_info = formats.pixel_alignment(config['format'])
+                if alignment_info is None:
+                    raise RuntimeError(f"Window not supported with format {config['format']}")
+                bpp = alignment_info['bpp']
+                config['offset_bytes'] = config['stride'] * self.__window[1] + bpp * self.__window[0]
 
             # helpers._make_array_shared never makes a copy.
             array = self.__request.picam2.helpers._make_array_shared(array, config)
@@ -308,11 +328,17 @@ class Helpers:
         # Reshape the 1d array into an image, and "slice" off any padding bytes on the
         # right hand edge (which doesn't copy the pixel data).
         if fmt in ("BGR888", "RGB888"):
+            # These formats support offsets into the buffer, so trim those off.
+            offset = config["offset_bytes"]
+            array = array[offset : offset + h * stride]
             if stride != w * 3:
                 array = array.reshape((h, stride))
                 array = array[:, : w * 3]
             image = array.reshape((h, w, 3))
         elif fmt in ("XBGR8888", "XRGB8888"):
+            # These formats support offsets into the buffer, so trim those off.
+            offset = config["offset_bytes"]
+            array = array[offset : offset + h * stride]
             if stride != w * 4:
                 array = array.reshape((h, stride))
                 array = array[:, : w * 4]
