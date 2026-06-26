@@ -37,6 +37,13 @@ MONO_FORMATS = {"R8", "R10", "R12", "R16", "R8_CSI2P", "R10_CSI2P", "R12_CSI2P",
 
 ALL_FORMATS = YUV_FORMATS | RGB_FORMATS | BAYER_FORMATS | MONO_FORMATS
 
+ALIGNMENT_INFO = {
+    "BGR888": {"alignment": 16, "bpp": 3},
+    "RGB888": {"alignment": 16, "bpp": 3},
+    "XBGR8888": {"alignment": 4, "bpp": 4},
+    "XRGB8888": {"alignment": 4, "bpp": 4},
+}
+
 
 def is_YUV(fmt: str) -> bool:
     return fmt in YUV_FORMATS
@@ -61,3 +68,10 @@ def is_raw(fmt: str) -> bool:
 def assert_format_valid(fmt: str) -> None:
     if fmt not in ALL_FORMATS:
         raise ValueError(f"Invalid format: {fmt}. Valid formats are: {ALL_FORMATS}")
+
+
+def pixel_alignment(fmt: str) -> int:
+    # The number of pixels you can offset horizontally into an image and get a
+    # sufficiently aligned address that the hardware can start writing there, also
+    # the number of bytes per pixel. Only for formats that support offsetting.
+    return ALIGNMENT_INFO.get(fmt, None)

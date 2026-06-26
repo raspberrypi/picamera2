@@ -142,6 +142,7 @@ class DrmPreview(NullPreview):
         if completed_request is not None:
             self.display_stream_name = completed_request.config['display']
             stream = completed_request.stream_map[self.display_stream_name]
+            stream_config = completed_request.config[self.display_stream_name]
         else:
             if self.display_stream_name is None:
                 self.display_stream_name = picam2.display_stream_name
@@ -228,7 +229,8 @@ class DrmPreview(NullPreview):
                     size = height * stride
                     drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd, fd], [stride, stride], [0, size])
                 else:
-                    drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
+                    offset_bytes = 0 if stream_config.get("offset_bytes", None) is None else stream_config["offset_bytes"]
+                    drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [offset_bytes])
                 self.drmfbs[fb] = drmfb
 
             drmfb = self.drmfbs[fb]

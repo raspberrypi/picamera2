@@ -277,6 +277,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
             def __init__(self, display, completed_request, max_texture_size):
                 picam2 = completed_request.picam2
                 stream = picam2.stream_map[picam2.display_stream_name]
+                stream_config = completed_request.config[picam2.display_stream_name]
                 fb = completed_request.request.buffers[stream]
 
                 cfg = stream.configuration
@@ -325,12 +326,13 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
                     # fmt: on
                 else:
                     # fmt: off
+                    offset_bytes = 0 if stream_config.get("offset_bytes", None) is None else stream_config["offset_bytes"]
                     attribs = [
                         EGL_WIDTH, w,
                         EGL_HEIGHT, h,
                         EGL_LINUX_DRM_FOURCC_EXT, fmt,
                         EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
+                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, offset_bytes,
                         EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
                         EGL_NONE,
                     ]
