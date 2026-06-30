@@ -119,6 +119,8 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, n)
             self.max_texture_size = n.value
             self._build_programs()
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             self._gl_ready = True
 
         def _build_programs(self):
