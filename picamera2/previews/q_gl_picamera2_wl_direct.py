@@ -100,6 +100,12 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, n)
             self.max_texture_size = n.value
             self._build_programs()
+            # If we're already exposed (context created after first expose),
+            # paint bg_colour and swap immediately so there's no white flash.
+            glClearColor(*self.bg_colour)
+            glClear(GL_COLOR_BUFFER_BIT)
+            if self.isExposed():
+                self.context().swapBuffers(self)
             self._gl_ready = True
 
         def _build_programs(self):
@@ -348,6 +354,13 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
                      preview_window=None):
             super().__init__(parent=parent)
             self.resize(width, height)
+            # Fill the widget background with bg_colour so that while the
+            # QOpenGLWindow sub-surface has no committed buffer (transparent),
+            # the parent surface shows dark rather than the default white.
+            pal = self.palette()
+            pal.setColor(QtGui.QPalette.Window, QtGui.QColor(*bg_colour))
+            self.setPalette(pal)
+            self.setAutoFillBackground(True)
             self.picamera2 = picam2
             self.preview_window = preview_window
             self.title_function = None
