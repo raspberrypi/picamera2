@@ -99,6 +99,8 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, n)
             self.max_texture_size = n.value
             self._build_programs()
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             # If we're already exposed (context created after first expose),
             # paint bg_colour and swap immediately so there's no white flash.
             glClearColor(*self.bg_colour)
