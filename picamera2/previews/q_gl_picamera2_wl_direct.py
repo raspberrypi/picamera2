@@ -32,7 +32,6 @@ from OpenGL.EGL.KHR.image import *
 from OpenGL.EGL.VERSION.EGL_1_0 import *
 from OpenGL.EGL.VERSION.EGL_1_2 import *
 from OpenGL.EGL.VERSION.EGL_1_3 import *
-from OpenGL.GL import shaders
 from OpenGL.GLES2.OES.EGL_image import *
 from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
@@ -142,12 +141,8 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
                 uniform sampler2D overlay;
                 void main() { gl_FragColor = texture2D(overlay, texcoord); }
             """
-            self.program_image = shaders.compileProgram(
-                shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),
-                shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER))
-            self.program_overlay = shaders.compileProgram(
-                shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
-                shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER))
+            self.program_image = compile_program(vertShaderSrc_image, fragShaderSrc_image)
+            self.program_overlay = compile_program(vertShaderSrc_overlay, fragShaderSrc_overlay)
             self._vertPositions = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
             for prog in (self.program_image, self.program_overlay):
                 loc = glGetAttribLocation(prog, "aPosition")
@@ -338,6 +333,15 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
                 self.makeCurrent()
                 for _, buffer in self.buffers.items():
                     glDeleteTextures(1, [buffer.texture])
+                if self.program_image is not None:
+                    glDeleteProgram(self.program_image)
+                    self.program_image = None
+                if self.program_overlay is not None:
+                    glDeleteProgram(self.program_overlay)
+                    self.program_overlay = None
+                if self.overlay_texture is not None:
+                    glDeleteTextures(1, [self.overlay_texture])
+                    self.overlay_texture = None
                 self.doneCurrent()
             except Exception:
                 pass
@@ -375,7 +379,7 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
             self.camera_notifier = QSocketNotifier(
                 self.picamera2.notifyme_r, QSocketNotifier.Type.Read, self)
             self.camera_notifier.activated.connect(self.handle_requests)
-            self.destroyed.connect(lambda: self.cleanup())
+            self.destroyed.connect(self.cleanup)
             self.running = True
 
         def render_request(self, completed_request):
