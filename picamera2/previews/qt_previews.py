@@ -1,4 +1,5 @@
 import atexit
+import os
 import threading
 from enum import Enum
 from queue import Queue
@@ -150,6 +151,16 @@ class QtGlPreviewWayland(QtPreviewBase):
     # Like QtGlPreview, but uses the QOpenGLWidget-based QGlPicamera2Wl, which
     # renders through Qt's own GL context and so works on native Wayland as
     # well as X11 (QtGlPreview's raw-EGL-on-winId path is X11/XWayland only).
+    def start(self, picam2):
+        # QGlPicamera2Wl relies on eglGetCurrentDisplay() inside initializeGL,
+        # so Qt must use its native Wayland (EGL) backend.  picamera2.__init__
+        # sets QT_QPA_PLATFORM=xcb to force XWayland for the older GL path, so
+        # we override it here (before QApplication is created) when a Wayland
+        # compositor is available.
+        if QtPreviewBase.thread is None and os.environ.get('WAYLAND_DISPLAY'):
+            os.environ['QT_QPA_PLATFORM'] = 'wayland'
+        super().start(picam2)
+
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QGlPicamera2Wl
 
@@ -164,6 +175,11 @@ class QtGlPreviewWaylandDirect(QtPreviewBase):
     # embedded via createWindowContainer) which renders straight to the window
     # surface, avoiding the QOpenGLWidget FBO->window blit. See the stacking
     # caveats in q_gl_picamera2_wl_direct.py.
+    def start(self, picam2):
+        if QtPreviewBase.thread is None and os.environ.get('WAYLAND_DISPLAY'):
+            os.environ['QT_QPA_PLATFORM'] = 'wayland'
+        super().start(picam2)
+
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QGlPicamera2WlDirect
 
