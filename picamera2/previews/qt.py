@@ -3,6 +3,7 @@
 # It may be something to do with more recent versions of python3-opengl?
 # Anyway, if we carry on regardless at least the non-OpenGL preview works,
 # which is in any case what is required for remote preview windows.
+import os
 from logging import getLogger
 
 from .q_picamera2 import _get_qpicamera2
@@ -18,6 +19,47 @@ except Exception:
     _log.warning("OpenGL will not be available")
 
 
+def _is_wayland():
+    """Return True if Qt is using (or should use) the native Wayland backend.
+
+    Priority order:
+    1. Explicit QT_QPA_PLATFORM override (set QT_QPA_PLATFORM=xcb to force X11).
+    2. The actual platform of a already-running QApplication — ensures embedded
+       apps get the widget that matches their Qt backend regardless of env vars.
+    3. Auto-detect from WAYLAND_DISPLAY (standalone preview path, where no
+       QApplication exists yet when the widget factory is first called).
+    """
+    explicit = os.environ.get('QT_QPA_PLATFORM')
+    if explicit:
+        return explicit == 'wayland'
+    import importlib
+    for pkg in ('PyQt5.QtGui', 'PyQt6.QtGui', 'PySide2.QtGui', 'PySide6.QtGui'):
+        try:
+            app = importlib.import_module(pkg).QGuiApplication.instance()
+            if app is not None:
+                return app.platformName() == 'wayland'
+        except ImportError:
+            continue
+    return bool(os.environ.get('WAYLAND_DISPLAY'))
+
+
+def _make_gl_factory(binding):
+    """Return a platform-transparent callable for the GL camera widget.
+
+    On Wayland dispatches to QGlPicamera2Wl (or QGlPicamera2WlDirect when
+    direct=True); on X11/XWayland dispatches to the existing QGlPicamera2.
+    The direct parameter is silently ignored on X11 (no direct variant exists
+    there).
+    """
+    def factory(picam2, direct=False, **kwargs):
+        if _is_wayland():
+            if direct:
+                return _get_qglpicamera2_wl_direct(binding)(picam2, **kwargs)
+            return _get_qglpicamera2_wl(binding)(picam2, **kwargs)
+        return _get_qglpicamera2(binding)(picam2, **kwargs)
+    return factory
+
+
 # Lazy load QPicamera2 widget classes as will likely only use one or two within a given application
 def __getattr__(name: str):
     # Standard Qt widgets
@@ -29,24 +71,28 @@ def __getattr__(name: str):
         return _get_qpicamera2(_QT_BINDING.PySide2)
     elif name == 'QSide6Picamera2':
         return _get_qpicamera2(_QT_BINDING.PySide6)
-    # OpenGL accelerated Qt widgets
+    # Platform-transparent GL widgets: native Wayland on Wayland, X11 otherwise.
+    # Pass direct=True to request the QOpenGLWindow direct-render path on Wayland.
     elif name == 'QGlPicamera2':
-        return _get_qglpicamera2(_QT_BINDING.PyQt5)
+        return _make_gl_factory(_QT_BINDING.PyQt5)
     elif name == 'QGl6Picamera2':
-        return _get_qglpicamera2(_QT_BINDING.PyQt6)
-    elif name == 'QGlSide2Picamera2':
-        return _get_qglpicamera2(_QT_BINDING.PySide2)
+        return _make_gl_factory(_QT_BINDING.PyQt6)
     elif name == 'QGlSide6Picamera2':
-        return _get_qglpicamera2(_QT_BINDING.PySide6)
-    # OpenGL accelerated Qt widget that also works on native Wayland
+        return _make_gl_factory(_QT_BINDING.PySide6)
+    elif name == 'QGlSide2Picamera2':
+        # No Wayland variant for PySide2; X11/XWayland only.
+        return _get_qglpicamera2(_QT_BINDING.PySide2)
+    # Explicit Wayland-only GL widgets (for apps that need to name the backend directly)
     elif name == 'QGlPicamera2Wl':
         return _get_qglpicamera2_wl(_QT_BINDING.PyQt5)
     elif name == 'QGl6Picamera2Wl':
         return _get_qglpicamera2_wl(_QT_BINDING.PyQt6)
-    # Native-Wayland OpenGL widget that renders direct to the window surface
-    # (QOpenGLWindow, no FBO blit)
+    elif name == 'QGlSide6Picamera2Wl':
+        return _get_qglpicamera2_wl(_QT_BINDING.PySide6)
     elif name == 'QGlPicamera2WlDirect':
         return _get_qglpicamera2_wl_direct(_QT_BINDING.PyQt5)
     elif name == 'QGl6Picamera2WlDirect':
         return _get_qglpicamera2_wl_direct(_QT_BINDING.PyQt6)
+    elif name == 'QGlSide6Picamera2WlDirect':
+        return _get_qglpicamera2_wl_direct(_QT_BINDING.PySide6)
     raise AttributeError(f"qt has no attribute '{name}'")
