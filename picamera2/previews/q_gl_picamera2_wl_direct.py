@@ -37,7 +37,7 @@ from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import Buffer, build_camera_programs
+from picamera2.previews.gl_helpers import _GlRendererMixin
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
@@ -68,7 +68,7 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
         fmt.setVersion(3, 1)
         return fmt
 
-    class _GlWindow(QOpenGLWindow):
+    class _GlWindow(QOpenGLWindow, _GlRendererMixin):
         """The GL surface. Renders directly to its own window - no FBO blit."""
 
         def __init__(self, picam2, keep_ar, transform, bg_colour):
@@ -109,10 +109,6 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
                 self.context().swapBuffers(self)
             self._gl_ready = True
 
-        def _build_programs(self):
-            (self.program_image, self.program_overlay,
-             self._vertPositions, self.overlay_texture) = build_camera_programs(self.transform)
-
         def render_request(self, completed_request):
             # Render synchronously, like the original QGlPicamera2: a
             # QOpenGLWindow lets us make its context current and swap from
@@ -138,70 +134,6 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
                 return
             with self.lock:
                 self._repaint(self.current_request)
-
-        def _repaint(self, completed_request):
-            if completed_request and completed_request.request not in self.buffers:
-                if self.stop_count != self.picamera2.stop_count:
-                    for _, buffer in self.buffers.items():
-                        glDeleteTextures(1, [buffer.texture])
-                    self.buffers = {}
-                    self.stop_count = self.picamera2.stop_count
-                self.buffers[completed_request.request] = Buffer(
-                    self.egl_display, completed_request, self.max_texture_size)
-
-            if self._overlay_dirty and self.overlay_array is not None:
-                glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-                height, width, _ = self.overlay_array.shape
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                             GL_RGBA, GL_UNSIGNED_BYTE, self.overlay_array)
-                self._overlay_dirty = False
-
-            x_off, y_off, w, h = self.recalculate_viewport()
-            glViewport(x_off, y_off, w, h)
-            glClearColor(*self.bg_colour)
-            glClear(GL_COLOR_BUFFER_BIT)
-
-            if completed_request:
-                buffer = self.buffers[completed_request.request]
-                glUseProgram(self.program_image)
-                glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture)
-                glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
-
-            if self.overlay_present:
-                glUseProgram(self.program_overlay)
-                glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
-                glDrawArrays(GL_TRIANGLE_FAN, 0, 4)
-            # No eglSwapBuffers: QOpenGLWindow presents the surface for us
-            # (directly, with no intermediate FBO).
-
-        def recalculate_viewport(self):
-            dpr = self.devicePixelRatio()
-            window_w = int(self.width() * dpr)
-            window_h = int(self.height() * dpr)
-            stream_map = self.picamera2.stream_map
-            camera_config = self.picamera2.camera_config
-            if not self.keep_ar or not camera_config or camera_config['display'] is None:
-                return 0, 0, window_w, window_h
-            image_w = stream_map[camera_config['display']].configuration.size.width
-            image_h = stream_map[camera_config['display']].configuration.size.height
-            if image_w * window_h > window_w * image_h:
-                w = window_w
-                h = w * image_h // image_w
-            else:
-                h = window_h
-                w = h * image_w // image_h
-            return (window_w - w) // 2, (window_h - h) // 2, w, h
-
-        def set_overlay(self, overlay):
-            with self.lock:
-                self.overlay_array = overlay
-                self.overlay_present = overlay is not None
-                self._overlay_dirty = overlay is not None
-            self.update()
 
         def cleanup_gl(self):
             try:
