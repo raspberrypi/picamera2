@@ -38,7 +38,7 @@ from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import compile_program, glEGLImageTargetTexture2DOES, str_to_fourcc
+from picamera2.previews.gl_helpers import Buffer, compile_program
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
@@ -180,92 +180,6 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
         # ------------------------------------------------------------------
         # dmabuf -> EGLImage -> external texture (identical to QGlPicamera2).
         # ------------------------------------------------------------------
-        class Buffer:
-            FMT_MAP = {
-                "XRGB8888": "XR24",
-                "XBGR8888": "XB24",
-                "YUYV": "YUYV",
-                # doesn't work "YVYU": "YVYU",
-                "UYVY": "UYVY",
-                # doesn't work "VYUY": "VYUY",
-                "YUV420": "YU12",
-                "YVU420": "YV12",
-                "NV12": "NV12",
-            }
-
-            def __init__(self, display, completed_request, max_texture_size):
-                picam2 = completed_request.picam2
-                stream = picam2.stream_map[picam2.display_stream_name]
-                fb = completed_request.request.buffers[stream]
-                cfg = stream.configuration
-                pixel_format = str(cfg.pixel_format)
-                if pixel_format not in self.FMT_MAP:
-                    raise RuntimeError(
-                        f"Format {pixel_format} not supported by QGlPicamera2Wl preview")
-                fmt = str_to_fourcc(self.FMT_MAP[pixel_format])
-                w, h = (cfg.size.width, cfg.size.height)
-                if w > max_texture_size or h > max_texture_size:
-                    raise RuntimeError(
-                        f"Maximum supported preview image size is {max_texture_size}")
-                if pixel_format in ("YUV420", "YVU420"):
-                    h2 = h // 2
-                    stride2 = cfg.stride // 2
-                    attribs = [
-                        # fmt: off
-                        EGL_WIDTH, w, EGL_HEIGHT, h,
-                        EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                        EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                        EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                        EGL_DMA_BUF_PLANE1_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE1_OFFSET_EXT, h * cfg.stride,
-                        EGL_DMA_BUF_PLANE1_PITCH_EXT, stride2,
-                        EGL_DMA_BUF_PLANE2_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE2_OFFSET_EXT, h * cfg.stride + h2 * stride2,
-                        EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
-                        EGL_NONE,
-                    ]
-                    # fmt: on
-                elif pixel_format == "NV12":
-                    h2 = h // 2
-                    # fmt: off
-                    attribs = [
-                        EGL_WIDTH, w,
-                        EGL_HEIGHT, h,
-                        EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                        EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                        EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                        EGL_DMA_BUF_PLANE1_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE1_OFFSET_EXT, h * cfg.stride,
-                        EGL_DMA_BUF_PLANE1_PITCH_EXT, cfg.stride,
-                        EGL_NONE,
-                    ]
-                    # fmt: on
-                else:
-                    # fmt: off
-                    attribs = [
-                        EGL_WIDTH, w, EGL_HEIGHT, h,
-                        EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                        EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                        EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                        EGL_NONE,
-                    ]
-                    # fmt: on
-
-                image = eglCreateImageKHR(display, EGL_NO_CONTEXT,
-                                          EGL_LINUX_DMA_BUF_EXT, None, attribs)
-                self.texture = glGenTextures(1)
-                glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.texture)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-                glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image)
-                eglDestroyImageKHR(display, image)
-
-        # ------------------------------------------------------------------
         # Painting - Qt makes the context current and presents the FBO.
         # ------------------------------------------------------------------
         def paintGL(self):
@@ -291,7 +205,7 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
                         glDeleteTextures(1, [buffer.texture])
                     self.buffers = {}
                     self.stop_count = self.picamera2.stop_count
-                self.buffers[completed_request.request] = self.Buffer(
+                self.buffers[completed_request.request] = Buffer(
                     self.egl_display, completed_request, self.max_texture_size)
 
             if self._overlay_dirty and self.overlay_array is not None:
