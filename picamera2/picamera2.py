@@ -692,6 +692,20 @@ class Picamera2:
         self._event_loop_running = False
         self._preview_stopped.set()
 
+    def is_wayland_gl_preview(self) -> bool:
+        """Return True if the standalone GL preview is using native Wayland.
+
+        Useful in tests and applications that need to know which GL path is
+        active (e.g. to skip X11-only checks).  Returns False when no preview
+        is running, when the preview is not a GL preview, or when the OpenGL
+        dependencies are unavailable.
+        """
+        try:
+            from picamera2.previews.qt import is_wayland_gl_widget
+            return is_wayland_gl_widget(getattr(self._preview, 'qpicamera2', None))
+        except ImportError:
+            return False
+
     def stop_preview(self) -> None:
         """Stop preview
 

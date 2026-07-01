@@ -37,7 +37,7 @@ from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import _GlRendererMixin
+from picamera2.previews.gl_helpers import _GlRendererMixin, _WaylandGlWidget
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
@@ -157,7 +157,7 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
                 self.current_request.release()
             self.current_request = None
 
-    class QGlPicamera2WlDirect(QWidget):
+    class QGlPicamera2WlDirect(QWidget, _WaylandGlWidget):
         done_signal = pyqtSignal(object)
 
         def __init__(self, picam2, parent=None, width=640, height=480,
