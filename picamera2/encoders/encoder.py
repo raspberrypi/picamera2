@@ -289,7 +289,14 @@ class Encoder:
 
     def _send_streams(self, output):
         # Send video stream information to the output.
-        FORMAT_TABLE = {"YUV420": "yuv420p", "BGR888": "rgb24", "RGB888": "bgr24", "XBGR8888": "rgba", "XRGB8888": "bgra"}
+        FORMAT_TABLE = {
+            "YUV420": "yuv420p",
+            "BGR888": "rgb24",
+            "RGB888": "bgr24",
+            "XBGR8888": "rgba",
+            "XRGB8888": "bgra",
+            "NV12": "nv12",
+        }
         pix_fmt = FORMAT_TABLE.get(self._format)
         rate = Fraction(1000000, self._framerate)
         if pix_fmt is None and output.needs_add_stream:

@@ -244,11 +244,13 @@ class CompletedRequest:
                     V = reshaped[2 * height + height // 2 :, : width // 2]
                     output_bytes = simplejpeg.encode_jpeg_yuv_planes(Y, U, V, quality)
                     Y = reshaped = U = V = None
-                elif format == 'NV12':
+                elif format in ('NV12', 'NV21'):
                     width, height = self.config[name]['size']
                     Y = m.array[:height, :width]
                     U = np.ascontiguousarray(m.array[height : height + height // 2, 0 : 2 * width : 2])
                     V = np.ascontiguousarray(m.array[height : height + height // 2, 1 : 2 * width : 2])
+                    if format == 'NV21':
+                        U, V = V, U
                     output_bytes = simplejpeg.encode_jpeg_yuv_planes(Y, U, V, quality)
                     Y = U = V = None
                 else:
@@ -333,10 +335,10 @@ class Helpers:
             # These dimensions seem a bit strange, but mean that
             # cv2.cvtColor(image, cv2.COLOR_YUV2BGR_YUYV) will convert directly to RGB.
             image = array.reshape(h, stride // 2, 2)
-        elif fmt == "NV12":
+        elif fmt in ("NV12", "NV21"):
             # The UV rows should be as long as the Y rows, so we can slice off any
             # padding.
-            image = array.reshape((h * 3 // 2, stride))[:w]
+            image = array.reshape((h * 3 // 2, stride))[:, :w]
         elif fmt == "MJPEG":
             image = np.array(Image.open(io.BytesIO(array)))  # type: ignore
         elif formats.is_raw(fmt):
