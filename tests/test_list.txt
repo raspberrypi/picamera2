@@ -1,3 +1,7 @@
+examples/app_qtgl_pyqt5.py
+examples/app_qtgl_pyqt5_wayland.py
+examples/app_qtgl_pyqt6.py
+examples/app_qtgl_pyside6.py
 examples/capture_circular_nooutput.py
 examples/capture_circular_nooutput_improved.py
 examples/capture_dng.py
@@ -36,6 +40,10 @@ examples/overlay_qt.py
 examples/picamera2_multiprocessing.py
 examples/pick_mode.py
 examples/preview.py
+examples/preview_qtgl_wayland.py
+examples/preview_qtgl_wayland_direct.py
+examples/preview_qtgl_x11.py
+examples/preview_qtgl_direct_x11.py
 examples/preview_x_forwarding.py
 examples/pyav_capture.py
 examples/pyav_circular_capture.py
@@ -65,6 +73,8 @@ tests/app_full_test.py
 tests/app_test.py
 tests/app_test_pyqt6.py
 tests/app_test_pyside6.py
+tests/app_test_qtgl_pyqt6_x11.py
+tests/app_test_qtgl_pyside6_x11.py
 tests/autofocus_test.py
 tests/async_test.py
 tests/bitrate_check.py

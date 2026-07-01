@@ -8,6 +8,7 @@
 # To force the X11/XWayland path even on Wayland, run with:
 #   QT_QPA_PLATFORM=xcb python preview_qtgl_wayland.py
 
+import os
 import time
 
 from picamera2 import Picamera2, Preview
@@ -19,4 +20,9 @@ preview_config = picam2.create_preview_configuration()
 picam2.configure(preview_config)
 
 picam2.start()
-time.sleep(5)
+time.sleep(3)
+
+expected_wayland = bool(os.environ.get('WAYLAND_DISPLAY'))
+if picam2.is_wayland_gl_preview() != expected_wayland:
+    platform = "Wayland" if expected_wayland else "X11"
+    print(f"ERROR: expected {platform} GL preview")
