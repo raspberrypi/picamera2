@@ -13,13 +13,12 @@ from OpenGL.EGL.KHR.image import *
 from OpenGL.EGL.VERSION.EGL_1_0 import *
 from OpenGL.EGL.VERSION.EGL_1_2 import *
 from OpenGL.EGL.VERSION.EGL_1_3 import *
-from OpenGL.GL import shaders
 from OpenGL.GLES2.OES.EGL_image import *
 from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import Buffer, check_egl_extensions, getEGLNativeDisplay
+from picamera2.previews.gl_helpers import Buffer, build_camera_programs, check_egl_extensions, getEGLNativeDisplay
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
@@ -183,83 +182,8 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            self.overlay_texture = glGenTextures(1)
-
-            vertShaderSrc_image = f"""
-                attribute vec2 aPosition;
-                varying vec2 texcoord;
-
-                void main()
-                {{
-                    gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                    texcoord.x = {'1.0 - ' if self.transform.hflip else ''}aPosition.x;
-                    texcoord.y = {'' if self.transform.vflip else '1.0 - '}aPosition.y;
-                }}
-            """
-            fragShaderSrc_image = """
-                #extension GL_OES_EGL_image_external : enable
-                precision mediump float;
-                varying vec2 texcoord;
-                uniform samplerExternalOES texture;
-
-                void main()
-                {
-                    gl_FragColor = texture2D(texture, texcoord);
-                }
-            """
-            vertShaderSrc_overlay = """
-                attribute vec2 aPosition;
-                varying vec2 texcoord;
-
-                void main()
-                {
-                    gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                    texcoord.x = aPosition.x;
-                    texcoord.y = 1.0 - aPosition.y;
-                }
-            """
-            fragShaderSrc_overlay = """
-                precision mediump float;
-                varying vec2 texcoord;
-                uniform sampler2D overlay;
-
-                void main()
-                {
-                    gl_FragColor = texture2D(overlay, texcoord);
-                }
-            """
-
-            vertex_shader = (shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),)
-            # For some reason I seem to be getting a 1 element tuple back. Absolutely no clue why.
-            if isinstance(vertex_shader, tuple):
-                vertex_shader = vertex_shader[0]
-            fragment_shader = shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
-            self.program_image = shaders.compileProgram(vertex_shader, fragment_shader)
-
-            self.program_overlay = shaders.compileProgram(
-                shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
-                shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER),
-            )
-
-            # fmt: off
-            vertPositions = [
-                0.0, 0.0,
-                1.0, 0.0,
-                1.0, 1.0,
-                0.0, 1.0,
-            ]
-            # fmt: on
-
-            inputAttrib = glGetAttribLocation(self.program_image, "aPosition")
-            glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
-            glEnableVertexAttribArray(inputAttrib)
-
-            inputAttrib = glGetAttribLocation(self.program_overlay, "aPosition")
-            glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
-            glEnableVertexAttribArray(inputAttrib)
-
-            glUseProgram(self.program_overlay)
-            glUniform1i(glGetUniformLocation(self.program_overlay, "overlay"), 0)
+            (self.program_image, self.program_overlay,
+             self._vertPositions, self.overlay_texture) = build_camera_programs(self.transform)
 
         def set_overlay(self, overlay):
             if not self.picamera2.camera_config:

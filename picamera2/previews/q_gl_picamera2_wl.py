@@ -38,7 +38,7 @@ from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import Buffer, compile_program
+from picamera2.previews.gl_helpers import Buffer, build_camera_programs
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
@@ -124,58 +124,8 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
             self._gl_ready = True
 
         def _build_programs(self):
-            vertShaderSrc_image = f"""
-                attribute vec2 aPosition;
-                varying vec2 texcoord;
-                void main()
-                {{
-                    gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                    texcoord.x = {'1.0 - ' if self.transform.hflip else ''}aPosition.x;
-                    texcoord.y = {'' if self.transform.vflip else '1.0 - '}aPosition.y;
-                }}
-            """
-            fragShaderSrc_image = """
-                #extension GL_OES_EGL_image_external : enable
-                precision mediump float;
-                varying vec2 texcoord;
-                uniform samplerExternalOES texture;
-                void main()
-                {
-                    gl_FragColor = texture2D(texture, texcoord);
-                }
-            """
-            vertShaderSrc_overlay = """
-                attribute vec2 aPosition;
-                varying vec2 texcoord;
-                void main()
-                {
-                    gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                    texcoord.x = aPosition.x;
-                    texcoord.y = 1.0 - aPosition.y;
-                }
-            """
-            fragShaderSrc_overlay = """
-                precision mediump float;
-                varying vec2 texcoord;
-                uniform sampler2D overlay;
-                void main()
-                {
-                    gl_FragColor = texture2D(overlay, texcoord);
-                }
-            """
-            self.program_image = compile_program(vertShaderSrc_image, fragShaderSrc_image)
-            self.program_overlay = compile_program(vertShaderSrc_overlay, fragShaderSrc_overlay)
-
-            # Client-side vertex array (allowed in GLES); keep a ref alive.
-            self._vertPositions = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
-            for prog in (self.program_image, self.program_overlay):
-                loc = glGetAttribLocation(prog, "aPosition")
-                glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0,
-                                      self._vertPositions)
-                glEnableVertexAttribArray(loc)
-            glUseProgram(self.program_overlay)
-            glUniform1i(glGetUniformLocation(self.program_overlay, "overlay"), 0)
-            self.overlay_texture = glGenTextures(1)
+            (self.program_image, self.program_overlay,
+             self._vertPositions, self.overlay_texture) = build_camera_programs(self.transform)
 
         # ------------------------------------------------------------------
         # dmabuf -> EGLImage -> external texture (identical to QGlPicamera2).
