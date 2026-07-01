@@ -182,8 +182,9 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            (self.program_image, self.program_overlay,
-             self._vertPositions, self.overlay_texture) = build_camera_programs(self.transform)
+            (self.program_image, self.program_overlay, self._vertPositions, self.overlay_texture) = build_camera_programs(
+                self.transform
+            )
 
         def set_overlay(self, overlay):
             if not self.picamera2.camera_config:

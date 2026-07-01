@@ -46,8 +46,7 @@ from .qt_compatibility import _QT_BINDING, _get_qt_modules
 @lru_cache(maxsize=None, typed=False)
 def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
     QtCore, QtGui, QtWidgets = _get_qt_modules(qt_module)
-    QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter(
-        'QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
+    QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter('QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
     QSurfaceFormat = QtGui.QSurfaceFormat
 
     # QOpenGLWidget lives in QtWidgets on Qt5 but moved to QtOpenGLWidgets on Qt6.
@@ -55,14 +54,14 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
         QOpenGLWidget = QtWidgets.QOpenGLWidget
     else:
         import importlib
-        QOpenGLWidget = importlib.import_module(
-            '.QtOpenGLWidgets', qt_module.value).QOpenGLWidget
+
+        QOpenGLWidget = importlib.import_module('.QtOpenGLWidgets', qt_module.value).QOpenGLWidget
 
     def _gles_format():
         fmt = QSurfaceFormat()
         # samplerExternalOES / GL_OES_EGL_image_external live in GLES.
         try:
-            fmt.setRenderableType(QSurfaceFormat.OpenGLES)               # Qt5
+            fmt.setRenderableType(QSurfaceFormat.OpenGLES)  # Qt5
         except AttributeError:
             fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGLES)  # Qt6
         fmt.setVersion(3, 1)
@@ -71,9 +70,17 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
     class QGlPicamera2Wl(QOpenGLWidget, _WaylandGlWidget, _GlRendererMixin):
         done_signal = pyqtSignal(object)
 
-        def __init__(self, picam2, parent=None, width=640, height=480,
-                     bg_colour=(20, 20, 20), keep_ar=True, transform=None,
-                     preview_window=None):
+        def __init__(
+            self,
+            picam2,
+            parent=None,
+            width=640,
+            height=480,
+            bg_colour=(20, 20, 20),
+            keep_ar=True,
+            transform=None,
+            preview_window=None,
+        ):
             super().__init__(parent=parent)
             self.setFormat(_gles_format())
             self.resize(width, height)
@@ -88,7 +95,7 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
             self.stop_count = 0
             self.title_function = None
 
-            self.egl_display = None        # captured from Qt in initializeGL
+            self.egl_display = None  # captured from Qt in initializeGL
             self.max_texture_size = 2048
             self.program_image = None
             self.program_overlay = None
@@ -102,8 +109,7 @@ def _get_qglpicamera2_wl(qt_module: _QT_BINDING):
             picam2.attach_preview(preview_window)
             self.preview_window = preview_window
 
-            self.camera_notifier = QSocketNotifier(
-                self.picamera2.notifyme_r, QSocketNotifier.Type.Read, self)
+            self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r, QSocketNotifier.Type.Read, self)
             self.camera_notifier.activated.connect(self.handle_requests)
             self.destroyed.connect(self.cleanup)
             self.running = True
