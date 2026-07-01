@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+from ctypes import c_void_p
 from functools import lru_cache
 from operator import attrgetter
 
@@ -18,7 +19,12 @@ from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import *
+from picamera2.previews.gl_helpers import (
+    check_egl_extensions,
+    getEGLNativeDisplay,
+    glEGLImageTargetTexture2DOES,
+    str_to_fourcc,
+)
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
