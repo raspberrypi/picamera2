@@ -143,8 +143,9 @@ class _GlRendererMixin:
     """
 
     def _build_programs(self):
-        (self.program_image, self.program_overlay,
-         self._vertPositions, self.overlay_texture) = build_camera_programs(self.transform)
+        (self.program_image, self.program_overlay, self._vertPositions, self.overlay_texture) = build_camera_programs(
+            self.transform
+        )
 
     def _repaint(self, completed_request):
         if completed_request and completed_request.request not in self.buffers:
@@ -153,8 +154,7 @@ class _GlRendererMixin:
                     glDeleteTextures(1, [buffer.texture])
                 self.buffers = {}
                 self.stop_count = self.picamera2.stop_count
-            self.buffers[completed_request.request] = Buffer(
-                self.egl_display, completed_request, self.max_texture_size)
+            self.buffers[completed_request.request] = Buffer(self.egl_display, completed_request, self.max_texture_size)
 
         if self._overlay_dirty and self.overlay_array is not None:
             glBindTexture(GL_TEXTURE_2D, self.overlay_texture)
@@ -163,8 +163,7 @@ class _GlRendererMixin:
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
             height, width, _ = self.overlay_array.shape
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                         GL_RGBA, GL_UNSIGNED_BYTE, self.overlay_array)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, self.overlay_array)
             self._overlay_dirty = False
 
         x_off, y_off, w, h = self.recalculate_viewport()

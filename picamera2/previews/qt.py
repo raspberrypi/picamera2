@@ -28,6 +28,7 @@ def is_wayland_gl_widget(widget) -> bool:
     """
     try:
         from picamera2.previews.gl_helpers import _WaylandGlWidget
+
         return isinstance(widget, _WaylandGlWidget)
     except ImportError:
         return False
@@ -47,6 +48,7 @@ def _is_wayland():
     if explicit:
         return explicit == 'wayland'
     import importlib
+
     for pkg in ('PyQt5.QtGui', 'PyQt6.QtGui', 'PySide2.QtGui', 'PySide6.QtGui'):
         try:
             app = importlib.import_module(pkg).QGuiApplication.instance()
@@ -65,12 +67,14 @@ def _make_gl_factory(binding):
     The direct parameter is silently ignored on X11 (no direct variant exists
     there).
     """
+
     def factory(picam2, direct=False, **kwargs):
         if _is_wayland():
             if direct:
                 return _get_qglpicamera2_wl_direct(binding)(picam2, **kwargs)
             return _get_qglpicamera2_wl(binding)(picam2, **kwargs)
         return _get_qglpicamera2(binding)(picam2, **kwargs)
+
     return factory
 
 

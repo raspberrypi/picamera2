@@ -45,8 +45,7 @@ from .qt_compatibility import _QT_BINDING, _get_qt_modules
 @lru_cache(maxsize=None, typed=False)
 def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
     QtCore, QtGui, QtWidgets = _get_qt_modules(qt_module)
-    QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter(
-        'QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
+    QSocketNotifier, Qt, pyqtSignal, pyqtSlot = attrgetter('QSocketNotifier', 'Qt', 'pyqtSignal', 'pyqtSlot')(QtCore)
     QSurfaceFormat = QtGui.QSurfaceFormat
     QWidget = QtWidgets.QWidget
     QVBoxLayout = QtWidgets.QVBoxLayout
@@ -56,8 +55,8 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
         QOpenGLWindow = QtGui.QOpenGLWindow
     else:
         import importlib
-        QOpenGLWindow = importlib.import_module(
-            '.QtOpenGL', qt_module.value).QOpenGLWindow
+
+        QOpenGLWindow = importlib.import_module('.QtOpenGL', qt_module.value).QOpenGLWindow
 
     def _gles_format():
         fmt = QSurfaceFormat()
@@ -160,9 +159,17 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
     class QGlPicamera2WlDirect(QWidget, _WaylandGlWidget):
         done_signal = pyqtSignal(object)
 
-        def __init__(self, picam2, parent=None, width=640, height=480,
-                     bg_colour=(20, 20, 20), keep_ar=True, transform=None,
-                     preview_window=None):
+        def __init__(
+            self,
+            picam2,
+            parent=None,
+            width=640,
+            height=480,
+            bg_colour=(20, 20, 20),
+            keep_ar=True,
+            transform=None,
+            preview_window=None,
+        ):
             super().__init__(parent=parent)
             self.resize(width, height)
             # Fill the widget background with bg_colour so that while the
@@ -183,8 +190,7 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
             layout.addWidget(container)
 
             picam2.attach_preview(preview_window)
-            self.camera_notifier = QSocketNotifier(
-                self.picamera2.notifyme_r, QSocketNotifier.Type.Read, self)
+            self.camera_notifier = QSocketNotifier(self.picamera2.notifyme_r, QSocketNotifier.Type.Read, self)
             self.camera_notifier.activated.connect(self.handle_requests)
             self.destroyed.connect(self.cleanup)
             self.running = True

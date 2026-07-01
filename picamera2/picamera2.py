@@ -702,6 +702,7 @@ class Picamera2:
         """
         try:
             from picamera2.previews.qt import is_wayland_gl_widget
+
             return is_wayland_gl_widget(getattr(self._preview, 'qpicamera2', None))
         except ImportError:
             return False

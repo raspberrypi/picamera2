@@ -184,12 +184,7 @@ class QtGlPreviewDirect(QtGlPreview):
         from picamera2.previews.qt import QGlPicamera2
 
         return QGlPicamera2(
-            picam2,
-            direct=True,
-            width=self.width,
-            height=self.height,
-            transform=self.transform,
-            preview_window=self
+            picam2, direct=True, width=self.width, height=self.height, transform=self.transform, preview_window=self
         )
 
     def get_title(self):
