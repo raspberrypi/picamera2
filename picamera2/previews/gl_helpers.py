@@ -125,6 +125,14 @@ def build_camera_programs(transform):
     return program_image, program_overlay, vert_positions, overlay_texture
 
 
+class _WaylandGlWidget:
+    """Marker: widget uses a native-Wayland GL context.
+
+    Both QGlPicamera2Wl and QGlPicamera2WlDirect inherit this class so that
+    is_wayland_gl_widget() can identify either with a single isinstance check.
+    """
+
+
 class _GlRendererMixin:
     """Shared rendering logic for Qt-managed GL contexts (QOpenGLWidget / QOpenGLWindow).
 

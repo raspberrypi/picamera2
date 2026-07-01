@@ -19,6 +19,20 @@ except Exception:
     _log.warning("OpenGL will not be available")
 
 
+def is_wayland_gl_widget(widget) -> bool:
+    """Return True if widget is a native-Wayland GL camera widget.
+
+    Works for both QGlPicamera2Wl (FBO path) and QGlPicamera2WlDirect.
+    Returns False for the X11 QGlPicamera2, for non-GL widgets, for None,
+    and if the OpenGL dependencies are not installed.
+    """
+    try:
+        from picamera2.previews.gl_helpers import _WaylandGlWidget
+        return isinstance(widget, _WaylandGlWidget)
+    except ImportError:
+        return False
+
+
 def _is_wayland():
     """Return True if Qt is using (or should use) the native Wayland backend.
 
