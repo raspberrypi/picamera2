@@ -62,6 +62,69 @@ def compile_program(vert_src, frag_src):
     return prog
 
 
+def build_camera_programs(transform):
+    """Compile the GLES camera and overlay programs, set up vertex arrays, and
+    allocate the overlay texture.  Must be called with a GL context current.
+
+    Returns (program_image, program_overlay, vert_positions, overlay_texture).
+    vert_positions must be kept alive by the caller (GLES client-side array).
+    """
+    vert_image = f"""
+        attribute vec2 aPosition;
+        varying vec2 texcoord;
+        void main()
+        {{
+            gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
+            texcoord.x = {'1.0 - ' if transform.hflip else ''}aPosition.x;
+            texcoord.y = {'' if transform.vflip else '1.0 - '}aPosition.y;
+        }}
+    """
+    frag_image = """
+        #extension GL_OES_EGL_image_external : enable
+        precision mediump float;
+        varying vec2 texcoord;
+        uniform samplerExternalOES texture;
+        void main()
+        {
+            gl_FragColor = texture2D(texture, texcoord);
+        }
+    """
+    vert_overlay = """
+        attribute vec2 aPosition;
+        varying vec2 texcoord;
+        void main()
+        {
+            gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
+            texcoord.x = aPosition.x;
+            texcoord.y = 1.0 - aPosition.y;
+        }
+    """
+    frag_overlay = """
+        precision mediump float;
+        varying vec2 texcoord;
+        uniform sampler2D overlay;
+        void main()
+        {
+            gl_FragColor = texture2D(overlay, texcoord);
+        }
+    """
+    program_image = compile_program(vert_image, frag_image)
+    program_overlay = compile_program(vert_overlay, frag_overlay)
+
+    # fmt: off
+    vert_positions = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0]
+    # fmt: on
+    for prog in (program_image, program_overlay):
+        loc = glGetAttribLocation(prog, "aPosition")
+        glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 0, vert_positions)
+        glEnableVertexAttribArray(loc)
+    glUseProgram(program_overlay)
+    glUniform1i(glGetUniformLocation(program_overlay, "overlay"), 0)
+
+    overlay_texture = glGenTextures(1)
+    return program_image, program_overlay, vert_positions, overlay_texture
+
+
 def str_to_fourcc(str):
     assert len(str) == 4
     fourcc = 0
