@@ -183,7 +183,14 @@ class QtGlPreviewDirect(QtGlPreview):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QGlPicamera2
 
-        return QGlPicamera2(picam2, direct=True, width=self.width, height=self.height, transform=self.transform, preview_window=self)
+        return QGlPicamera2(
+            picam2,
+            direct=True,
+            width=self.width,
+            height=self.height,
+            transform=self.transform,
+            preview_window=self
+        )
 
     def get_title(self):
         return "QtGlPreviewDirect"

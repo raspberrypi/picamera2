@@ -28,7 +28,7 @@ import picamera2.utils as utils
 from picamera2.allocators import DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FileOutput, PyavOutput
-from picamera2.previews import (DrmPreview, NullPreview, QtGlPreview, QtGlPreviewDirect, QtPreview)
+from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtGlPreviewDirect, QtPreview
 
 from .configuration import CameraConfiguration
 from .controls import Controls
