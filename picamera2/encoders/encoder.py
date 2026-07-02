@@ -297,6 +297,7 @@ class Encoder:
             "XRGB8888": "bgra",
             "NV12": "nv12",
             "NV21": "nv21",
+            "YUYV": "yuyv422",
         }
         pix_fmt = FORMAT_TABLE.get(self._format)
         rate = Fraction(1000000, self._framerate)
