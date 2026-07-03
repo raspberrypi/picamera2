@@ -346,7 +346,6 @@ class Picamera2:
                 f'No camera number {camera_num} found - use "rpicam-hello --list-cameras" to check connected cameras'
             )
         camera_num = self.global_camera_info()[camera_num]['Num']
-        self._cm.add(camera_num, self)
         self.camera_idx = camera_num
         self.request_lock = threading.Lock()  # global lock used by requests
         self._requestslock = threading.Lock()
@@ -373,6 +372,8 @@ class Picamera2:
         finally:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
+        # All is good, now safe to register with the CameraManager.
+        self._cm.add(camera_num, self)
         # Quitting Python without stopping the camera sometimes causes crashes, with Boost logging
         # apparently being the principal culprit. Anyway, this seems to prevent the problem.
         atexit.register(self.close)
