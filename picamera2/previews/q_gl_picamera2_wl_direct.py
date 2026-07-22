@@ -64,7 +64,7 @@ def _get_qglpicamera2_wl_direct(qt_module: _QT_BINDING):
             fmt.setRenderableType(QSurfaceFormat.OpenGLES)
         except AttributeError:
             fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGLES)
-        fmt.setVersion(3, 1)
+        fmt.setVersion(2, 0)
         return fmt
 
     class _GlWindow(QOpenGLWindow, _GlRendererMixin):
