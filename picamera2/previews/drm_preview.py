@@ -57,6 +57,7 @@ class DrmPreview(NullPreview):
         "XBGR8888": PixelFormat.XBGR8888,
         "YUV420": PixelFormat.YUV420,
         "YVU420": PixelFormat.YVU420,
+        "NV12": PixelFormat.NV12,
         "MJPEG": PixelFormat.BGR888,
     }
 
@@ -223,6 +224,9 @@ class DrmPreview(NullPreview):
                     drmfb = pykms.DmabufFramebuffer(
                         self.card, width, height, fmt, [fd, fd, fd], [stride, stride2, stride2], [0, size, size + h2 * stride2]
                     )
+                elif pixel_format == "NV12":
+                    size = height * stride
+                    drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd, fd], [stride, stride], [0, size])
                 else:
                     drmfb = pykms.DmabufFramebuffer(self.card, width, height, fmt, [fd], [stride], [0])
                 self.drmfbs[fb] = drmfb

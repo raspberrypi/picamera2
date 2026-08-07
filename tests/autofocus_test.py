@@ -19,7 +19,7 @@ print("AF idle")
 
 # We should be able to set the lens position and see it reported back.
 picam2.set_controls({'LensPosition': 1.5, 'FrameRate': 30})
-time.sleep(0.5)
+time.sleep(1)
 lp = picam2.capture_metadata()['LensPosition']
 if lp < 1.45 or lp > 1.55:
     print("ERROR: lens position", lp, "should be 1.5")
