@@ -7,7 +7,6 @@ https://github.com/ultralytics/ultralytics
 
 from typing import List
 
-import cv2
 import numpy as np
 
 from picamera2.devices.imx500.postprocess import BoxFormat, convert_to_ymin_xmin_ymax_xmax_format, nms
@@ -232,6 +231,8 @@ def yolov5n_preprocess(img):
         (int((new_width - width_tag) / 2), int((new_width - width_tag) / 2 + 0.5)),
         (0, 0),
     )
+
+    import cv2  # Lazy import because it is very slow on SD cards
 
     resized_img = cv2.resize(img, (width_tag, height_tag), interpolation=resize_method)
     padded_img = np.pad(resized_img, pad_values, constant_values=pad_value)

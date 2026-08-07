@@ -14,10 +14,6 @@ from .remote import Pool, Process, RemoteMappedArray, RemoteRequest
 from .request import CompletedRequest, MappedArray
 from .sensor_format import SensorFormat
 
-if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
-    # The code here works through the X wayland layer, but not otherwise.
-    os.environ["QT_QPA_PLATFORM"] = "xcb"
-
 
 def _set_configuration_file(filename):
     oldval = os.environ.get('LIBCAMERA_RPI_CONFIG_FILE')
