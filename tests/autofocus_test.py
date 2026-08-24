@@ -44,7 +44,7 @@ for _ in range(5):
         print("Continuous AF state is", state)
     # Try "pausing" it.
     picam2.set_controls({'AfPause': controls.AfPauseEnum.Deferred})
-    time.sleep(0.3)
+    time.sleep(0.6)
     state = picam2.capture_metadata()['AfPauseState']
     if state not in (controls.AfPauseStateEnum.Paused, controls.AfPauseStateEnum.Pausing):
         print("ERROR: continuous AF pause failure, got", state)
