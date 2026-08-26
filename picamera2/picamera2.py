@@ -1289,10 +1289,14 @@ class Picamera2:
             self.preview_configuration.update(camera_config)
 
         # Set the controls directly so as to overwrite whatever is there.
-        self.controls = Controls(self, controls=self.camera_config['controls'])
+        controls = self.camera_config['controls']
+        self.controls = Controls(self, controls=controls)
+        if isinstance(controls, Controls):
+            controls = controls.make_dict()
         self.configure_count += 1
 
-        if "ScalerCrops" in self.camera_controls:
+        # We will supply reasonable default crops unless the user has done so themselves.
+        if "ScalerCrops" in self.camera_controls and "ScalerCrops" not in controls and "ScalerCrop" not in controls:
             par_crop = self.camera_controls["ScalerCrops"]
             full_fov = self.camera_controls["ScalerCrop"][1]
             scaler_crops = [par_crop[0] if camera_config["main"]["preserve_ar"] else full_fov]
