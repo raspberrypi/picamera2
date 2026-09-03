@@ -8,7 +8,7 @@
 
 You can find [documentation here](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf) which should help you to get started.
 
-There are also many examples in the `examples` folder of this repository, and some further _Qt_ application examples in the `apps` folder.
+There are also many examples, some further _Qt_ application examples and the automated test suite in the separate [picamera2-examples](https://github.com/raspberrypi/picamera2-examples) repository.
 
 ## Installation
 
@@ -47,8 +47,8 @@ We are happy to receive pull requests (normally for the "next" branch) that will
   - In general, we don't need to see all the trials, errors and bug-fixes that went into this change, we only want to understand how it works now!
   - Try to ensure that the automated tests are working after all the commits in the set. This avoids other developers going back to an arbitrary earlier commit and finding that things don't work. There can be occasions when other problems cause test failures beyond our control, so we'll just have to remain alert to these and work around them as best we can.
 - Where changes are likely to be more involved, or may change public APIs, authors should start a discussion with us first so that we can agree a good way forward.
-- Before submitting a pull request, please ensure that all the automated tests are passing. They can be run using the `tools/run_tests` script. Please use `tools/run_tests --help` for more information.
-- Any documentation should be updated accordingly. New examples and tests should be included wherever possible. Also consider making an entry in the change log.
+- Before submitting a pull request, please ensure that all the automated tests are passing. They live in the [picamera2-examples](https://github.com/raspberrypi/picamera2-examples) repository and can be run using its `run_tests.py` script. Please use `run_tests.py --help` for more information.
+- Any documentation should be updated accordingly. New examples and tests should be included wherever possible, as pull requests against the picamera2-examples repository. Also consider making an entry in the change log.
 - The author of the pull request needs to agree that they are donating the work to this project and to Raspberry Pi Ltd., so that we can continue to distribute it as open source to all our users. To indicate your agreement to this, we would ask that you finish commit messages with a blank line followed by `Signed-off-by: Your Name <your.email@your.domain>`.
 - We'd like to conform to the common Python _PEP 8_ coding style wherever possible. To facilitate this we would recommend using our pre-commit hook, which can be installed by doing the following in the root of the repository:
 
