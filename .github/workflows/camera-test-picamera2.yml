@@ -38,6 +38,7 @@ jobs:
       - name: Run bridge
         env:
           LIBRARY: picamera2
+          REPO_OVERRIDES: picamera2-tests=${{ github.base_ref }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
