@@ -23,13 +23,3 @@ Description: Libcamera based python library
  Python API.
  .
  This package installs the library for Python 3.
-
-Package: python3-picamera2-doc
-Architecture: all
-Depends: ${misc:Depends}
-Description: Libcamera based python library - examples
- Libcamera-based replacement for Picamera which was a Python interface to the
- Raspberry Pi's legacy camera stack. Picamera2 also presents an easy to use
- Python API.
- .
- This package contains example scripts for picamera2.
