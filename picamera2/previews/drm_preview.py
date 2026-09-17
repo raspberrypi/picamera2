@@ -1,4 +1,5 @@
 import gc
+import glob
 import mmap
 import threading
 
@@ -14,36 +15,146 @@ except ImportError:
 
 from libcamera import Transform
 
-from picamera2.previews.null_preview import *
+from picamera2.previews.null_preview import NullPreview
+
+
+def list_devices():
+    """Scan /dev/dri/card* for connectors for DrmPreview/start_preview's `device` parameter."""
+    devices = []
+    for card_path in sorted(glob.glob("/dev/dri/card*")):
+        try:
+            card = pykms.Card(card_path)
+        except Exception:
+            continue
+        for conn in card.connectors:
+            connected = conn.connected()
+
+            resolution = None
+            if connected:
+                try:
+                    mode = conn.get_default_mode()
+                    resolution = (mode.hdisplay, mode.vdisplay)
+                except Exception:
+                    pass
+
+            pixel_formats = set()
+            try:
+                supported = {
+                    fmt.name for crtc in conn.get_possible_crtcs() for plane in crtc.possible_planes for fmt in plane.formats
+                }
+                pixel_formats = supported & DrmPreview.FMT_MAP.keys()
+            except Exception:
+                pass
+
+            devices.append(
+                {
+                    "device": conn.fullname,
+                    "connected": connected,
+                    "card": card_path,
+                    "resolution": resolution,
+                    "pixel_formats": sorted(pixel_formats),
+                }
+            )
+    return devices
+
+
+class _DrmDevice:
+    def __init__(self, card, resman, connector, crtc):
+        self.card = card
+        self.resman = resman
+        self.connector = connector
+        self.crtc = crtc
+        self.use_count = 0
 
 
 class DrmManager:
     def __init__(self):
         self.lock = threading.Lock()
-        self.use_count = 0
+        self.devices = []
 
-    def add(self, drm_preview):
+    @staticmethod
+    def _matches(connector, device):
+        return device is None or connector.fullname.startswith(device)
+
+    def _find_open_device(self, device):
+        for dev in self.devices:
+            if self._matches(dev.connector, device):
+                return dev
+        return None
+
+    def _reserve(self, card, resman, connector):
+        try:
+            crtc = resman.reserve_crtc(connector)
+        except Exception:
+            crtc = None
+        if crtc is None:
+            return None
+        dev = _DrmDevice(card, resman, connector, crtc)
+        self.devices.append(dev)
+        return dev
+
+    def _candidates(self, device):
+        """Yield (card, resman, connector) candidates.
+
+        We prefer anything matching the given device (if not none), otherwise anything
+        connected, and failing that a "fallback" candidate.
+        """
+        fallback = None
+
+        for card_path in sorted(glob.glob("/dev/dri/card*")):
+            try:
+                card = pykms.Card(card_path)
+                resman = pykms.ResourceManager(card)
+            except Exception:
+                continue
+
+            if device is None:
+                connector = next((conn for conn in card.connectors if conn.connected()), None)
+                if connector is not None:
+                    yield card, resman, connector
+                if fallback is None and card.connectors:
+                    fallback = (card, resman, card.connectors[0])
+            else:
+                connector = next((conn for conn in card.connectors if self._matches(conn, device)), None)
+                if connector is not None:
+                    yield card, resman, connector
+
+        if fallback is not None:
+            yield fallback
+
+    def _open_device(self, device):
+        for candidate in self._candidates(device):
+            dev = self._reserve(*candidate)
+            if dev is not None:
+                return dev
+
+        name = device if device is not None else "any display device"
+        raise RuntimeError(f"DrmPreview: could not find a usable DRM device for {name}")
+
+    def add(self, drm_preview, device):
         with self.lock:
-            if self.use_count == 0:
-                self.card = pykms.Card()
-                self.resman = pykms.ResourceManager(self.card)
-                conn = self.resman.reserve_connector()
-                self.crtc = self.resman.reserve_crtc(conn)
-            self.use_count += 1
-        drm_preview.card = self.card
-        drm_preview.resman = self.resman
-        drm_preview.crtc = self.crtc
+            dev = self._find_open_device(device)
+            if dev is None:
+                dev = self._open_device(device)
+            dev.use_count += 1
+        drm_preview._drm_device = dev
+        drm_preview.card = dev.card
+        drm_preview.resman = dev.resman
+        drm_preview.crtc = dev.crtc
 
     def remove(self, drm_preview):
+        dev = drm_preview._drm_device
+        drm_preview._drm_device = None
         drm_preview.card = None
         drm_preview.resman = None
         drm_preview.crtc = None
         with self.lock:
-            self.use_count -= 1
-            if self.use_count == 0:
-                self.crtc = None
-                self.resman = None
-                self.card = None
+            dev.use_count -= 1
+            if dev.use_count == 0:
+                self.devices.remove(dev)
+                dev.crtc = None
+                dev.resman = None
+                dev.card = None
                 gc.collect()
 
 
@@ -63,8 +174,8 @@ class DrmPreview(NullPreview):
 
     _manager = DrmManager()
 
-    def __init__(self, x=0, y=0, width=640, height=480, transform=None):
-        self.init_drm(x, y, width, height, transform)
+    def __init__(self, x=0, y=0, width=640, height=480, transform=None, device=None):
+        self.init_drm(x, y, width, height, transform, device)
         self.stop_count = 0
 
         # Allocate a buffer for MJPEG decode. If "XB24" appears unsupported, try "XR24".
@@ -99,8 +210,8 @@ class DrmPreview(NullPreview):
     def handle_request(self, picam2):
         picam2.process_requests(self)
 
-    def init_drm(self, x, y, width, height, transform):
-        DrmPreview._manager.add(self)
+    def init_drm(self, x, y, width, height, transform, device):
+        DrmPreview._manager.add(self, device)
 
         self.plane = None
         self.drmfbs = {}
