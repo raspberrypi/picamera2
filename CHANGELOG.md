@@ -6,6 +6,16 @@
 
 ### Changed
 
+## 0.3.38 Beta Release 37
+
+### Added
+
+* Multi-context support added for DRM previews, including a list_devices() function to return info about attached DRM display devices.
+
+### Changed
+
+* Examples and tests have moved to a separate picamera-examples repository.
+
 ## 0.3.37 Beta Release 36
 
 ### Added
