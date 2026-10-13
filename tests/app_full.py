@@ -1,1 +1,0 @@
-../apps/app_full.py
