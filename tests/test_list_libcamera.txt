@@ -1,1 +1,0 @@
-tests/switch_mode_exposure.py
