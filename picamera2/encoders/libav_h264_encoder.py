@@ -121,7 +121,14 @@ class LibavH264Encoder(Encoder):
         self._stream.codec_context.time_base = Fraction(1, 1000000)
         self._stream.codec_context.options["tune"] = "zerolatency"
 
-        FORMAT_TABLE = {"YUV420": "yuv420p", "BGR888": "rgb24", "RGB888": "bgr24", "XBGR8888": "rgba", "XRGB8888": "bgra"}
+        FORMAT_TABLE = {
+            "YUV420": "yuv420p",
+            "BGR888": "rgb24",
+            "RGB888": "bgr24",
+            "XBGR8888": "rgba",
+            "XRGB8888": "bgra",
+            "NV12": "nv12",
+        }
         self._av_input_format = FORMAT_TABLE[self._format]
 
         self._request_release_queue = collections.deque()

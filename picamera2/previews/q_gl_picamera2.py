@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+from ctypes import c_void_p
 from functools import lru_cache
 from operator import attrgetter
 
@@ -12,13 +13,12 @@ from OpenGL.EGL.KHR.image import *
 from OpenGL.EGL.VERSION.EGL_1_0 import *
 from OpenGL.EGL.VERSION.EGL_1_2 import *
 from OpenGL.EGL.VERSION.EGL_1_3 import *
-from OpenGL.GL import shaders
 from OpenGL.GLES2.OES.EGL_image import *
 from OpenGL.GLES2.OES.EGL_image_external import *
 from OpenGL.GLES2.VERSION.GLES2_2_0 import *
 from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
-from picamera2.previews.gl_helpers import *
+from picamera2.previews.gl_helpers import Buffer, build_camera_programs, check_egl_extensions, getEGLNativeDisplay
 
 from .qt_compatibility import _QT_BINDING, _get_qt_modules
 
@@ -182,154 +182,9 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            self.overlay_texture = glGenTextures(1)
-
-            vertShaderSrc_image = f"""
-                attribute vec2 aPosition;
-                varying vec2 texcoord;
-
-                void main()
-                {{
-                    gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                    texcoord.x = {'1.0 - ' if self.transform.hflip else ''}aPosition.x;
-                    texcoord.y = {'' if self.transform.vflip else '1.0 - '}aPosition.y;
-                }}
-            """
-            fragShaderSrc_image = """
-                #extension GL_OES_EGL_image_external : enable
-                precision mediump float;
-                varying vec2 texcoord;
-                uniform samplerExternalOES texture;
-
-                void main()
-                {
-                    gl_FragColor = texture2D(texture, texcoord);
-                }
-            """
-            vertShaderSrc_overlay = """
-                attribute vec2 aPosition;
-                varying vec2 texcoord;
-
-                void main()
-                {
-                    gl_Position = vec4(aPosition * 2.0 - 1.0, 0.0, 1.0);
-                    texcoord.x = aPosition.x;
-                    texcoord.y = 1.0 - aPosition.y;
-                }
-            """
-            fragShaderSrc_overlay = """
-                precision mediump float;
-                varying vec2 texcoord;
-                uniform sampler2D overlay;
-
-                void main()
-                {
-                    gl_FragColor = texture2D(overlay, texcoord);
-                }
-            """
-
-            vertex_shader = (shaders.compileShader(vertShaderSrc_image, GL_VERTEX_SHADER),)
-            # For some reason I seem to be getting a 1 element tuple back. Absolutely no clue why.
-            if isinstance(vertex_shader, tuple):
-                vertex_shader = vertex_shader[0]
-            fragment_shader = shaders.compileShader(fragShaderSrc_image, GL_FRAGMENT_SHADER)
-            self.program_image = shaders.compileProgram(vertex_shader, fragment_shader)
-
-            self.program_overlay = shaders.compileProgram(
-                shaders.compileShader(vertShaderSrc_overlay, GL_VERTEX_SHADER),
-                shaders.compileShader(fragShaderSrc_overlay, GL_FRAGMENT_SHADER),
+            (self.program_image, self.program_overlay, self._vertPositions, self.overlay_texture) = build_camera_programs(
+                self.transform
             )
-
-            # fmt: off
-            vertPositions = [
-                0.0, 0.0,
-                1.0, 0.0,
-                1.0, 1.0,
-                0.0, 1.0,
-            ]
-            # fmt: on
-
-            inputAttrib = glGetAttribLocation(self.program_image, "aPosition")
-            glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
-            glEnableVertexAttribArray(inputAttrib)
-
-            inputAttrib = glGetAttribLocation(self.program_overlay, "aPosition")
-            glVertexAttribPointer(inputAttrib, 2, GL_FLOAT, GL_FALSE, 0, vertPositions)
-            glEnableVertexAttribArray(inputAttrib)
-
-            glUseProgram(self.program_overlay)
-            glUniform1i(glGetUniformLocation(self.program_overlay, "overlay"), 0)
-
-        class Buffer:
-            # libcamera format string -> DRM fourcc, note that 24-bit formats are not supported
-            FMT_MAP = {
-                "XRGB8888": "XR24",
-                "XBGR8888": "XB24",
-                "YUYV": "YUYV",
-                # doesn't work "YVYU": "YVYU",
-                "UYVY": "UYVY",
-                # doesn't work "VYUY": "VYUY",
-                "YUV420": "YU12",
-                "YVU420": "YV12",
-            }
-
-            def __init__(self, display, completed_request, max_texture_size):
-                picam2 = completed_request.picam2
-                stream = picam2.stream_map[picam2.display_stream_name]
-                fb = completed_request.request.buffers[stream]
-
-                cfg = stream.configuration
-                pixel_format = str(cfg.pixel_format)
-                if pixel_format not in self.FMT_MAP:
-                    raise RuntimeError(f"Format {pixel_format} not supported by QGlPicamera2 preview")
-                fmt = str_to_fourcc(self.FMT_MAP[pixel_format])
-                w, h = (cfg.size.width, cfg.size.height)
-                if w > max_texture_size or h > max_texture_size:
-                    raise RuntimeError(f"Maximum supported preview image size is {max_texture_size}")
-                if pixel_format in ("YUV420", "YVU420"):
-                    h2 = h // 2
-                    stride2 = cfg.stride // 2
-                    # fmt: off
-                    attribs = [
-                        EGL_WIDTH, w,
-                        EGL_HEIGHT, h,
-                        EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                        EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                        EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                        EGL_DMA_BUF_PLANE1_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE1_OFFSET_EXT, h * cfg.stride,
-                        EGL_DMA_BUF_PLANE1_PITCH_EXT, stride2,
-                        EGL_DMA_BUF_PLANE2_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE2_OFFSET_EXT, h * cfg.stride + h2 * stride2,
-                        EGL_DMA_BUF_PLANE2_PITCH_EXT, stride2,
-                        EGL_NONE,
-                    ]
-                    # fmt: on
-                else:
-                    # fmt: off
-                    attribs = [
-                        EGL_WIDTH, w,
-                        EGL_HEIGHT, h,
-                        EGL_LINUX_DRM_FOURCC_EXT, fmt,
-                        EGL_DMA_BUF_PLANE0_FD_EXT, fb.planes[0].fd,
-                        EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
-                        EGL_DMA_BUF_PLANE0_PITCH_EXT, cfg.stride,
-                        EGL_NONE,
-                    ]
-                    # fmt: on
-
-                image = eglCreateImageKHR(display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, None, attribs)
-
-                self.texture = glGenTextures(1)
-                glBindTexture(GL_TEXTURE_EXTERNAL_OES, self.texture)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-                glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-                glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image)
-
-                eglDestroyImageKHR(display, image)
 
         def set_overlay(self, overlay):
             if not self.picamera2.camera_config:
@@ -372,7 +227,7 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
 
                 if self.picamera2.verbose_console:
                     print("Make buffer for request", completed_request.request)
-                self.buffers[completed_request.request] = self.Buffer(
+                self.buffers[completed_request.request] = Buffer(
                     self.egl.display, completed_request, self.egl.max_texture_size
                 )
 

@@ -7,7 +7,6 @@ https://github.com/ultralytics/ultralytics
 
 from typing import Tuple
 
-import cv2
 import numpy as np
 
 from picamera2.devices.imx500.postprocess import (
@@ -165,6 +164,8 @@ def process_masks(masks, boxes, roi, isp_output_size):
     # Apply sigmoid function to normalize masks
     masks = 1 / (1 + np.exp(-masks))
     masks = np.transpose(masks, (2, 1, 0))  # Change to HWC format
+
+    import cv2  # Lazy import because it is very slow on SD cards
 
     # Resize masks to model input size
     masks = cv2.resize(masks, (roi.height, roi.width), interpolation=cv2.INTER_LINEAR)

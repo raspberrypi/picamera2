@@ -28,7 +28,7 @@ import picamera2.utils as utils
 from picamera2.allocators import DmaAllocator
 from picamera2.encoders import Encoder, H264Encoder, MJPEGEncoder, Quality
 from picamera2.outputs import FileOutput, PyavOutput
-from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtPreview
+from picamera2.previews import DrmPreview, NullPreview, QtGlPreview, QtGlPreviewDirect, QtPreview
 
 from .configuration import CameraConfiguration
 from .controls import Controls
@@ -52,6 +52,7 @@ class Preview(Enum):
     DRM = DrmPreview
     QT = QtPreview
     QTGL = QtGlPreview
+    QTGL_DIRECT = QtGlPreviewDirect
 
 
 class GlobalCameraInfo(TypedDict):
@@ -341,8 +342,11 @@ class Picamera2:
         self._preview = None
         self.is_open = False
         # Get the real libcamera internal number.
+        if camera_num >= len(self.global_camera_info()):
+            raise RuntimeError(
+                f'No camera number {camera_num} found - use "rpicam-hello --list-cameras" to check connected cameras'
+            )
         camera_num = self.global_camera_info()[camera_num]['Num']
-        self._cm.add(camera_num, self)
         self.camera_idx = camera_num
         self.request_lock = threading.Lock()  # global lock used by requests
         self._requestslock = threading.Lock()
@@ -369,6 +373,8 @@ class Picamera2:
         finally:
             if tuning_file is not None:
                 tuning_file.close()  # delete the temporary file
+        # All is good, now safe to register with the CameraManager.
+        self._cm.add(camera_num, self)
         # Quitting Python without stopping the camera sometimes causes crashes, with Boost logging
         # apparently being the principal culprit. Anyway, this seems to prevent the problem.
         atexit.register(self.close)
@@ -685,6 +691,21 @@ class Picamera2:
         self._preview = None
         self._event_loop_running = False
         self._preview_stopped.set()
+
+    def is_wayland_gl_preview(self) -> bool:
+        """Return True if the standalone GL preview is using native Wayland.
+
+        Useful in tests and applications that need to know which GL path is
+        active (e.g. to skip X11-only checks).  Returns False when no preview
+        is running, when the preview is not a GL preview, or when the OpenGL
+        dependencies are unavailable.
+        """
+        try:
+            from picamera2.previews.qt import is_wayland_gl_widget
+
+            return is_wayland_gl_widget(getattr(self._preview, 'qpicamera2', None))
+        except ImportError:
+            return False
 
     def stop_preview(self) -> None:
         """Stop preview

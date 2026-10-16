@@ -6,6 +6,33 @@
 
 ### Changed
 
+## 0.3.38 Beta Release 37
+
+### Added
+
+* Multi-context support added for DRM previews, including a list_devices() function to return info about attached DRM display devices.
+
+### Changed
+
+* Examples and tests have moved to a separate picamera-examples repository.
+
+## 0.3.37 Beta Release 36
+
+### Added
+
+* Native Wayland preview windows added, which give better performance. These will be used automatically if a Wayland environment is detected.
+    - There's a new Preview.QTGL_DIRECT which can be selected when you are *not* using overlays. On Wayland platforms this will improve the rendering performance even more.
+    - If there are any problems with the new previews, set environment variable QT_QPA_PLATFORM to "xcb" to revert to the old behaviour.
+* Added mu-files DNG writing example. mu-files is not free for larger commercial enterprises, so please check the license before use.
+
+### Changed
+
+* Clearer error message when camera was not detected.
+* Bug fixed where opening an already-open camera would fail (correctly), but kill the already-open instance as well!
+* YUYV uncompressed output enabled through PyAV.
+* Better support for NV12 and NV21 formats.
+* imx500 sub-package import time improved.
+
 ## 0.3.36 Beta Release 35
 
 ### Added

@@ -10,7 +10,6 @@ https://github.com/stefanopini/simple-HigherHRNet
 from enum import Enum
 from typing import List
 
-import cv2
 import numpy as np
 
 from picamera2 import Picamera2
@@ -322,6 +321,9 @@ PARTS = {
 
 class COCODrawer:
     def __init__(self, categories, imx500, needs_rescale_coords=True):
+        import cv2  # Lazy import because it is very slow on SD cards
+
+        self._cv2 = cv2
         self.categories = categories
         self.imx500 = imx500
         self.needs_rescale_coords = needs_rescale_coords
@@ -342,8 +344,8 @@ class COCODrawer:
     def draw_bounding_box(self, img, annotation, class_id, score, metadata: dict, picam2: Picamera2, stream):
         y0, x0, y1, x1 = self.get_coords(annotation, metadata, picam2, stream)
         text = f"{self.categories[int(class_id)]}:{score:.3f}"
-        cv2.rectangle(img, (x0, y0), (x1, y1), (0, 0, 255), 2)
-        cv2.putText(img, text, (x0, y0), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        self._cv2.rectangle(img, (x0, y0), (x1, y1), (0, 0, 255), 2)
+        self._cv2.putText(img, text, (x0, y0), self._cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
     def draw_keypoints(self, img, keypoints, min_confidence, metadata: dict, picam2: Picamera2, stream):
         def get_point(index):
@@ -368,7 +370,7 @@ class COCODrawer:
             end_confidence = keypoints[connection[1]][2]
             if start_confidence < min_confidence or end_confidence < min_confidence:
                 continue
-            cv2.line(img, start_point, end_point, (255, 0, 0), 2)
+            self._cv2.line(img, start_point, end_point, (255, 0, 0), 2)
 
         # Draw keypoints as colored circles
         for i in range(len(keypoints)):
@@ -376,9 +378,9 @@ class COCODrawer:
             confidence = keypoints[i][2]
             if confidence < min_confidence:
                 continue
-            cv2.circle(img, (x, y), 3, (0, 255, 0), -1)
+            self._cv2.circle(img, (x, y), 3, (0, 255, 0), -1)
             label = f"{PARTS.get(i)}.{confidence:.3f}"
-            cv2.putText(img, label, (x + 5, y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 255, 0), 1)
+            self._cv2.putText(img, label, (x + 5, y + 15), self._cv2.FONT_HERSHEY_SIMPLEX, 0.25, (0, 255, 0), 1)
 
     def annotate_image(self, img, b, s, c, k, box_min_conf, kps_min_conf, metadata: dict, picam2: Picamera2, stream):
         for index, row in enumerate(b):
