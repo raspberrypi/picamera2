@@ -1,3 +1,16 @@
+picamera2 (0.3.38-1) trixie; urgency=medium
+
+  * New upstream version 0.3.38
+  * Make python3-picamera2-doc a transitional package
+
+ -- Serge Schneider <serge@raspberrypi.com>  Tue, 13 Oct 2026 13:35:06 +0100
+
+picamera2 (0.3.37-1) trixie; urgency=medium
+
+  * New upstream version 0.3.37
+
+ -- Serge Schneider <serge@raspberrypi.com>  Fri, 07 Aug 2026 14:40:22 +0100
+
 picamera2 (0.3.36-1) trixie; urgency=medium
 
   * New upstream version 0.3.36
