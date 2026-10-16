@@ -1,4 +1,5 @@
 import atexit
+import os
 import threading
 from enum import Enum
 from queue import Queue
@@ -137,6 +138,16 @@ class QtPreview(QtPreviewBase):
 
 
 class QtGlPreview(QtPreviewBase):
+    def start(self, picam2):
+        # Set QT_QPA_PLATFORM before QApplication is created (only on first
+        # preview, only when the user hasn't already set it explicitly).
+        if QtPreviewBase.thread is None and 'QT_QPA_PLATFORM' not in os.environ:
+            if os.environ.get('WAYLAND_DISPLAY'):
+                os.environ['QT_QPA_PLATFORM'] = 'wayland'
+            else:
+                os.environ['QT_QPA_PLATFORM'] = 'xcb'
+        super().start(picam2)
+
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
         from picamera2.previews.qt import QGlPicamera2
 
@@ -144,3 +155,42 @@ class QtGlPreview(QtPreviewBase):
 
     def get_title(self):
         return "QtGlPreview"
+
+
+class QtGlPreviewWayland(QtPreviewBase):
+    # Kept for backward compatibility; Preview.QTGL now auto-detects the
+    # platform.  This class still works and explicitly requests the Wayland path
+    # when a compositor is available.
+    def start(self, picam2):
+        if QtPreviewBase.thread is None and 'QT_QPA_PLATFORM' not in os.environ:
+            if os.environ.get('WAYLAND_DISPLAY'):
+                os.environ['QT_QPA_PLATFORM'] = 'wayland'
+        super().start(picam2)
+
+    def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
+        from picamera2.previews.qt import QGlPicamera2
+
+        return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
+
+    def get_title(self):
+        return "QtGlPreviewWayland"
+
+
+class QtGlPreviewDirect(QtGlPreview):
+    # Like QtGlPreview but requests the direct QOpenGLWindow renderer on
+    # Wayland (no FBO blit); on X11 falls back to the standard QtGlPreview
+    # path.  See the stacking caveats in q_gl_picamera2_wl_direct.py.
+    def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
+        from picamera2.previews.qt import QGlPicamera2
+
+        return QGlPicamera2(
+            picam2, direct=True, width=self.width, height=self.height, transform=self.transform, preview_window=self
+        )
+
+    def get_title(self):
+        return "QtGlPreviewDirect"
+
+
+# Kept for any code that references these classes directly; the Preview enum
+# no longer exposes them.
+QtGlPreviewWaylandDirect = QtGlPreviewDirect

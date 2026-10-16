@@ -44,6 +44,7 @@ class V4L2Encoder(Encoder):
             "XBGR8888": V4L2_PIX_FMT_BGR32,
             "XRGB8888": V4L2_PIX_FMT_RGBA32,
             "YUV420": V4L2_PIX_FMT_YUV420,
+            "NV12": V4L2_PIX_FMT_NV12,
         }
         if self._format not in FORMAT_TABLE:
             raise RuntimeError("Unrecognised format", self._format, "for V4L2")
