@@ -26,7 +26,6 @@ dependencies = [
     "pillow",
     "simplejpeg",
     "videodev2",
-    "python-prctl",
     "av",
     "libarchive-c",
     "tqdm",
