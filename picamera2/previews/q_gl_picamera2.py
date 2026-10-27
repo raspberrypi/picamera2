@@ -20,7 +20,7 @@ from OpenGL.GLES3.VERSION.GLES3_3_0 import *
 
 from picamera2.previews.gl_helpers import Buffer, build_camera_programs, check_egl_extensions, getEGLNativeDisplay
 
-from .qt_compatibility import _QT_BINDING, _get_qt_modules
+from .qt_compatibility import _QT_BINDING, _default_binding, _get_qt_modules
 
 
 class EglState:
@@ -320,8 +320,10 @@ def _get_qglpicamera2(qt_module: _QT_BINDING):
     return QGlPicamera2
 
 
-# Define QGlPicamera2 class for compatability
-try:
-    QPicamera2 = _get_qglpicamera2(_QT_BINDING.PyQt5)
-except ImportError:
-    pass
+# Provide QGlPicamera2 (and the old QPicamera2 name) for compatibility, using the default Qt
+# binding. This is done lazily so that importing this module never imports a Qt binding that
+# the application isn't using.
+def __getattr__(name: str):
+    if name in ('QGlPicamera2', 'QPicamera2'):
+        return _get_qglpicamera2(_default_binding())
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
