@@ -12,7 +12,7 @@ try:
 except ImportError:
     cv2_available = False
 
-from .qt_compatibility import _QT_BINDING, _get_qt_modules
+from .qt_compatibility import _QT_BINDING, _default_binding, _get_qt_modules
 
 
 @lru_cache(maxsize=None, typed=False)
@@ -242,8 +242,9 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
     return QPicamera2
 
 
-# Define QPicamera2 class for compatability
-try:
-    QPicamera2 = _get_qpicamera2(_QT_BINDING.PyQt5)
-except ImportError:
-    pass
+# Provide QPicamera2 for compatibility, using the default Qt binding. This is done lazily so
+# that importing this module never imports a Qt binding that the application isn't using.
+def __getattr__(name: str):
+    if name == 'QPicamera2':
+        return _get_qpicamera2(_default_binding())
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
