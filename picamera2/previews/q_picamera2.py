@@ -5,13 +5,6 @@ from operator import attrgetter
 import numpy as np
 from libcamera import Transform
 
-try:
-    import cv2
-
-    cv2_available = True
-except ImportError:
-    cv2_available = False
-
 from .qt_compatibility import _QT_BINDING, _default_binding, _get_qt_modules
 
 
@@ -201,12 +194,13 @@ def _get_qpicamera2(qt_module: _QT_BINDING):
             img = completed_request.make_array(display_stream_name)
             fmt = stream_config["format"]
             if fmt in ("YUV420", "YUYV", "NV12"):
-                if cv2_available:
-                    table = {"YUV420": cv2.COLOR_YUV420p2BGR, "YUYV": cv2.COLOR_YUV2RGB_YUYV, "NV12": cv2.COLOR_YUV2RGB_NV12}
-                    img = cv2.cvtColor(img, table[fmt])
-                else:
+                try:
+                    import cv2
+                except ImportError:
                     logging.error("Qt preview cannot display YUV420/YUYV without cv2")
                     return
+                table = {"YUV420": cv2.COLOR_YUV420p2BGR, "YUYV": cv2.COLOR_YUV2RGB_YUYV, "NV12": cv2.COLOR_YUV2RGB_NV12}
+                img = cv2.cvtColor(img, table[fmt])
 
             # Crop width for two reasons: (1) to remove "stride" padding from YUV images;
             # (2) to ensure the RGB buffer passed to QImage has mandatory 4-byte alignment.
