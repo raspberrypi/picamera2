@@ -4,7 +4,18 @@
 
 ### Added
 
+* The Qt binding (PyQt5, PyQt6, PySide6 or PySide2) used by the standalone Qt preview windows (`Preview.QT`, `Preview.QTGL`, `Preview.QTGL_DIRECT`) and by the unqualified widget names (`QPicamera2`, `QGlPicamera2` etc.) can now be chosen. In order of precedence:
+    - `Picamera2.qt_binding`, if the application sets it (e.g. `Picamera2.qt_binding = "PyQt6"`).
+    - Otherwise the Qt binding the application has already imported, so Qt apps can simply import their binding before importing the Picamera2 widgets.
+    - Otherwise the `PICAMERA2_QT_BINDING` environment variable.
+    - Otherwise PyQt5, as before.
+    - The choice must be made before importing those widgets or starting a Qt preview. `Picamera2.get_qt_binding()` reports which binding will be used.
+    - Note that Python OpenCV currently uses Qt5, so `cv2.imshow` windows will not work alongside Qt previews that use PyQt6 or PySide6.
+* Explicit PyQt5 widget names `Q5Picamera2`, `QGl5Picamera2`, `QGl5Picamera2Wl` and `QGl5Picamera2WlDirect`, to match the existing PyQt6 and PySide names.
+
 ### Changed
+
+* Picamera2 no longer imports any Qt binding other than the one in use, so (for example) PyQt5 need not be installed when using PyQt6.
 
 ## 0.3.38 Beta Release 37
 
