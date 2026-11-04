@@ -1,3 +1,16 @@
+picamera2 (0.3.39-1) trixie; urgency=medium
+
+  [ David Plowman ]
+  * Remove python3-prctl dependency
+  * PyQt/PySide bindings are made more flexible
+  * For Qt previews, import OpenCV (cv2) lazily
+  * Update pyproject.toml and CHANGELOG.md for the 0.3.39 release
+
+  [ Naushir Patuck ]
+  * Drop the python3-prctl build dependency
+
+ -- Naushir Patuck <naush@raspberrypi.com>  Wed, 04 Nov 2026 13:35:34 +0000
+
 picamera2 (0.3.38-1) trixie; urgency=medium
 
   * New upstream version 0.3.38
