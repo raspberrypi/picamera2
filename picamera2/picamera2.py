@@ -161,6 +161,21 @@ class Picamera2:
     platform = Platform.get_platform()
     _cm = CameraManager()
 
+    # The Qt binding ("PyQt5", "PyQt6", "PySide6" or "PySide2") used by the standalone Qt previews
+    # and by the unqualified Qt widget names (QPicamera2, QGlPicamera2 etc.). When left as None, the
+    # Qt binding the application has already imported is used, otherwise the PICAMERA2_QT_BINDING
+    # environment variable if set, otherwise PyQt5. Applications may assign it to force a binding
+    # (e.g. Picamera2.qt_binding = "PyQt6"), but must do so before importing those widgets or
+    # starting a Qt preview. It applies to the whole process, not to individual cameras.
+    qt_binding = None
+
+    @staticmethod
+    def get_qt_binding() -> str:
+        """Return the name of the Qt binding that Qt previews and unqualified Qt widgets will use."""
+        from picamera2.previews.qt_compatibility import _default_binding
+
+        return _default_binding().value
+
     @classproperty
     def DEBUG(self):
         """Now Deprecated
