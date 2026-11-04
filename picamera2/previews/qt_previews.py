@@ -2,7 +2,12 @@ import atexit
 import os
 import threading
 from enum import Enum
+from logging import getLogger
 from queue import Queue
+
+from .qt_compatibility import _default_binding, _get_qt_modules
+
+_log = getLogger(__name__)
 
 
 class Command(Enum):
@@ -13,6 +18,8 @@ class Command(Enum):
 
 class QtPreviewBase:
     thread = None
+    # The Qt binding used by the preview thread, which all Qt previews share.
+    binding = None
 
     def make_picamera2_widget(picam2, width=640, height=480, transform=None):
         pass
@@ -22,8 +29,7 @@ class QtPreviewBase:
 
     def thread_func(self, previewcreateq):
         # Running Qt in a thread other than the main thread is a bit tricky...
-        from PyQt5 import QtCore
-        from PyQt5.QtWidgets import QApplication
+        QtCore, QtGui, QtWidgets = _get_qt_modules(QtPreviewBase.binding)
 
         @QtCore.pyqtSlot()
         def deletepreview(parent, preview, previewretrieveq):
@@ -47,6 +53,9 @@ class QtPreviewBase:
         class MonitorThread(QtCore.QThread):
             previewsignal = QtCore.pyqtSignal(object, object, object)
             deletesignal = QtCore.pyqtSignal(object, object, object)
+            # Ask the application to quit from its own thread (calling quit directly from
+            # here can deadlock with PySide).
+            quitsignal = QtCore.pyqtSignal()
 
             def __init__(self, previewcreateq, app):
                 super(MonitorThread, self).__init__()
@@ -54,12 +63,10 @@ class QtPreviewBase:
                 self.app = app
 
             def run(self):
-                from PyQt5.QtGui import QGuiApplication
-
                 # This ensures the Qt app never quits when we click the X on the window. It means
                 # that after closing the last preview in this way, the Qt app is still running and
                 # you can create new previews.
-                QGuiApplication.setQuitOnLastWindowClosed(False)
+                QtGui.QGuiApplication.setQuitOnLastWindowClosed(False)
 
                 while True:
                     cmd, retq, tup = self.previewcreateq.get()
@@ -71,21 +78,27 @@ class QtPreviewBase:
                         self.deletesignal.emit(parent, preview, retq)
                         parent = preview = tup = None
                     elif cmd == Command.FIN:
-                        self.app.quit()
+                        self.quitsignal.emit()
                         break
 
-        app = QApplication([])
+        app = QtWidgets.QApplication([])
         # Can't get Qt to exit tidily without this. Possibly an artifact of running
         # it in another thread?
         monitor = MonitorThread(previewcreateq, app)
         monitor.previewsignal.connect(createpreview)
         monitor.deletesignal.connect(deletepreview)
+        monitor.quitsignal.connect(app.quit)
         monitor.start()
         self.event.set()
         atexit.register(self.fin)
         app.exec()
         monitor.wait()
         atexit.unregister(self.fin)
+        del monitor
+        # PySide needs the application torn down explicitly, here in its own thread, otherwise
+        # it may crash when the interpreter exits.
+        if hasattr(app, 'shutdown'):
+            app.shutdown()
         del app
         # Again, all necessary to keep Qt quiet.
 
@@ -98,12 +111,16 @@ class QtPreviewBase:
 
     def start(self, picam2):
         self.event = threading.Event()
+        binding = _default_binding()
         if QtPreviewBase.thread is None:
+            QtPreviewBase.binding = binding
             QtPreviewBase.previewcreateq = Queue()
             QtPreviewBase.thread = threading.Thread(target=self.thread_func, args=(QtPreviewBase.previewcreateq,))
             QtPreviewBase.thread.setDaemon(True)
             QtPreviewBase.thread.start()
             self.event.wait()
+        elif binding != QtPreviewBase.binding:
+            _log.warning(f"Qt previews are already running with {QtPreviewBase.binding.value}, not using {binding.value}")
         retq = Queue()
         QtPreviewBase.previewcreateq.put((Command.CREATE, retq, (self, picam2)))
         self.qpicamera2 = retq.get()
@@ -129,8 +146,9 @@ class QtPreviewBase:
 
 class QtPreview(QtPreviewBase):
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
-        from picamera2.previews.qt import QPicamera2
+        from picamera2.previews.q_picamera2 import _get_qpicamera2
 
+        QPicamera2 = _get_qpicamera2(QtPreviewBase.binding)
         return QPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):
@@ -149,8 +167,9 @@ class QtGlPreview(QtPreviewBase):
         super().start(picam2)
 
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
-        from picamera2.previews.qt import QGlPicamera2
+        from picamera2.previews.qt import _gl_widget
 
+        QGlPicamera2 = _gl_widget(QtPreviewBase.binding)
         return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):
@@ -168,8 +187,9 @@ class QtGlPreviewWayland(QtPreviewBase):
         super().start(picam2)
 
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
-        from picamera2.previews.qt import QGlPicamera2
+        from picamera2.previews.qt import _gl_widget
 
+        QGlPicamera2 = _gl_widget(QtPreviewBase.binding)
         return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
 
     def get_title(self):
@@ -181,8 +201,15 @@ class QtGlPreviewDirect(QtGlPreview):
     # Wayland (no FBO blit); on X11 falls back to the standard QtGlPreview
     # path.  See the stacking caveats in q_gl_picamera2_wl_direct.py.
     def make_picamera2_widget(self, picam2, width=640, height=480, transform=None):
-        from picamera2.previews.qt import QGlPicamera2
+        from picamera2.previews.qt import _gl_widget, _is_wayland
+        from picamera2.previews.qt_compatibility import _QT_BINDING
 
+        QGlPicamera2 = _gl_widget(QtPreviewBase.binding)
+        if QtPreviewBase.binding == _QT_BINDING.PySide2:
+            # PySide2 only has the X11 GL widget, which has no direct mode.
+            if _is_wayland():
+                _log.warning("Direct rendering is not available with PySide2")
+            return QGlPicamera2(picam2, width=self.width, height=self.height, transform=self.transform, preview_window=self)
         return QGlPicamera2(
             picam2, direct=True, width=self.width, height=self.height, transform=self.transform, preview_window=self
         )

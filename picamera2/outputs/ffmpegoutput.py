@@ -1,10 +1,21 @@
+import ctypes
 import gc
+import os
 import signal
 import subprocess
 
-import prctl
-
 from .output import Output
+
+_PR_SET_PDEATHSIG = 1  # from <linux/prctl.h>
+
+
+def _set_pdeathsig(parent_pid):
+    # Runs in the child before exec: ask the kernel to kill us when our parent dies.
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.prctl(_PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
+    # This handles the case where the parent dies before ffmpeg starts:
+    if os.getppid() != parent_pid:
+        os._exit(1)
 
 
 class FfmpegOutput(Output):
@@ -95,7 +106,8 @@ class FfmpegOutput(Output):
         )
         # The preexec_fn is a slightly nasty way of ensuring FFmpeg gets stopped if we quit
         # without calling stop() (which is otherwise not guaranteed).
-        self.ffmpeg = subprocess.Popen(command, stdin=subprocess.PIPE, preexec_fn=lambda: prctl.set_pdeathsig(signal.SIGKILL))
+        parent_pid = os.getpid()
+        self.ffmpeg = subprocess.Popen(command, stdin=subprocess.PIPE, preexec_fn=lambda: _set_pdeathsig(parent_pid))
         super().start()
 
     def stop(self):
